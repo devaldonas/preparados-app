@@ -97,7 +97,7 @@ export async function POST(request: Request) {
 
     const mockData = {
       id: `mock_${Date.now()}`,
-      init_point: `${process.env.NEXT_PUBLIC_APP_URL || 'https://eaepreparado.vercel.app'}/planos/sucesso?mock=true`
+      init_point: `${process.env.NEXT_PUBLIC_APP_URL || 'https://preparado.vercel.app'}/planos/sucesso?mock=true`
     }
 
     return NextResponse.json({
