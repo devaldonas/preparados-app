@@ -16,7 +16,7 @@ export default function BotaoIndicarAmigo() {
     ` Chat em tempo real com sua comunidade\n` +
     ` Guia completo para catástrofes (terremoto, tsunami, frio extremo)\n` +
     ` Dicas diárias de preparação\n\n` +
-    ` Acesse: https://eaepreparado.vercel.app/\n\n` +
+    ` Acesse: https://preparado.vercel.app/\n\n` +
     `Vamos nos preparar juntos! `
 
   const handleCompartilharWhatsApp = () => {
