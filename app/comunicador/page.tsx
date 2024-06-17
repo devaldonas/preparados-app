@@ -31,23 +31,23 @@ export default function Comunicador() {
 
   // ===== FUNÇÃO REUTILIZÁVEL DE ALTERNÂNCIA =====
   const alternarRadio = () => {
-    console.log('🔄 Alternando rádio via função unificada')
+    console.log(' Alternando rádio via função unificada')
     setIsOn(prev => !prev)
   }
 
   // ===== FUNÇÃO PARA ALTERNAR O PTT =====
   const alternarPtt = () => {
     if (!isOn) {
-      console.log('⚠️ Rádio desligado, não é possível usar o PTT')
+      console.log(' Rádio desligado, não é possível usar o PTT')
       return
     }
-    console.log('🔄 Alternando PTT para:', !isRecording ? 'ON' : 'OFF')
+    console.log(' Alternando PTT para:', !isRecording ? 'ON' : 'OFF')
     setIsRecording(prev => !prev)
   }
 
   // ===== FUNÇÃO PARA ALTERNAR ENTRE CH E GRUPOS =====
 const alternarModoExibicao = () => {
-  console.log('🔄 Alternando modo para:', modoExibicao === 'ch' ? 'grupo' : 'ch')
+  console.log(' Alternando modo para:', modoExibicao === 'ch' ? 'grupo' : 'ch')
   setModoExibicao(prev => prev === 'ch' ? 'grupo' : 'ch')
 }
 
@@ -71,7 +71,7 @@ const alternarModoExibicao = () => {
         const response = await fetch('/images/comunicador/radio-interface.svg')
         const svgText = await response.text()
         setSvgContent(svgText)
-        console.log('✅ SVG carregado com sucesso!')
+        console.log('SVG carregado com sucesso!')
       } catch (error) {
         console.error('❌ Erro ao carregar SVG:', error)
         setSvgContent(`
@@ -104,7 +104,7 @@ const alternarModoExibicao = () => {
   // ===== useEffect para atualizar visibilidade do ON/OFF =====
   useEffect(() => {
     if (svgContent) {
-      console.log('🔄 useEffect - isOn mudou para:', isOn)
+      console.log('useEffect - isOn mudou para:', isOn)
       atualizarVisibilidadeOnOff()
     }
   }, [isOn, svgContent])
@@ -112,7 +112,7 @@ const alternarModoExibicao = () => {
   // ===== useEffect para atualizar visibilidade do PTT =====
   useEffect(() => {
     if (svgContent) {
-      console.log('🔄 useEffect - isRecording mudou para:', isRecording)
+      console.log('useEffect - isRecording mudou para:', isRecording)
       atualizarVisibilidadePtt()
     }
   }, [isRecording, svgContent])
@@ -217,7 +217,7 @@ const atualizarVisibilidadeChGrupos = () => {
   const chEl = svgElement.querySelector('#botao-ch-ativo') as SVGElement
   const grupoEl = svgElement.querySelector('#botao-grupo-ativo') as SVGElement
 
-  console.log('🔄 Atualizando CH/Grupos - modo:', modoExibicao)
+  console.log('Atualizando CH/Grupos - modo:', modoExibicao)
 
   if (modoExibicao === 'ch') {
     if (chEl) {
@@ -247,18 +247,18 @@ const atualizarVisibilidadeChGrupos = () => {
   const configurarEventosSVG = () => {
     const container = svgContainerRef.current
     if (!container) {
-      console.log('⏳ Container não encontrado')
+      console.log('Container não encontrado')
       return
     }
 
     const svgElement = container.querySelector('svg')
     if (!svgElement) {
-      console.log('⏳ SVG não encontrado no container')
+      console.log('SVG não encontrado no container')
       return
     }
 
     svgElement.setAttribute('id', 'radio-interface-svg')
-    console.log('🎯 Configurando eventos no SVG...')
+    console.log('Configurando eventos no SVG...')
 
     // ===== BOTÃO ON =====
     const btnOn = svgElement.querySelector('#botao-On-ativo') as SVGElement
@@ -544,9 +544,9 @@ const atualizarVisibilidadeChGrupos = () => {
     onMouseDown={() => {
       if (isOn) {
         setIsRecording(true)
-        console.log('🎤 PTT pressionado - gravando...')
+        console.log(' PTT pressionado - gravando...')
       } else {
-        console.log('⚠️ Rádio desligado')
+        console.log(' Rádio desligado')
       }
     }}
     onMouseUp={() => {
