@@ -145,7 +145,7 @@ export default function Checklist() {
       { category_id: 8, name: 'Apito', description: 'Sinalização', order: 3, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 9, name: 'Água engarrafada', description: '3 litros por pessoa', order: 1, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 9, name: 'Enlatados', description: 'Sardinha, atum, feijão', order: 2, tipo: ['BOB', 'BOLT'] },
-      { category_id: 9, name: 'Barras de cereais', description: 'Energia rápida', order: 3, tipo: ['EDC', 'BOB', 'BOLT'] },
+      { category_id: 9, name: 'Tsampa', description: 'Energia rápida', order: 3, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 10, name: 'Meias extras', description: 'Par reserva', order: 1, tipo: ['BOB', 'BOLT'] },
       { category_id: 10, name: 'Jaqueta impermeável', description: 'Proteção contra chuva', order: 2, tipo: ['BOB', 'BOLT'] },
       { category_id: 10, name: 'Camisa térmica', description: 'Frio intenso', order: 3, tipo: ['BOLT'] },
