@@ -1,11 +1,12 @@
- 'use client'
+'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function Resultado() {
+// Componente interno que usa useSearchParams
+function ResultadoContent() {
   const [user, setUser] = useState<any>(null)
   const [mochilaTipo, setMochilaTipo] = useState('BOB')
   const router = useRouter()
@@ -115,5 +116,14 @@ export default function Resultado() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Componente principal com Suspense
+export default function Resultado() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando resultado...</div>}>
+      <ResultadoContent />
+    </Suspense>
   )
 }
