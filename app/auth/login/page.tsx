@@ -73,6 +73,16 @@ export default function Login() {
             </div>
           </div>
 
+          {/* Link para recuperar senha */}
+          <div className="text-right">
+            <Link
+              href="/auth/recuperar-senha"
+              className="text-sm text-green-600 hover:text-green-500"
+            >
+              Esqueceu sua senha?
+            </Link>
+          </div>
+
           <div>
             <button
               type="submit"

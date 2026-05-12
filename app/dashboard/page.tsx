@@ -43,7 +43,6 @@ export default function Dashboard() {
   }
 
   const loadProgress = async (userId: string) => {
-    // Buscar progresso do usuário
     const { data: userProgress } = await supabase
       .from('user_progress')
       .select('completed')
@@ -61,7 +60,6 @@ export default function Dashboard() {
     setProgress(total > 0 ? (completed / total) * 100 : 0)
   }
 
-  // Função corrigida - sem erro de tipo
   const checkCheckinStatus = async (userId: string) => {
     const { data } = await supabase
       .from('checkin_answers')
@@ -69,7 +67,6 @@ export default function Dashboard() {
       .eq('user_id', userId)
       .limit(1)
     
-    // Verificar se data existe e tem comprimento > 0
     const hasCheckin = data !== null && data.length > 0
     setCheckinCompleted(hasCheckin)
   }
@@ -117,6 +114,42 @@ export default function Dashboard() {
               <span className="text-sm font-medium">{getTipoLabel()}</span>
             </div>
           </div>
+        </div>
+
+        {/* Botões de acesso rápido */}
+        <div className="grid grid-cols-3 gap-3 mb-8">
+          <a
+            href="https://fmdiamante.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-xl text-center hover:from-purple-700 hover:to-indigo-700 transition shadow-sm"
+          >
+            <div className="text-2xl mb-1">📡</div>
+            <div className="text-sm font-semibold">Rádio Diamante</div>
+            <div className="text-xs opacity-90">Informações ao vivo</div>
+          </a>
+
+          <a
+            href="https://www.painelglobal.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-4 rounded-xl text-center hover:from-blue-700 hover:to-cyan-700 transition shadow-sm"
+          >
+            <div className="text-2xl mb-1">🌍</div>
+            <div className="text-sm font-semibold">Painel Global</div>
+            <div className="text-xs opacity-90">Monitoramento</div>
+          </a>
+
+          <a
+            href="https://wa.me/?text=🚨 *PREPARADOS - COMUNICADO DE EMERGÊNCIA* 🚨%0A%0AAcionei o comunicador do aplicativo PREPARADOS.%0A%0APreciso de informações e orientações.%0A%0A*Favor retornar o contato.*"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 rounded-xl text-center hover:from-green-700 hover:to-emerald-700 transition shadow-sm"
+          >
+            <div className="text-2xl mb-1">💬</div>
+            <div className="text-sm font-semibold">Comunicador Via Rádio</div>
+            <div className="text-xs opacity-90">Canal de emergência</div>
+          </a>
         </div>
 
         {/* Cards de Progresso */}
@@ -181,7 +214,79 @@ export default function Dashboard() {
             <h3 className="font-semibold text-gray-900">Loja</h3>
             <p className="text-xs text-gray-500 mt-1">Produtos essenciais</p>
           </Link>
+
+          <Link href="/catastrofes" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+            <div className="text-4xl mb-2">🌊</div>
+            <h3 className="font-semibold text-gray-900">Catástrofes</h3>
+            <p className="text-xs text-gray-500 mt-1">Orientação e rotas</p>
+          </Link>
         </div>
+
+       {/* Card do Painel Global com imagem estática */}
+<div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl shadow-sm overflow-hidden mb-8 text-white">
+  <div className="p-6 pb-0">
+    <div className="flex items-start justify-between flex-wrap gap-4">
+      <div className="flex items-center gap-4">
+        <div className="text-5xl">🌍</div>
+        <div>
+          <h3 className="text-xl font-bold">Painel Global</h3>
+          <p className="text-blue-100 text-sm mt-1">
+            Monitoramento de placas tectônicas, vulcões e terremotos
+          </p>
+          <p className="text-blue-200 text-xs mt-2">
+            Dados sísmicos em tempo real
+          </p>
+        </div>
+      </div>
+      <a
+        href="https://www.painelglobal.com.br"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-6 py-3 rounded-xl font-semibold transition flex items-center gap-2 text-sm"
+      >
+        Acessar Painel Global ao vivo
+        <span className="text-lg">→</span>
+      </a>
+    </div>
+  </div>
+  
+  {/* Imagem do mapa de monitoramento */}
+  <div className="relative mt-4">
+    <img
+      src="/images/mapa-monitoramento.png"
+      alt="Mapa de monitoramento global - Placas tectônicas, vulcões e terremotos"
+      className="w-full h-auto object-cover"
+      loading="lazy"
+    />
+    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+      <p className="text-white text-xs text-center">
+        🗺️ Mapa de monitoramento | Fonte: Painel Global
+      </p>
+    </div>
+  </div>
+  
+  {/* Legenda rápida */}
+  <div className="p-4 border-t border-white/20 bg-white/5">
+    <div className="flex flex-wrap justify-center gap-4 text-xs">
+      <div className="flex items-center gap-1">
+        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+        <span>Vulcões Ativos</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+        <span>Terremotos Recentes</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+        <span>Temperaturas</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <div className="w-3 h-3 border border-white/80"></div>
+        <span>Placas Tectônicas</span>
+      </div>
+    </div>
+  </div>
+</div>
 
         {/* Seção de Dicas */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border border-green-100">

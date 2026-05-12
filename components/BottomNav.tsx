@@ -12,6 +12,7 @@ export default function BottomNav() {
     { name: 'Mochila', href: '/checklist', icon: '🎒' },
     { name: 'Pessoas', href: '/pessoas', icon: '🗺️' },
     { name: 'Loja', href: '/loja', icon: '📦' },
+    { name: 'Catástrofes', href: '/catastrofes', icon: '🌊' },
   ]
 
   return (
