@@ -73,22 +73,22 @@ export default function PessoasProximas() {
   }, [])
 
   const loadUserLocation = async (userId: string) => {
-  if (!userId) return
-  
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('latitude, longitude')
-    .eq('id', userId)
-    .single()
-  
-  if (!error && data && data.latitude && data.longitude) {
-    const loc = { lat: data.latitude, lng: data.longitude }
-    setLocation(loc)
-    await buscarPessoasProximas(loc.lat, loc.lng)
-  } else {
-    console.log('Usuário não tem localização salva, aguardando compartilhamento')
+    if (!userId) return
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('latitude, longitude')
+      .eq('id', userId)
+      .single()
+    
+    if (!error && data && data.latitude && data.longitude) {
+      const loc = { lat: data.latitude, lng: data.longitude }
+      setLocation(loc)
+      await buscarPessoasProximas(loc.lat, loc.lng)
+    } else {
+      console.log('Usuário não tem localização salva, aguardando compartilhamento')
+    }
   }
-}
 
   const getCurrentLocation = () => {
     setError('')
@@ -129,34 +129,10 @@ export default function PessoasProximas() {
   }
 
   const buscarPessoasProximas = async (lat: number, lng: number) => {
-  setRefreshing(true)
-  
-  // Proteção: se não tem user, não faz a busca
-  if (!user || !user.id) {
-    console.log('Usuário não autenticado, usando modo demonstração')
-    setUseMockData(true)
-    const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
-      ...p,
-      distance: calcularDistancia(lat, lng, p.latitude, p.longitude)
-    }))
-    const filtradas = pessoasComDistancia.filter(p => p.distance <= radius)
-    setPessoas(filtradas)
-    setRefreshing(false)
-    return
-  }
-  
-  try {
-    // Buscar todos os perfis com localização (exceto o próprio)
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, latitude, longitude, mochila_tipo, last_location_update')
-      .not('id', 'eq', user.id)
-      .not('latitude', 'is', null)
-      .not('longitude', 'is', null)
+    setRefreshing(true)
     
-    if (error) {
-      console.error('Erro Supabase:', error)
-      // Usar dados mockados em caso de erro
+    if (!user || !user.id) {
+      console.log('Usuário não autenticado, usando modo demonstração')
       setUseMockData(true)
       const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
         ...p,
@@ -167,47 +143,66 @@ export default function PessoasProximas() {
       setRefreshing(false)
       return
     }
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, latitude, longitude, mochila_tipo, last_location_update')
+        .not('id', 'eq', user.id)
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null)
+      
+      if (error) {
+        console.error('Erro Supabase:', error)
+        setUseMockData(true)
+        const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
+          ...p,
+          distance: calcularDistancia(lat, lng, p.latitude, p.longitude)
+        }))
+        const filtradas = pessoasComDistancia.filter(p => p.distance <= radius)
+        setPessoas(filtradas)
+        setRefreshing(false)
+        return
+      }
 
-    if (!data || data.length === 0) {
-      // Se não há dados reais, usar mock
-      setUseMockData(true)
+      if (!data || data.length === 0) {
+        setUseMockData(true)
+        const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
+          ...p,
+          distance: calcularDistancia(lat, lng, p.latitude, p.longitude)
+        }))
+        const filtradas = pessoasComDistancia.filter(p => p.distance <= radius)
+        setPessoas(filtradas)
+        setRefreshing(false)
+        return
+      }
+
+      setUseMockData(false)
+      const pessoasComDistancia = data.map((pessoa) => ({
+        ...pessoa,
+        distance: calcularDistancia(lat, lng, pessoa.latitude, pessoa.longitude),
+        last_seen: pessoa.last_location_update,
+      }))
+      
+      const pessoasProximas = pessoasComDistancia
+        .filter(p => p.distance <= radius)
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 50)
+      
+      setPessoas(pessoasProximas)
+    } catch (err) {
+      console.error('Erro inesperado:', err)
       const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
         ...p,
         distance: calcularDistancia(lat, lng, p.latitude, p.longitude)
       }))
       const filtradas = pessoasComDistancia.filter(p => p.distance <= radius)
       setPessoas(filtradas)
+      setUseMockData(true)
+    } finally {
       setRefreshing(false)
-      return
     }
-
-    setUseMockData(false)
-    const pessoasComDistancia = data.map((pessoa) => ({
-      ...pessoa,
-      distance: calcularDistancia(lat, lng, pessoa.latitude, pessoa.longitude),
-      last_seen: pessoa.last_location_update,
-    }))
-    
-    const pessoasProximas = pessoasComDistancia
-      .filter(p => p.distance <= radius)
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, 50)
-    
-    setPessoas(pessoasProximas)
-  } catch (err) {
-    console.error('Erro inesperado:', err)
-    // Fallback para mock
-    const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
-      ...p,
-      distance: calcularDistancia(lat, lng, p.latitude, p.longitude)
-    }))
-    const filtradas = pessoasComDistancia.filter(p => p.distance <= radius)
-    setPessoas(filtradas)
-    setUseMockData(true)
-  } finally {
-    setRefreshing(false)
   }
-}
 
   const calcularDistancia = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371
@@ -251,12 +246,22 @@ export default function PessoasProximas() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Header com ícone */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-preparados-blue mb-2">🗺️ PESSOAS PRÓXIMAS</h1>
-          <p className="text-gray-600">
-            Conecte-se com pessoas que também estão se preparando
-          </p>
-        </div>
+  <img 
+    src="http://localhost:3000/images/localizacao-icon.jpeg" 
+    alt="Localizacao" 
+    className="w-16 h-16 mx-auto mb-4 object-contain"
+    onError={(e) => {
+      console.error('Erro ao carregar imagem:', e.currentTarget.src)
+      e.currentTarget.style.display = 'none'
+    }}
+  />
+  <h1 className="text-3xl font-bold text-preparados-blue mb-2">PESSOAS PROXIMAS</h1>
+  <p className="text-gray-600">
+    Conecte-se com pessoas que tambem estao se preparando
+  </p>
+</div>
 
         {!location && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8 text-center">

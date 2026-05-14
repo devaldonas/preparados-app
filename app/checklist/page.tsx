@@ -204,7 +204,6 @@ export default function Checklist() {
     setSavingAll(true)
     setSaveMessage('✓ Salvando seu progresso...')
     
-    // Pequeno delay para mostrar a mensagem
     setTimeout(() => {
       setSaveMessage('✓ Checklist salvo com sucesso!')
       setTimeout(() => {
@@ -253,6 +252,92 @@ export default function Checklist() {
             {mochilaTipo === 'BOB' && 'Bug Out Bag - 72 horas de emergência'}
             {mochilaTipo === 'BOLT' && 'Bug Out Long Term - Autossuficiência'}
           </p>
+        </div>
+
+        {/* Tipos de Mochila - Seção Educativa */}
+        <div className="bg-gradient-to-r from-green-50 via-yellow-50 to-blue-50 rounded-xl p-5 mb-8 border border-gray-100">
+          <h2 className="text-lg font-bold text-preparados-blue mb-3 flex items-center gap-2">
+            <span className="text-2xl">🎒</span> Qual tipo de mochila você está montando?
+          </h2>
+          <p className="text-gray-600 text-sm mb-4">
+            Cada missão exige um tipo de preparação. Veja qual se encaixa no seu perfil:
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* EDC */}
+<div className={`bg-white rounded-lg p-4 border-2 transition ${mochilaTipo === 'EDC' ? 'border-green-500 shadow-md' : 'border-gray-100'}`}>
+  <div className="flex items-center justify-between mb-2">
+    <div className="flex items-center gap-2">
+      <span className="text-2xl">🎒</span>
+      <h3 className="font-bold text-green-700">EDC</h3>
+    </div>
+    {mochilaTipo === 'EDC' && (
+      <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">Selecionado</span>
+    )}
+  </div>
+  <p className="text-xs text-gray-500 mb-1">Every Day Carry</p>
+  <p className="text-sm text-gray-600">
+    Carregar todos os dias coisas que você usa no seu dia a dia.
+  </p>
+  <div className="mt-2 flex flex-wrap gap-1">
+    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">💧 Garrafa de água</span>
+    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">🧼 Toalha</span>
+    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">📱 Carregador de celular</span>
+    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">👓 Óculos</span>
+    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">🔧 Alicate multifuncional</span>
+  </div>
+</div>
+
+            {/* BOB */}
+            <div className={`bg-white rounded-lg p-4 border-2 transition ${mochilaTipo === 'BOB' ? 'border-yellow-500 shadow-md' : 'border-gray-100'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🎒⚡</span>
+                  <h3 className="font-bold text-yellow-700">BOB</h3>
+                </div>
+                {mochilaTipo === 'BOB' && (
+                  <span className="text-xs bg-yellow-500 text-white px-2 py-0.5 rounded-full">Selecionado</span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mb-1">Bug Out Bag</p>
+              <p className="text-sm text-gray-600">
+                72 horas para os 3 primeiros dias. Focada no básico e mobilidade.
+              </p>
+              <div className="mt-2 text-xs text-yellow-600">
+                ⚡ Emergências, evacuação rápida
+              </div>
+            </div>
+
+            {/* BOLT */}
+            <div className={`bg-white rounded-lg p-4 border-2 transition ${mochilaTipo === 'BOLT' ? 'border-blue-500 shadow-md' : 'border-gray-100'}`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">⛰️</span>
+                  <h3 className="font-bold text-blue-700">BOLT</h3>
+                </div>
+                {mochilaTipo === 'BOLT' && (
+                  <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">Selecionado</span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mb-1">Bug Out Long Term</p>
+              <p className="text-sm text-gray-600">
+                Longo período. Focada em ser autossuficiente por tempo indeterminado.
+              </p>
+              <div className="mt-2 text-xs text-blue-600">
+                ⛰️ Autossuficiência, longo prazo
+              </div>
+            </div>
+          </div>
+          
+          {/* Mensagem sobre o tipo atual */}
+          <div className="mt-4 text-center text-sm">
+            <span className="bg-preparados-yellow text-preparados-blue px-3 py-1 rounded-full">
+              Seu perfil atual: {mochilaTipo === 'EDC' ? '🎒 EDC (uso diário)' : mochilaTipo === 'BOB' ? '🎒⚡ BOB (72h)' : '⛰️ BOLT (longo período)'}
+            </span>
+            <p className="text-xs text-gray-500 mt-2">
+              💡 Os itens exibidos abaixo já estão filtrados para o seu perfil.
+            </p>
+          </div>
         </div>
 
         {/* Mensagem de salvamento */}

@@ -181,14 +181,19 @@ export default function Dashboard() {
   </div>
 </div>
 
-       {/* Menu Principal - Cards de Acesso Rápido */}
+      {/* Menu Principal - Cards de Acesso Rápido */}
 <h2 className="text-lg font-semibold text-gray-800 mb-4">Acesso Rápido</h2>
 <div className="grid grid-cols-2 gap-4 mb-8">
   <Link 
     href="/check-in" 
     className={`bg-white p-5 rounded-xl shadow-sm border hover:shadow-md transition text-center ${!checkinCompleted ? 'ring-2 ring-green-500 ring-offset-2' : 'border-gray-100'}`}
   >
-    <div className="text-4xl mb-2">🧠</div>
+    <img 
+      src="/images/checkin-icon.png" 
+      alt="Check-in" 
+      className="w-12 h-12 mx-auto mb-2 object-contain"
+      onError={(e) => { e.currentTarget.style.display = 'none' }}
+    />
     <h3 className="font-semibold text-gray-900">Check-in</h3>
     <p className="text-xs text-gray-500 mt-1">
       {checkinCompleted ? 'Atualizar diagnóstico' : 'Iniciar avaliação'}
@@ -196,28 +201,48 @@ export default function Dashboard() {
   </Link>
 
   <Link href="/checklist" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-    <div className="text-4xl mb-2">🎒</div>
+    <img 
+      src="/images/mochila-icon.png" 
+      alt="Mochila" 
+      className="w-12 h-12 mx-auto mb-2 object-contain"
+      onError={(e) => { e.currentTarget.style.display = 'none' }}
+    />
     <h3 className="font-semibold text-gray-900">Mochila</h3>
     <p className="text-xs text-gray-500 mt-1">Itens essenciais</p>
   </Link>
 
   <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-    <div className="text-4xl mb-2">🗺️</div>
+    <img 
+      src="/images/pessoas-icon.png" 
+      alt="Pessoas Próximas" 
+      className="w-12 h-12 mx-auto mb-2 object-contain"
+      onError={(e) => { e.currentTarget.style.display = 'none' }}
+    />
     <h3 className="font-semibold text-gray-900">Pessoas Próximas</h3>
     <p className="text-xs text-gray-500 mt-1">Comunidade preparada</p>
   </Link>
 
-  <Link href="/loja" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-    <div className="text-4xl mb-2">📦</div>
-    <h3 className="font-semibold text-gray-900">Loja</h3>
-    <p className="text-xs text-gray-500 mt-1">Produtos essenciais</p>
-  </Link>
+ <Link href="/loja" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+  <img 
+    src="/images/loja-icon.jpeg" 
+    alt="Loja" 
+    className="w-12 h-12 mx-auto mb-2 object-contain"
+    onError={(e) => { e.currentTarget.style.display = 'none' }}
+  />
+  <h3 className="font-semibold text-gray-900">Loja</h3>
+  <p className="text-xs text-gray-500 mt-1">Produtos essenciais</p>
+</Link>
 
   <Link href="/catastrofes" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-    <div className="text-4xl mb-2">🌊</div>
-    <h3 className="font-semibold text-gray-900">Catástrofes</h3>
-    <p className="text-xs text-gray-500 mt-1">Orientação e rotas</p>
-  </Link>
+  <img 
+    src="/images/catastrofes-icon.jpeg" 
+    alt="Catástrofes" 
+    className="w-12 h-12 mx-auto mb-2 object-contain"
+    onError={(e) => { e.currentTarget.style.display = 'none' }}
+  />
+  <h3 className="font-semibold text-gray-900">Catástrofes</h3>
+  <p className="text-xs text-gray-500 mt-1">Orientação e rotas</p>
+</Link>
 
   {/* Card do Ecossistema Dakila com imagem de fundo */}
   <a
@@ -226,13 +251,10 @@ export default function Dashboard() {
     rel="noopener noreferrer"
     className="relative overflow-hidden bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-5 rounded-xl shadow-sm border hover:shadow-md transition text-center group"
   >
-    {/* Imagem de fundo */}
     <div 
       className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-40 transition"
       style={{ backgroundImage: "url('/images/dakila/dakila-slide1.png')" }}
     />
-    
-    {/* Conteúdo sobreposto */}
     <div className="relative z-10">
       <div className="text-4xl mb-2">🌍</div>
       <h3 className="font-semibold">Ecossistema Dakila</h3>
