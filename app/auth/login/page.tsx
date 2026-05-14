@@ -83,6 +83,13 @@ export default function Login() {
             </Link>
           </div>
 
+          <div className="text-center">
+  <img src="/logo.png" alt="PREPARADOS" className="h-16 mx-auto mb-4" />
+  <h2 className="text-center text-3xl font-extrabold text-gray-900">
+    Entrar no <span className="text-green-700">PREPARADOS</span>
+  </h2>
+</div>
+
           <div>
             <button
               type="submit"

@@ -251,95 +251,130 @@ export default function Catastrofes() {
         )}
 
         {/* Conteúdo - ROTAS DE FUGA */}
-        {abaAtiva === 'rotas' && (
-          <div className="space-y-6">
-            {/* Introdução */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-3">🗺️ Planejamento de Rotas de Fuga</h2>
-              <p className="text-gray-700 leading-relaxed">
-                Em situações de emergência, ter uma rota de fuga bem planejada pode ser crucial para sua segurança 
-                e a segurança dos seus entes queridos.
-              </p>
-            </div>
+{abaAtiva === 'rotas' && (
+  <div className="space-y-6">
+    {/* Introdução */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h2 className="text-xl font-bold text-gray-900 mb-3">🗺️ Planejamento de Rotas de Fuga</h2>
+      <p className="text-gray-700 leading-relaxed">
+        Em situações de emergência, ter uma rota de fuga bem planejada pode ser crucial para sua segurança 
+        e a segurança dos seus entes queridos.
+      </p>
+    </div>
 
-            {/* O que evitar */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-red-600 mb-3">❌ Pontos para EVITAR na sua rota</h2>
-              <ul className="list-disc list-inside text-gray-700 space-y-2">
-                <li><strong>Pontos de alagamento:</strong> Baixadas e laterais de córregos ou rios</li>
-                <li><strong>Árvores grandes:</strong> Podem cair e obstruir a via</li>
-                <li><strong>Ruas e avenidas de grande movimento</strong></li>
-                <li><strong>Pontes suspensas e viadutos</strong></li>
-                <li><strong>Estradas com morros altos:</strong> Risco de desmoronamento de terra</li>
-                <li><strong>Prédios altos e antenas:</strong> Podem obstruir sua passagem ou cair</li>
-              </ul>
-            </div>
+    {/* Seção: Pontos de Alagamento */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-blue-600 mb-3">💧 Pontos de Alagamento</h3>
+      <p className="text-gray-700 mb-3">Identifique possíveis pontos de alagamento na sua cidade/rota, como baixadas e laterais de córregos ou rios.</p>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+        <img src="/images/catastrofes/alagamento-slide1.png" alt="Alagamento 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/alagamento-slide2.png" alt="Alagamento 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/alagamento-slide3.png" alt="Alagamento 3" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+      </div>
+    </div>
 
-            {/* Pontos estratégicos */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-green-700 mb-3">✅ Pontos para MAPEAR na sua rota</h2>
-              <ul className="list-disc list-inside text-gray-700 space-y-2">
-                <li><strong>Farmácias e mercados:</strong> Para adquirir recursos valiosos</li>
-                <li><strong>Postos de combustível</strong></li>
-                <li><strong>Fontes de água:</strong> Recurso indispensável que pouca gente armazena</li>
-              </ul>
-            </div>
+    {/* Seção: Árvores que podem cair */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-green-600 mb-3">🌳 Árvores Grandes</h3>
+      <p className="text-gray-700 mb-3">Identifique árvores grandes que possam cair e obstruir a via.</p>
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        <img src="/images/catastrofes/arvores-slide1.png" alt="Árvores 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/arvores-slide2.png" alt="Árvores 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+      </div>
+    </div>
 
-            {/* Dicas estratégicas */}
-            <div className="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 p-6">
-              <h2 className="text-xl font-bold text-yellow-800 mb-3">💡 Dicas Estratégicas</h2>
-              <ul className="list-disc list-inside text-yellow-800 space-y-2">
-                <li>Se possível, trace rotas em estradas com poucos ou nenhum guard rail</li>
-                <li>Tenha uma chave para retirar guard rails em caso de engarrafamento</li>
-                <li>Assim você conseguirá seguir nos dois sentidos se necessário</li>
-              </ul>
-            </div>
+    {/* Seção: Desmoronamento de terra */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-orange-600 mb-3">⛰️ Desmoronamento de Terra</h3>
+      <p className="text-gray-700 mb-3">Cuidado com estradas em morros altos onde pode haver desmoronamento de terra.</p>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+        <img src="/images/catastrofes/desmoronamento-slide1.png" alt="Desmoronamento 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/desmoronamento-slide2.png" alt="Desmoronamento 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/desmoronamento-slide3.png" alt="Desmoronamento 3" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+      </div>
+    </div>
 
-            {/* Plano de Ação Familiar */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-3">👨‍👩‍👧‍👦 Plano de Ação Familiar</h2>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-bold text-gray-900">📌 Organização Familiar</h3>
-                  <ul className="list-disc list-inside text-gray-700 ml-4">
-                    <li>Definir previamente um ponto de encontro com a família</li>
-                    <li>Manter cópia dos documentos pessoais (físico ou digital) em embalagem à prova d'água</li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">📞 Comunicação Alternativa</h3>
-                  <ul className="list-disc list-inside text-gray-700 ml-4">
-                    <li>Estabelecer canal alternativo com familiares (apps de emergência, rádio comunitário)</li>
-                    <li>Anotar contatos de emergência em papel (não só no celular)</li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">🏥 Cuidados com a Saúde</h3>
-                  <ul className="list-disc list-inside text-gray-700 ml-4">
-                    <li>Levar medicamentos de uso contínuo</li>
-                    <li>Manter itens de higiene pessoal</li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">🏠 Retorno à Residência</h3>
-                  <ul className="list-disc list-inside text-gray-700 ml-4">
-                    <li>Somente retornar após liberação oficial das autoridades</li>
-                    <li>Verificar integridade da estrutura do imóvel</li>
-                    <li>Checar registros de água, gás e energia antes de utilizar</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+    {/* Seção: Pontes e Viadutos */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-red-600 mb-3">🌉 Pontes e Viadutos</h3>
+      <p className="text-gray-700 mb-3">Evite pontes suspensas e viadutos durante a fuga.</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+        <img src="/images/catastrofes/pontes-slide1.png" alt="Pontes 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/pontes-slide2.png" alt="Pontes 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/pontes-slide3.png" alt="Pontes 3" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/pontes-slide4.png" alt="Pontes 4" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+      </div>
+    </div>
 
-            {/* Mensagem final */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 text-center">
-              <p className="text-green-800 font-semibold">
-                🎯 Revise periodicamente seu plano de emergência familiar.<br/>
-                Participe de treinamentos e simulações. Faça APH básico.
-              </p>
-            </div>
-          </div>
-        )}
+    {/* Seção: Prédios Altos e Antenas */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-purple-600 mb-3">🏢 Prédios Altos e Antenas</h3>
+      <p className="text-gray-700 mb-3">Prédios altos e antenas também podem obstruir sua passagem ou cair.</p>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+        <img src="/images/catastrofes/predios-slide1.png" alt="Prédios 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/predios-slide2.png" alt="Prédios 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/predios-slide3.png" alt="Prédios 3" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+      </div>
+    </div>
+
+    {/* Seção: Rotas de Fuga */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-green-700 mb-3">🗺️ Exemplos de Rotas de Fuga</h3>
+      <p className="text-gray-700 mb-3">Trace sua rota com antecedência e evite os pontos de risco.</p>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+        <img src="/images/catastrofes/rotas-slide1.png" alt="Rotas 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/rotas-slide2.png" alt="Rotas 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/rotas-slide3.png" alt="Rotas 3" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+      </div>
+    </div>
+
+    {/* Dicas Estratégicas */}
+    <div className="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 p-6">
+      <h3 className="text-lg font-bold text-yellow-800 mb-3">💡 Dicas Estratégicas</h3>
+      <ul className="list-disc list-inside text-yellow-800 space-y-2">
+        <li>Se possível, trace rotas em estradas com poucos ou nenhum guard rail</li>
+        <li>Tenha uma chave para retirar guard rails em caso de engarrafamento</li>
+        <li>Assim você conseguirá seguir nos dois sentidos se necessário</li>
+      </ul>
+    </div>
+
+    {/* Plano de Ação Familiar */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-gray-900 mb-3">👨‍👩‍👧‍👦 Plano de Ação Familiar</h3>
+      <div className="space-y-4">
+        <div>
+          <h4 className="font-bold text-gray-900">📌 Organização Familiar</h4>
+          <ul className="list-disc list-inside text-gray-700 ml-4">
+            <li>Definir previamente um ponto de encontro com a família</li>
+            <li>Manter cópia dos documentos pessoais (físico ou digital) em embalagem à prova d'água</li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="font-bold text-gray-900">📞 Comunicação Alternativa</h4>
+          <ul className="list-disc list-inside text-gray-700 ml-4">
+            <li>Estabelecer canal alternativo com familiares (apps de emergência, rádio comunitário)</li>
+            <li>Anotar contatos de emergência em papel (não só no celular)</li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="font-bold text-gray-900">🏥 Cuidados com a Saúde</h4>
+          <ul className="list-disc list-inside text-gray-700 ml-4">
+            <li>Levar medicamentos de uso contínuo</li>
+            <li>Manter itens de higiene pessoal</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    {/* Mensagem final */}
+    <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 text-center">
+      <p className="text-green-800 font-semibold">
+        🎯 Revise periodicamente seu plano de emergência familiar.<br/>
+        Participe de treinamentos e simulações. Faça APH básico.
+      </p>
+    </div>
+  </div>
+)}
 
         {/* Botão Voltar */}
         <div className="mt-8">

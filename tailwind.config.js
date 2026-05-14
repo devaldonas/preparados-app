@@ -6,7 +6,16 @@ module.exports = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        'preparados': {
+          blue: '#0F2A4A',
+          yellow: '#FFC107',
+          green: '#2E7D32',
+          gray: '#F5F7FA',
+        },
+      },
+    },
   },
   plugins: [],
 }

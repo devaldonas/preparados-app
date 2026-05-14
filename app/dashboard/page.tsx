@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import RadioPlayer from '@/components/RadioPlayer'
+import MapaMonitoramentoCompleto from '@/components/MapaMonitoramentoCompleto'
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
@@ -13,6 +15,7 @@ export default function Dashboard() {
   const [totalItems, setTotalItems] = useState(0)
   const [completedItems, setCompletedItems] = useState(0)
   const router = useRouter()
+  const [mostrarRadio, setMostrarRadio] = useState(true)
 
   useEffect(() => {
     const getUser = async () => {
@@ -98,195 +101,150 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header com saudação */}
+        {/* Header com saudação e logo */}
+<div className="mb-8">
+  <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="flex items-center gap-3">
+      <img 
+        src="/logo.svg" 
+        alt="PREPARADOS" 
+        className="h-10 w-auto"
+        onError={(e) => { e.currentTarget.style.display = 'none' }}
+      />
+      <div>
+        <h1 className="text-3xl font-bold text-preparados-blue">
+          Olá, {user.user_metadata?.full_name || 'Preparado'}! 👋
+        </h1>
+        <p className="text-gray-600 mt-1">
+          Continue sua jornada de preparação
+        </p>
+      </div>
+    </div>
+    <div className="bg-preparados-yellow text-preparados-blue px-4 py-2 rounded-full flex items-center gap-2">
+      <span className="text-lg">{getTipoIcon()}</span>
+      <span className="text-sm font-medium">{getTipoLabel()}</span>
+    </div>
+  </div>
+</div>
+
+        {/* Player da Rádio Diamante integrado no topo */}
         <div className="mb-8">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Olá, {user.user_metadata?.full_name || 'Preparado'}! 👋
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Continue sua jornada de preparação
-              </p>
-            </div>
-            <div className="bg-green-100 text-green-800 px-4 py-2 rounded-full flex items-center gap-2">
-              <span className="text-lg">{getTipoIcon()}</span>
-              <span className="text-sm font-medium">{getTipoLabel()}</span>
-            </div>
-          </div>
+          <RadioPlayer 
+            minimizado={false}
+            onClose={() => setMostrarRadio(false)}
+            integrado={true}
+          />
         </div>
 
         {/* Botões de acesso rápido */}
-        <div className="grid grid-cols-3 gap-3 mb-8">
-          <a
-            href="https://fmdiamante.com.br"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-xl text-center hover:from-purple-700 hover:to-indigo-700 transition shadow-sm"
-          >
-            <div className="text-2xl mb-1">📡</div>
-            <div className="text-sm font-semibold">Rádio Diamante</div>
-            <div className="text-xs opacity-90">Informações ao vivo</div>
-          </a>
-
-          <a
-            href="https://www.painelglobal.com.br"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-4 rounded-xl text-center hover:from-blue-700 hover:to-cyan-700 transition shadow-sm"
-          >
-            <div className="text-2xl mb-1">🌍</div>
-            <div className="text-sm font-semibold">Painel Global</div>
-            <div className="text-xs opacity-90">Monitoramento</div>
-          </a>
-
-          <a
-            href="https://wa.me/?text=🚨 *PREPARADOS - COMUNICADO DE EMERGÊNCIA* 🚨%0A%0AAcionei o comunicador do aplicativo PREPARADOS.%0A%0APreciso de informações e orientações.%0A%0A*Favor retornar o contato.*"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4 rounded-xl text-center hover:from-green-700 hover:to-emerald-700 transition shadow-sm"
-          >
-            <div className="text-2xl mb-1">💬</div>
-            <div className="text-sm font-semibold">Comunicador Via Rádio</div>
-            <div className="text-xs opacity-90">Canal de emergência</div>
-          </a>
-        </div>
+<div className="grid grid-cols-1 gap-3 mb-8">
+  <a
+    href="https://wa.me/?text=🚨 *PREPARADOS - COMUNICADO DE EMERGÊNCIA* 🚨%0A%0AAcionei o comunicador do aplicativo PREPARADOS.%0A%0APreciso de informações e orientações.%0A%0A*Favor retornar o contato.*"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="bg-preparados-yellow text-preparados-blue p-4 rounded-xl text-center hover:bg-yellow-500 transition shadow-sm font-semibold"
+  >
+    <div className="text-2xl mb-1">💬</div>
+    <div className="text-sm font-semibold">Comunicador Via Rádio</div>
+    <div className="text-xs opacity-80">Canal de emergência</div>
+  </a>
+</div>
 
         {/* Cards de Progresso */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-sm">Preparação Geral</span>
-              <span className="text-green-700 font-semibold">{Math.round(progress)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div 
-                className="bg-green-600 h-2.5 rounded-full transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              {completedItems} de {totalItems} itens na mochila
-            </p>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl">🧠</span>
-              <div>
-                <p className="text-sm text-gray-500">Check-in</p>
-                <p className="font-medium text-gray-900">
-                  {checkinCompleted ? 'Diagnóstico realizado ✅' : 'Aguardando avaliação ⏳'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Menu Principal - Cards de Acesso Rápido */}
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Acesso Rápido</h2>
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <Link 
-            href="/check-in" 
-            className={`bg-white p-5 rounded-xl shadow-sm border hover:shadow-md transition text-center ${!checkinCompleted ? 'ring-2 ring-green-500 ring-offset-2' : 'border-gray-100'}`}
-          >
-            <div className="text-4xl mb-2">🧠</div>
-            <h3 className="font-semibold text-gray-900">Check-in</h3>
-            <p className="text-xs text-gray-500 mt-1">
-              {checkinCompleted ? 'Atualizar diagnóstico' : 'Iniciar avaliação'}
-            </p>
-          </Link>
-
-          <Link href="/checklist" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-            <div className="text-4xl mb-2">🎒</div>
-            <h3 className="font-semibold text-gray-900">Mochila</h3>
-            <p className="text-xs text-gray-500 mt-1">Itens essenciais</p>
-          </Link>
-
-          <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-            <div className="text-4xl mb-2">🗺️</div>
-            <h3 className="font-semibold text-gray-900">Pessoas Próximas</h3>
-            <p className="text-xs text-gray-500 mt-1">Comunidade preparada</p>
-          </Link>
-
-          <Link href="/loja" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-            <div className="text-4xl mb-2">📦</div>
-            <h3 className="font-semibold text-gray-900">Loja</h3>
-            <p className="text-xs text-gray-500 mt-1">Produtos essenciais</p>
-          </Link>
-
-          <Link href="/catastrofes" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-            <div className="text-4xl mb-2">🌊</div>
-            <h3 className="font-semibold text-gray-900">Catástrofes</h3>
-            <p className="text-xs text-gray-500 mt-1">Orientação e rotas</p>
-          </Link>
-        </div>
-
-       {/* Card do Painel Global com imagem estática */}
-<div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl shadow-sm overflow-hidden mb-8 text-white">
-  <div className="p-6 pb-0">
-    <div className="flex items-start justify-between flex-wrap gap-4">
-      <div className="flex items-center gap-4">
-        <div className="text-5xl">🌍</div>
-        <div>
-          <h3 className="text-xl font-bold">Painel Global</h3>
-          <p className="text-blue-100 text-sm mt-1">
-            Monitoramento de placas tectônicas, vulcões e terremotos
-          </p>
-          <p className="text-blue-200 text-xs mt-2">
-            Dados sísmicos em tempo real
-          </p>
-        </div>
-      </div>
-      <a
-        href="https://www.painelglobal.com.br"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-6 py-3 rounded-xl font-semibold transition flex items-center gap-2 text-sm"
-      >
-        Acessar Painel Global ao vivo
-        <span className="text-lg">→</span>
-      </a>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div className="flex items-center justify-between mb-3">
+      <span className="text-gray-500 text-sm">Preparação Geral</span>
+      <span className="text-preparados-blue font-bold text-lg">{Math.round(progress)}%</span>
     </div>
+    <div className="w-full bg-gray-200 rounded-full h-2.5">
+      <div 
+        className="bg-preparados-blue h-2.5 rounded-full transition-all duration-500"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+    <p className="text-xs text-gray-500 mt-2">
+      {completedItems} de {totalItems} itens na mochila
+    </p>
   </div>
   
-  {/* Imagem do mapa de monitoramento */}
-  <div className="relative mt-4">
-    <img
-      src="/images/mapa-monitoramento.png"
-      alt="Mapa de monitoramento global - Placas tectônicas, vulcões e terremotos"
-      className="w-full h-auto object-cover"
-      loading="lazy"
-    />
-    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-      <p className="text-white text-xs text-center">
-        🗺️ Mapa de monitoramento | Fonte: Painel Global
-      </p>
-    </div>
-  </div>
-  
-  {/* Legenda rápida */}
-  <div className="p-4 border-t border-white/20 bg-white/5">
-    <div className="flex flex-wrap justify-center gap-4 text-xs">
-      <div className="flex items-center gap-1">
-        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-        <span>Vulcões Ativos</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-        <span>Terremotos Recentes</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-        <span>Temperaturas</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <div className="w-3 h-3 border border-white/80"></div>
-        <span>Placas Tectônicas</span>
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div className="flex items-center gap-3 mb-2">
+      <span className="text-2xl">🧠</span>
+      <div>
+        <p className="text-sm text-gray-500">Check-in</p>
+        <p className="font-medium text-gray-900">
+          {checkinCompleted ? 'Diagnóstico realizado ✅' : 'Aguardando avaliação ⏳'}
+        </p>
       </div>
     </div>
   </div>
 </div>
+
+       {/* Menu Principal - Cards de Acesso Rápido */}
+<h2 className="text-lg font-semibold text-gray-800 mb-4">Acesso Rápido</h2>
+<div className="grid grid-cols-2 gap-4 mb-8">
+  <Link 
+    href="/check-in" 
+    className={`bg-white p-5 rounded-xl shadow-sm border hover:shadow-md transition text-center ${!checkinCompleted ? 'ring-2 ring-green-500 ring-offset-2' : 'border-gray-100'}`}
+  >
+    <div className="text-4xl mb-2">🧠</div>
+    <h3 className="font-semibold text-gray-900">Check-in</h3>
+    <p className="text-xs text-gray-500 mt-1">
+      {checkinCompleted ? 'Atualizar diagnóstico' : 'Iniciar avaliação'}
+    </p>
+  </Link>
+
+  <Link href="/checklist" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+    <div className="text-4xl mb-2">🎒</div>
+    <h3 className="font-semibold text-gray-900">Mochila</h3>
+    <p className="text-xs text-gray-500 mt-1">Itens essenciais</p>
+  </Link>
+
+  <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+    <div className="text-4xl mb-2">🗺️</div>
+    <h3 className="font-semibold text-gray-900">Pessoas Próximas</h3>
+    <p className="text-xs text-gray-500 mt-1">Comunidade preparada</p>
+  </Link>
+
+  <Link href="/loja" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+    <div className="text-4xl mb-2">📦</div>
+    <h3 className="font-semibold text-gray-900">Loja</h3>
+    <p className="text-xs text-gray-500 mt-1">Produtos essenciais</p>
+  </Link>
+
+  <Link href="/catastrofes" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+    <div className="text-4xl mb-2">🌊</div>
+    <h3 className="font-semibold text-gray-900">Catástrofes</h3>
+    <p className="text-xs text-gray-500 mt-1">Orientação e rotas</p>
+  </Link>
+
+  {/* Card do Ecossistema Dakila com imagem de fundo */}
+  <a
+    href="https://www.dakila.com.br"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="relative overflow-hidden bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-5 rounded-xl shadow-sm border hover:shadow-md transition text-center group"
+  >
+    {/* Imagem de fundo */}
+    <div 
+      className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-40 transition"
+      style={{ backgroundImage: "url('/images/dakila/dakila-slide1.png')" }}
+    />
+    
+    {/* Conteúdo sobreposto */}
+    <div className="relative z-10">
+      <div className="text-4xl mb-2">🌍</div>
+      <h3 className="font-semibold">Ecossistema Dakila</h3>
+      <p className="text-xs text-white/80 mt-1">Ciência e tecnologia</p>
+    </div>
+  </a>
+</div>
+
+        {/* Mapa de Monitoramento Global */}
+        <div className="mb-8">
+          <MapaMonitoramentoCompleto />
+        </div>
 
         {/* Seção de Dicas */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border border-green-100">

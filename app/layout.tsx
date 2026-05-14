@@ -4,7 +4,11 @@ import ClientLayout from '@/components/ClientLayout'
 
 export const metadata: Metadata = {
   title: 'PREPARADOS - Sua preparação para emergências',
-  description: 'Prepare-se para qualquer situação com EDC, BOB ou BOLT. Monte sua mochila, conecte-se com pessoas próximas.',
+  description: 'Prepare-se para qualquer situação com EDC, BOB ou BOLT.',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 export default function RootLayout({
@@ -14,6 +18,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+      </head>
       <body className="bg-gray-50">
         <ClientLayout>{children}</ClientLayout>
       </body>

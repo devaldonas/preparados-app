@@ -5,7 +5,34 @@
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900;
-    /* Espaço para o carrossel fixo na parte inferior */
     padding-bottom: 90px;
   }
+}
+
+/* Cores personalizadas do PREPARADOS */
+:root {
+  --preparados-blue: #0F2A4A;
+  --preparados-yellow: #FFC107;
+  --preparados-green: #2E7D32;
+}
+
+/* Classes utilitárias personalizadas */
+.bg-preparados-blue {
+  background-color: var(--preparados-blue);
+}
+
+.bg-preparados-yellow {
+  background-color: var(--preparados-yellow);
+}
+
+.text-preparados-blue {
+  color: var(--preparados-blue);
+}
+
+.text-preparados-yellow {
+  color: var(--preparados-yellow);
+}
+
+.border-preparados-yellow {
+  border-color: var(--preparados-yellow);
 }

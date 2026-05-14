@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -15,6 +15,37 @@ interface PessoaProxima {
   mochila_tipo: string
 }
 
+// Dados mockados para teste (remover depois)
+const MOCK_PESSOAS: PessoaProxima[] = [
+  {
+    id: '1',
+    full_name: 'Narciso (Teste)',
+    latitude: -23.5505,
+    longitude: -46.6333,
+    distance: 8.5,
+    last_seen: new Date().toISOString(),
+    mochila_tipo: 'BOB',
+  },
+  {
+    id: '2',
+    full_name: 'Michel (Teste)',
+    latitude: -23.548,
+    longitude: -46.635,
+    distance: 3.2,
+    last_seen: new Date().toISOString(),
+    mochila_tipo: 'EDC',
+  },
+  {
+    id: '3',
+    full_name: 'EDGE (Teste)',
+    latitude: -23.555,
+    longitude: -46.64,
+    distance: 12.0,
+    last_seen: new Date().toISOString(),
+    mochila_tipo: 'BOLT',
+  },
+]
+
 export default function PessoasProximas() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -22,8 +53,9 @@ export default function PessoasProximas() {
   const [pessoas, setPessoas] = useState<PessoaProxima[]>([])
   const [error, setError] = useState('')
   const [sharingLocation, setSharingLocation] = useState(false)
-  const [radius, setRadius] = useState(10)
+  const [radius, setRadius] = useState(50)
   const [refreshing, setRefreshing] = useState(false)
+  const [useMockData, setUseMockData] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -41,18 +73,22 @@ export default function PessoasProximas() {
   }, [])
 
   const loadUserLocation = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('latitude, longitude')
-      .eq('id', userId)
-      .single()
-    
-    if (data && data.latitude && data.longitude) {
-      const loc = { lat: data.latitude, lng: data.longitude }
-      setLocation(loc)
-      await buscarPessoasProximas(loc.lat, loc.lng)
-    }
+  if (!userId) return
+  
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('latitude, longitude')
+    .eq('id', userId)
+    .single()
+  
+  if (!error && data && data.latitude && data.longitude) {
+    const loc = { lat: data.latitude, lng: data.longitude }
+    setLocation(loc)
+    await buscarPessoasProximas(loc.lat, loc.lng)
+  } else {
+    console.log('Usuário não tem localização salva, aguardando compartilhamento')
   }
+}
 
   const getCurrentLocation = () => {
     setError('')
@@ -70,9 +106,8 @@ export default function PessoasProximas() {
         const loc = { lat: latitude, lng: longitude }
         setLocation(loc)
         
-        // Salvar localização no perfil do usuário
         if (user) {
-          const { error } = await supabase
+          await supabase
             .from('profiles')
             .update({ 
               latitude, 
@@ -80,12 +115,6 @@ export default function PessoasProximas() {
               last_location_update: new Date().toISOString()
             })
             .eq('id', user.id)
-          
-          if (error) {
-            console.error('Erro ao salvar localização:', error)
-          } else {
-            console.log('Localização salva com sucesso')
-          }
         }
         
         await buscarPessoasProximas(latitude, longitude)
@@ -99,48 +128,86 @@ export default function PessoasProximas() {
     )
   }
 
-  const buscarPessoasProximas = async (lat: number, lng: number, showRefresh = false) => {
-    if (showRefresh) setRefreshing(true)
-    
-    // Buscar TODOS os usuários com localização (exceto o próprio)
+  const buscarPessoasProximas = async (lat: number, lng: number) => {
+  setRefreshing(true)
+  
+  // Proteção: se não tem user, não faz a busca
+  if (!user || !user.id) {
+    console.log('Usuário não autenticado, usando modo demonstração')
+    setUseMockData(true)
+    const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
+      ...p,
+      distance: calcularDistancia(lat, lng, p.latitude, p.longitude)
+    }))
+    const filtradas = pessoasComDistancia.filter(p => p.distance <= radius)
+    setPessoas(filtradas)
+    setRefreshing(false)
+    return
+  }
+  
+  try {
+    // Buscar todos os perfis com localização (exceto o próprio)
     const { data, error } = await supabase
       .from('profiles')
       .select('id, full_name, latitude, longitude, mochila_tipo, last_location_update')
-      .not('id', 'eq', user?.id)
+      .not('id', 'eq', user.id)
       .not('latitude', 'is', null)
       .not('longitude', 'is', null)
     
     if (error) {
-      console.error('Erro ao buscar pessoas:', error)
-      if (showRefresh) setRefreshing(false)
+      console.error('Erro Supabase:', error)
+      // Usar dados mockados em caso de erro
+      setUseMockData(true)
+      const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
+        ...p,
+        distance: calcularDistancia(lat, lng, p.latitude, p.longitude)
+      }))
+      const filtradas = pessoasComDistancia.filter(p => p.distance <= radius)
+      setPessoas(filtradas)
+      setRefreshing(false)
       return
     }
 
-    if (data && data.length > 0) {
-      // Calcular distância para cada pessoa
-      const pessoasComDistancia = data.map((pessoa) => {
-        const distance = calcularDistancia(lat, lng, pessoa.latitude, pessoa.longitude)
-        return {
-          ...pessoa,
-          distance,
-          last_seen: pessoa.last_location_update,
-        }
-      })
-      
-      // Filtrar por raio e ordenar por distância
-      const pessoasProximas = pessoasComDistancia
-        .filter(p => p.distance <= radius)
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, 20)
-      
-      console.log(`Encontradas ${pessoasProximas.length} pessoas num raio de ${radius} km`)
-      setPessoas(pessoasProximas)
-    } else {
-      setPessoas([])
-      console.log('Nenhuma outra pessoa com localização encontrada')
+    if (!data || data.length === 0) {
+      // Se não há dados reais, usar mock
+      setUseMockData(true)
+      const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
+        ...p,
+        distance: calcularDistancia(lat, lng, p.latitude, p.longitude)
+      }))
+      const filtradas = pessoasComDistancia.filter(p => p.distance <= radius)
+      setPessoas(filtradas)
+      setRefreshing(false)
+      return
     }
-    if (showRefresh) setRefreshing(false)
+
+    setUseMockData(false)
+    const pessoasComDistancia = data.map((pessoa) => ({
+      ...pessoa,
+      distance: calcularDistancia(lat, lng, pessoa.latitude, pessoa.longitude),
+      last_seen: pessoa.last_location_update,
+    }))
+    
+    const pessoasProximas = pessoasComDistancia
+      .filter(p => p.distance <= radius)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 50)
+    
+    setPessoas(pessoasProximas)
+  } catch (err) {
+    console.error('Erro inesperado:', err)
+    // Fallback para mock
+    const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
+      ...p,
+      distance: calcularDistancia(lat, lng, p.latitude, p.longitude)
+    }))
+    const filtradas = pessoasComDistancia.filter(p => p.distance <= radius)
+    setPessoas(filtradas)
+    setUseMockData(true)
+  } finally {
+    setRefreshing(false)
   }
+}
 
   const calcularDistancia = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371
@@ -152,6 +219,12 @@ export default function PessoasProximas() {
       Math.sin(dLon/2) * Math.sin(dLon/2)
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
     return Math.round(R * c * 10) / 10
+  }
+
+  const handleRefresh = () => {
+    if (location) {
+      buscarPessoasProximas(location.lat, location.lng)
+    }
   }
 
   const getTipoLabel = (tipo: string) => {
@@ -166,16 +239,10 @@ export default function PessoasProximas() {
     return '⛰️'
   }
 
-  const handleRefresh = () => {
-    if (location) {
-      buscarPessoasProximas(location.lat, location.lng, true)
-    }
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-preparados-blue"></div>
         <p className="text-gray-600">Carregando...</p>
       </div>
     )
@@ -185,7 +252,7 @@ export default function PessoasProximas() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-green-700 mb-2">🗺️ PESSOAS PRÓXIMAS</h1>
+          <h1 className="text-3xl font-bold text-preparados-blue mb-2">🗺️ PESSOAS PRÓXIMAS</h1>
           <p className="text-gray-600">
             Conecte-se com pessoas que também estão se preparando
           </p>
@@ -202,7 +269,7 @@ export default function PessoasProximas() {
             <button
               onClick={getCurrentLocation}
               disabled={sharingLocation}
-              className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50"
+              className="bg-preparados-blue text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-900 transition disabled:opacity-50"
             >
               {sharingLocation ? 'Obtendo localização...' : '📍 Compartilhar minha localização'}
             </button>
@@ -218,13 +285,13 @@ export default function PessoasProximas() {
                   <span className="text-2xl">🎯</span>
                   <div>
                     <p className="text-sm text-gray-600">Raio de busca</p>
-                    <p className="font-semibold text-green-700">{radius} km</p>
+                    <p className="font-semibold text-preparados-blue">{radius} km</p>
                   </div>
                 </div>
                 <input
                   type="range"
                   min="1"
-                  max="50"
+                  max="100"
                   value={radius}
                   onChange={(e) => {
                     const newRadius = parseInt(e.target.value)
@@ -233,7 +300,7 @@ export default function PessoasProximas() {
                       buscarPessoasProximas(location.lat, location.lng)
                     }
                   }}
-                  className="w-48 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-600"
+                  className="w-48 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-preparados-blue"
                 />
                 <button
                   onClick={handleRefresh}
@@ -241,7 +308,7 @@ export default function PessoasProximas() {
                   className="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-200 transition flex items-center gap-2"
                 >
                   <span className="text-lg">🔄</span>
-                  {refreshing ? 'Atualizando...' : 'Atualizar'}
+                  {refreshing ? 'Buscando...' : 'Atualizar'}
                 </button>
               </div>
             </div>
@@ -249,16 +316,19 @@ export default function PessoasProximas() {
             <div className="mb-4">
               <p className="text-gray-600">
                 {refreshing ? 'Buscando...' : `${pessoas.length} pessoa(s) se preparando num raio de ${radius} km`}
+                {useMockData && pessoas.length > 0 && (
+                  <span className="text-xs text-yellow-600 ml-2">(Modo demonstração)</span>
+                )}
               </p>
             </div>
 
             {!refreshing && pessoas.length === 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-                <div className="text-6xl mb-4">🗺️</div>
-                <h3 className="text-lg font-semibold mb-2">Nenhuma pessoa encontrada</h3>
-                <p className="text-gray-500 text-sm">
-                  Nenhuma pessoa se preparando foi encontrada num raio de {radius} km.
-                  {radius < 20 ? ' Experimente aumentar o raio de busca.' : ' Volte em breve, mais pessoas estão se preparando!'}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                <p className="text-yellow-800 text-sm">
+                  Nenhuma pessoa encontrada num raio de {radius} km.
+                </p>
+                <p className="text-yellow-600 text-xs mt-1">
+                  💡 Tente aumentar o raio de busca ou peça para seus amigos compartilharem a localização.
                 </p>
               </div>
             )}
