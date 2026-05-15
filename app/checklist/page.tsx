@@ -32,6 +32,20 @@ export default function Checklist() {
   const [initializing, setInitializing] = useState(false)
   const [savingAll, setSavingAll] = useState(false)
   const [saveMessage, setSaveMessage] = useState('')
+  const [showModalTroca, setShowModalTroca] = useState(false)
+  const [trocando, setTrocando] = useState(false)
+  const [kitsAbertos, setKitsAbertos] = useState<Record<string, boolean>>({
+    documentos: false,
+    agua: false,
+    abrigo: false,
+    fogo: false,
+    primeirosSocorros: false,
+    higiene: false,
+    tecnologia: false,
+    ferramentas: false,
+    alimentacao: false,
+    roupas: false,
+  })
   const router = useRouter()
 
   useEffect(() => {
@@ -120,35 +134,50 @@ export default function Checklist() {
       { category_id: 1, name: 'RG e CPF (cópia física)', description: 'Levar cópias plastificadas', order: 1, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 1, name: 'Dinheiro em espécie', description: 'Cédulas pequenas', order: 2, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 1, name: 'Documentos digitais (pendrive)', description: 'Cópias em PDF', order: 3, tipo: ['BOB', 'BOLT'] },
+      { category_id: 1, name: 'Mapa da região', description: 'Impresso ou digital', order: 4, tipo: ['BOB', 'BOLT'] },
       { category_id: 2, name: 'Garrafa/cantil inox', description: 'Resistente e durável', order: 1, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 2, name: 'Filtro de água', description: 'Purificação portátil', order: 2, tipo: ['BOB', 'BOLT'] },
       { category_id: 2, name: 'Cloro ou iodo', description: 'Desinfecção química', order: 3, tipo: ['BOLT'] },
       { category_id: 3, name: 'Cobertor térmico', description: 'Manta aluminizada', order: 1, tipo: ['BOB', 'BOLT'] },
       { category_id: 3, name: 'Capa de chuva/poncho', description: 'Impermeável', order: 2, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 3, name: 'Lona grossa', description: 'Para improvisar abrigo', order: 3, tipo: ['BOLT'] },
+      { category_id: 3, name: 'Barraca', description: 'Proteção completa', order: 4, tipo: ['BOLT'] },
       { category_id: 4, name: 'Isqueiro', description: 'Comum ou maçarico', order: 1, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 4, name: 'Pederneira', description: 'Para condições extremas', order: 2, tipo: ['BOB', 'BOLT'] },
       { category_id: 4, name: 'Algodão na vaselina', description: 'Acelerador de fogo', order: 3, tipo: ['BOB', 'BOLT'] },
+      { category_id: 4, name: 'Fogareiro e gás', description: 'Para cozinhar', order: 4, tipo: ['BOLT'] },
       { category_id: 5, name: 'Luvas de procedimento', description: 'Par descartável', order: 1, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 5, name: 'Gases e esparadrapo', description: 'Curativos', order: 2, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 5, name: 'Analgésico (Paracetamol)', description: 'Dor e febre', order: 3, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 5, name: 'Torniquete', description: 'Controle de hemorragia', order: 4, tipo: ['BOB', 'BOLT'] },
+      { category_id: 5, name: 'Termômetro', description: 'Monitoramento', order: 5, tipo: ['BOB', 'BOLT'] },
+      { category_id: 5, name: 'Carvão ativado', description: 'Purificação intestinal', order: 6, tipo: ['BOB', 'BOLT'] },
+      { category_id: 5, name: 'Soro fisiológico', description: 'Limpeza', order: 7, tipo: ['BOB', 'BOLT'] },
       { category_id: 6, name: 'Papel higiênico', description: 'Pequeno pacote', order: 1, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 6, name: 'Sabonete bactericida', description: 'Higienização', order: 2, tipo: ['BOB', 'BOLT'] },
       { category_id: 6, name: 'Escova e pasta dental', description: 'Tamanho viagem', order: 3, tipo: ['BOB', 'BOLT'] },
       { category_id: 6, name: 'Repelente', description: 'Proteção', order: 4, tipo: ['EDC', 'BOB', 'BOLT'] },
+      { category_id: 6, name: 'Protetor solar', description: 'FPS alto', order: 5, tipo: ['EDC', 'BOB', 'BOLT'] },
+      { category_id: 6, name: 'Cortador de unha', description: 'Higiene', order: 6, tipo: ['BOB', 'BOLT'] },
       { category_id: 7, name: 'Powerbank', description: 'Carregador portátil', order: 1, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 7, name: 'Lanterna', description: 'Com pilhas extras', order: 2, tipo: ['EDC', 'BOB', 'BOLT'] },
-      { category_id: 7, name: 'Rádio comunicador', description: 'Para emergências', order: 3, tipo: ['BOB', 'BOLT'] },
+      { category_id: 7, name: 'Lanterna de cabeça', description: 'Mãos livres', order: 3, tipo: ['BOB', 'BOLT'] },
+      { category_id: 7, name: 'Rádio comunicador', description: 'Para emergências', order: 4, tipo: ['BOB', 'BOLT'] },
       { category_id: 8, name: 'Faca multi-ferramentas', description: 'Canivete com funções', order: 1, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 8, name: 'Paracord', description: 'Corda multifilamento', order: 2, tipo: ['BOB', 'BOLT'] },
       { category_id: 8, name: 'Apito', description: 'Sinalização', order: 3, tipo: ['EDC', 'BOB', 'BOLT'] },
+      { category_id: 8, name: 'Fita isolante', description: 'Reparos rápidos', order: 4, tipo: ['BOB', 'BOLT'] },
+      { category_id: 8, name: 'Bússola', description: 'Orientação', order: 5, tipo: ['BOB', 'BOLT'] },
       { category_id: 9, name: 'Água engarrafada', description: '3 litros por pessoa', order: 1, tipo: ['EDC', 'BOB', 'BOLT'] },
       { category_id: 9, name: 'Enlatados', description: 'Sardinha, atum, feijão', order: 2, tipo: ['BOB', 'BOLT'] },
-      { category_id: 9, name: 'Tsampa', description: 'Energia rápida', order: 3, tipo: ['EDC', 'BOB', 'BOLT'] },
+      { category_id: 9, name: 'Tsampa', description: 'Suplemento energético', order: 3, tipo: ['EDC', 'BOB', 'BOLT'] },
+      { category_id: 9, name: 'Caneca e talheres', description: 'Para refeições', order: 4, tipo: ['BOB', 'BOLT'] },
+      { category_id: 9, name: 'Sal', description: 'Tempero e conservação', order: 5, tipo: ['BOB', 'BOLT'] },
+      { category_id: 9, name: 'Mel', description: 'Energia natural', order: 6, tipo: ['BOB', 'BOLT'] },
       { category_id: 10, name: 'Meias extras', description: 'Par reserva', order: 1, tipo: ['BOB', 'BOLT'] },
       { category_id: 10, name: 'Jaqueta impermeável', description: 'Proteção contra chuva', order: 2, tipo: ['BOB', 'BOLT'] },
       { category_id: 10, name: 'Camisa térmica', description: 'Frio intenso', order: 3, tipo: ['BOLT'] },
+      { category_id: 10, name: 'Bota para trilha', description: 'Adequada para terreno', order: 4, tipo: ['BOB', 'BOLT'] },
     ]
 
     for (const item of defaultItems) {
@@ -213,6 +242,36 @@ export default function Checklist() {
     }, 500)
   }
 
+  const trocarMochila = async (novoTipo: string) => {
+    if (!user) return
+    
+    setTrocando(true)
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({ mochila_tipo: novoTipo })
+      .eq('id', user.id)
+    
+    if (error) {
+      console.error('Erro ao trocar mochila:', error)
+      setSaveMessage('❌ Erro ao trocar mochila')
+      setTimeout(() => setSaveMessage(''), 3000)
+    } else {
+      setMochilaTipo(novoTipo)
+      await loadItems()
+      await loadUserProgress(user.id)
+      setSaveMessage(`✓ Mochila alterada para ${novoTipo === 'EDC' ? 'EDC (uso diário)' : novoTipo === 'BOB' ? 'BOB (72h)' : 'BOLT (longo período)'}`)
+      setTimeout(() => setSaveMessage(''), 3000)
+    }
+    
+    setShowModalTroca(false)
+    setTrocando(false)
+  }
+
+  const toggleKit = (kit: string) => {
+    setKitsAbertos(prev => ({ ...prev, [kit]: !prev[kit] }))
+  }
+
   const getItemsByCategory = (categoryId: number) => {
     return items.filter(item => item.category_id === categoryId)
   }
@@ -244,99 +303,236 @@ export default function Checklist() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Header com botão Trocar Mochila */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-green-700 mb-2">🎒 MINHA MOCHILA</h1>
-          <p className="text-gray-600">
+          <div className="flex justify-between items-center mb-4">
+            <div className="w-20"></div>
+            <h1 className="text-3xl font-bold text-green-700">🎒 MINHA MOCHILA</h1>
+            <button
+              onClick={() => setShowModalTroca(true)}
+              disabled={trocando}
+              className="bg-yellow-400 text-yellow-900 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-yellow-500 transition"
+            >
+              🔄 Trocar Mochila
+            </button>
+          </div>
+          <p className="text-gray-600 italic">
             {mochilaTipo === 'EDC' && 'Every Day Carry - Itens para o dia a dia'}
             {mochilaTipo === 'BOB' && 'Bug Out Bag - 72 horas de emergência'}
             {mochilaTipo === 'BOLT' && 'Bug Out Long Term - Autossuficiência'}
           </p>
+          <div className="mt-4 p-4 bg-green-50 rounded-lg border-l-4 border-green-600">
+            <p className="text-green-800 text-sm italic">
+              "Não é possível treinar a técnica física para todas as situações da sua vida, 
+              mas é possível treinar o estado mental para todas as situações. 
+              A maior arma de todas é a mente humana."
+            </p>
+            <p className="text-green-600 text-xs mt-2">— Escola de Guerreiros</p>
+          </div>
         </div>
 
-        {/* Tipos de Mochila - Seção Educativa */}
-        <div className="bg-gradient-to-r from-green-50 via-yellow-50 to-blue-50 rounded-xl p-5 mb-8 border border-gray-100">
-          <h2 className="text-lg font-bold text-preparados-blue mb-3 flex items-center gap-2">
-            <span className="text-2xl">🎒</span> Qual tipo de mochila você está montando?
-          </h2>
-          <p className="text-gray-600 text-sm mb-4">
-            Cada missão exige um tipo de preparação. Veja qual se encaixa no seu perfil:
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* EDC */}
-<div className={`bg-white rounded-lg p-4 border-2 transition ${mochilaTipo === 'EDC' ? 'border-green-500 shadow-md' : 'border-gray-100'}`}>
-  <div className="flex items-center justify-between mb-2">
-    <div className="flex items-center gap-2">
-      <span className="text-2xl">🎒</span>
-      <h3 className="font-bold text-green-700">EDC</h3>
-    </div>
-    {mochilaTipo === 'EDC' && (
-      <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">Selecionado</span>
-    )}
-  </div>
-  <p className="text-xs text-gray-500 mb-1">Every Day Carry</p>
-  <p className="text-sm text-gray-600">
-    Carregar todos os dias coisas que você usa no seu dia a dia.
-  </p>
-  <div className="mt-2 flex flex-wrap gap-1">
-    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">💧 Garrafa de água</span>
-    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">🧼 Toalha</span>
-    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">📱 Carregador de celular</span>
-    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">👓 Óculos</span>
-    <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">🔧 Alicate multifuncional</span>
-  </div>
-</div>
-
-            {/* BOB */}
-            <div className={`bg-white rounded-lg p-4 border-2 transition ${mochilaTipo === 'BOB' ? 'border-yellow-500 shadow-md' : 'border-gray-100'}`}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">🎒⚡</span>
-                  <h3 className="font-bold text-yellow-700">BOB</h3>
-                </div>
-                {mochilaTipo === 'BOB' && (
-                  <span className="text-xs bg-yellow-500 text-white px-2 py-0.5 rounded-full">Selecionado</span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mb-1">Bug Out Bag</p>
-              <p className="text-sm text-gray-600">
-                72 horas para os 3 primeiros dias. Focada no básico e mobilidade.
+        {/* Modal de Troca de Mochila */}
+        {showModalTroca && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Escolha seu tipo de mochila</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Selecione o tipo de mochila que melhor se adapta à sua necessidade:
               </p>
-              <div className="mt-2 text-xs text-yellow-600">
-                ⚡ Emergências, evacuação rápida
+              <div className="space-y-3">
+                <button
+                  onClick={() => trocarMochila('EDC')}
+                  className="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 transition flex items-center gap-3"
+                >
+                  <span className="text-2xl">🎒</span>
+                  <div>
+                    <p className="font-bold text-gray-900">EDC</p>
+                    <p className="text-xs text-gray-500">Every Day Carry - Itens para o dia a dia</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => trocarMochila('BOB')}
+                  className="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 transition flex items-center gap-3"
+                >
+                  <span className="text-2xl">🎒⚡</span>
+                  <div>
+                    <p className="font-bold text-gray-900">BOB</p>
+                    <p className="text-xs text-gray-500">Bug Out Bag - 72 horas de emergência</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => trocarMochila('BOLT')}
+                  className="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 transition flex items-center gap-3"
+                >
+                  <span className="text-2xl">⛰️</span>
+                  <div>
+                    <p className="font-bold text-gray-900">BOLT</p>
+                    <p className="text-xs text-gray-500">Bug Out Long Term - Autossuficiência</p>
+                  </div>
+                </button>
+              </div>
+              <button
+                onClick={() => setShowModalTroca(false)}
+                className="w-full mt-6 bg-gray-100 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-200 transition"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Guia de Preparação da Mochila */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="text-2xl">📖</span> Guia de Preparação da Mochila
+          </h2>
+          
+          <div className="space-y-4">
+            <div className="border-b border-gray-100 pb-4">
+              <h3 className="font-bold text-gray-800 mb-2">🎒 Como escolher sua mochila</h3>
+              <p className="text-sm text-gray-600 mb-2">
+                Não existe mochila ideal que sirva para todo tipo de aventura.
+              </p>
+              <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside ml-2">
+                <li>Alças largas com regulagem de altura e almofadadas</li>
+                <li>Resistente ou à prova d'água</li>
+                <li>Com cinto abdominal</li>
+              </ul>
+            </div>
+
+            <div className="border-b border-gray-100 pb-4">
+              <h3 className="font-bold text-gray-800 mb-2">⚠️ Cuidados importantes</h3>
+              <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside ml-2">
+                <li>Jamais carregue a mochila em um só ombro</li>
+                <li>Menos peso = deslocamento mais rápido</li>
+                <li>Mais peso = deslocamento mais longe</li>
+              </ul>
+            </div>
+
+            <div className="border-b border-gray-100 pb-4">
+              <h3 className="font-bold text-gray-800 mb-2">⚖️ Distribuição do peso</h3>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-sm font-medium text-green-700">Peso ideal:</p>
+                <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside ml-4 mt-1">
+                  <li><strong>Mulheres:</strong> até 10% do peso corporal</li>
+                  <li><strong>Homens:</strong> até 15% do peso corporal</li>
+                </ul>
               </div>
             </div>
 
-            {/* BOLT */}
-            <div className={`bg-white rounded-lg p-4 border-2 transition ${mochilaTipo === 'BOLT' ? 'border-blue-500 shadow-md' : 'border-gray-100'}`}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">⛰️</span>
-                  <h3 className="font-bold text-blue-700">BOLT</h3>
-                </div>
-                {mochilaTipo === 'BOLT' && (
-                  <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">Selecionado</span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mb-1">Bug Out Long Term</p>
-              <p className="text-sm text-gray-600">
-                Longo período. Focada em ser autossuficiente por tempo indeterminado.
-              </p>
-              <div className="mt-2 text-xs text-blue-600">
-                ⛰️ Autossuficiência, longo prazo
+            <div>
+              <h3 className="font-bold text-gray-800 mb-2">📦 Organização dos bolsos (fácil acesso)</h3>
+              <div className="flex flex-wrap gap-2">
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🩺 Kit primeiros socorros</span>
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">💧 Garrafa de água</span>
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🔪 Faca</span>
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🔥 Isqueiro</span>
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🔦 Lanterna</span>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Tipos de Mochila */}
+        <div className="bg-gradient-to-r from-green-50 via-yellow-50 to-blue-50 rounded-xl p-5 mb-8 border border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <span className="text-2xl">🎒</span> Qual tipo de mochila você está montando?
+          </h2>
           
-          {/* Mensagem sobre o tipo atual */}
-          <div className="mt-4 text-center text-sm">
-            <span className="bg-preparados-yellow text-preparados-blue px-3 py-1 rounded-full">
-              Seu perfil atual: {mochilaTipo === 'EDC' ? '🎒 EDC (uso diário)' : mochilaTipo === 'BOB' ? '🎒⚡ BOB (72h)' : '⛰️ BOLT (longo período)'}
-            </span>
-            <p className="text-xs text-gray-500 mt-2">
-              💡 Os itens exibidos abaixo já estão filtrados para o seu perfil.
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className={`bg-white rounded-lg p-4 border-2 ${mochilaTipo === 'EDC' ? 'border-green-500 shadow-md' : 'border-gray-100'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">🎒</span>
+                <h3 className="font-bold text-green-700">EDC</h3>
+                {mochilaTipo === 'EDC' && <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">Atual</span>}
+              </div>
+              <p className="text-xs text-gray-500 mb-1">Every Day Carry</p>
+              <p className="text-sm text-gray-600">Itens para o dia a dia</p>
+            </div>
+
+            <div className={`bg-white rounded-lg p-4 border-2 ${mochilaTipo === 'BOB' ? 'border-yellow-500 shadow-md' : 'border-gray-100'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">🎒⚡</span>
+                <h3 className="font-bold text-yellow-700">BOB</h3>
+                {mochilaTipo === 'BOB' && <span className="text-xs bg-yellow-500 text-white px-2 py-0.5 rounded-full">Atual</span>}
+              </div>
+              <p className="text-xs text-gray-500 mb-1">Bug Out Bag</p>
+              <p className="text-sm text-gray-600">72 horas - emergência</p>
+            </div>
+
+            <div className={`bg-white rounded-lg p-4 border-2 ${mochilaTipo === 'BOLT' ? 'border-blue-500 shadow-md' : 'border-gray-100'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl">⛰️</span>
+                <h3 className="font-bold text-blue-700">BOLT</h3>
+                {mochilaTipo === 'BOLT' && <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">Atual</span>}
+              </div>
+              <p className="text-xs text-gray-500 mb-1">Bug Out Long Term</p>
+              <p className="text-sm text-gray-600">Autossuficiência</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Regra Defesa */}
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-5 mb-8 border border-red-100">
+          <h2 className="text-lg font-bold text-red-800 mb-3 flex items-center gap-2">
+            <span className="text-2xl">🛡️</span> Regra Defesa - Os 4 Pilares
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-white rounded-lg p-3 text-center">
+              <span className="text-2xl">💧</span>
+              <p className="font-bold text-blue-600 text-sm">Água</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 text-center">
+              <span className="text-2xl">🏠</span>
+              <p className="font-bold text-green-600 text-sm">Abrigo</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 text-center">
+              <span className="text-2xl">🍲</span>
+              <p className="font-bold text-yellow-600 text-sm">Alimento</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 text-center">
+              <span className="text-2xl">🔥</span>
+              <p className="font-bold text-red-600 text-sm">Fogo</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Kits Detalhados */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">📦 Kits de Preparação</h2>
+          
+          <div className="space-y-3">
+            {[
+              { id: 'documentos', nome: 'Kit Documentos', icone: '📄', conteudo: ['Saco à prova d\'água', 'Dinheiro físico', 'Mapa da região', 'Cópias de documentos', 'Pendrive'] },
+              { id: 'agua', nome: 'Kit Água', icone: '💧', conteudo: ['Garrafa/cantil', 'Filtro de água', 'Cloro ou iodo'] },
+              { id: 'abrigo', nome: 'Kit Abrigo', icone: '🏠', conteudo: ['Cobertor térmico', 'Capa de chuva', 'Lona grossa', 'Barraca'] },
+              { id: 'fogo', nome: 'Kit Fogo', icone: '🔥', conteudo: ['Isqueiro', 'Pederneira', 'Algodão na vaselina', 'Fogareiro'] },
+              { id: 'primeirosSocorros', nome: 'Kit Primeiros Socorros', icone: '🩺', conteudo: ['Luvas', 'Gases e esparadrapo', 'Analgésico', 'Torniquete', 'Termômetro', 'Carvão ativado'] },
+              { id: 'higiene', nome: 'Kit Higiene', icone: '🧼', conteudo: ['Papel higiênico', 'Sabonete bactericida', 'Escova dental', 'Repelente', 'Protetor solar'] },
+              { id: 'tecnologia', nome: 'Kit Tecnologia', icone: '📱', conteudo: ['Powerbank', 'Lanterna', 'Rádio comunicador'] },
+              { id: 'ferramentas', nome: 'Kit Ferramentas', icone: '🔧', conteudo: ['Faca multifuncional', 'Paracord', 'Apito', 'Fita isolante', 'Bússola'] },
+              { id: 'alimentacao', nome: 'Kit Alimentação', icone: '🍲', conteudo: ['Água', 'Enlatados', 'Tsampa', 'Caneca e talheres', 'Sal', 'Mel'] },
+              { id: 'roupas', nome: 'Kit Roupas', icone: '👕', conteudo: ['Meias extras', 'Jaqueta impermeável', 'Camisa térmica', 'Bota para trilha'] },
+            ].map((kit) => (
+              <div key={kit.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                <button onClick={() => toggleKit(kit.id)} className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{kit.icone}</span>
+                    <span className="font-semibold">{kit.nome}</span>
+                  </div>
+                  <span className="text-gray-400">{kitsAbertos[kit.id] ? '▲' : '▼'}</span>
+                </button>
+                {kitsAbertos[kit.id] && (
+                  <div className="p-4 bg-white border-t border-gray-100">
+                    <ul className="space-y-1 text-sm text-gray-600 list-disc list-inside">
+                      {kit.conteudo.map((item, idx) => (
+                        <li key={idx}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -364,7 +560,7 @@ export default function Checklist() {
           </p>
         </div>
 
-        {/* Categorias */}
+        {/* Categorias do Checklist */}
         <div className="space-y-6">
           {categories.map((category) => {
             const categoryItems = getItemsByCategory(category.id)
