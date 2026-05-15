@@ -31,9 +31,7 @@ export default function SalaComunicador() {
 
   const gerarRogerBeep = () => {
     try {
-      if (audioContextRef.current) {
-        audioContextRef.current.close()
-      }
+      if (audioContextRef.current) audioContextRef.current.close()
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
       audioContextRef.current = audioContext
       const oscillator = audioContext.createOscillator()
@@ -68,15 +66,11 @@ export default function SalaComunicador() {
         await carregarParticipantes()
         await iniciarMicrofone()
         
-        // Inscrever para mudanças na tabela participantes
         const subscription = supabase
           .channel('participantes')
           .on('postgres_changes', 
             { event: '*', schema: 'public', table: 'comunicador_participantes', filter: `canal_id=eq.${canalId}` },
-            () => {
-              console.log('Mudança detectada, recarregando participantes...')
-              carregarParticipantes()
-            }
+            () => carregarParticipantes()
           )
           .subscribe()
         
@@ -92,12 +86,9 @@ export default function SalaComunicador() {
     getUser()
   }, [])
 
-  // Quando a lista de participantes mudar, conectar com novos
   useEffect(() => {
     if (!user || !localStreamRef.current) return
-    
     const outrosParticipantes = participantes.filter(p => p.usuario_id !== user.id)
-    
     outrosParticipantes.forEach(participante => {
       if (!peerConnectionsRef.current.has(participante.usuario_id)) {
         console.log('Criando conexão com:', participante.usuario_id)
@@ -116,15 +107,15 @@ export default function SalaComunicador() {
   }
 
   const registrarNoCanal = async () => {
-    // Primeiro, remover registro antigo (se existir)
+    // Deletar TODOS os registros antigos
     await supabase
       .from('comunicador_participantes')
       .delete()
       .eq('canal_id', canalId)
       .eq('usuario_id', user.id)
     
-    // Depois, adicionar novo
-    await supabase
+    // Inserir novo registro
+    const { error } = await supabase
       .from('comunicador_participantes')
       .insert({
         canal_id: canalId,
@@ -132,7 +123,8 @@ export default function SalaComunicador() {
         joined_at: new Date().toISOString()
       })
     
-    console.log('Registrado no canal:', canalId)
+    if (error) console.error('Erro ao registrar:', error)
+    else console.log('Registrado no canal')
   }
 
   const carregarParticipantes = async () => {
@@ -142,9 +134,13 @@ export default function SalaComunicador() {
       .eq('canal_id', canalId)
     
     if (data) {
-      console.log('Participantes no canal:', data.length)
-      setParticipantes(data)
-      setConectado(data.length > 1)
+      // Remover duplicatas (usuários distintos)
+      const usuariosUnicos = Array.from(
+        new Map(data.map(p => [p.usuario_id, p])).values()
+      )
+      console.log('Participantes únicos:', usuariosUnicos.length)
+      setParticipantes(usuariosUnicos)
+      setConectado(usuariosUnicos.length > 1)
     }
   }
 
@@ -163,45 +159,28 @@ export default function SalaComunicador() {
     if (!localStreamRef.current) return
     if (peerConnectionsRef.current.has(remoteUserId)) return
 
-    console.log('Criando conexão WebRTC com:', remoteUserId)
-    
     const peerConnection = new RTCPeerConnection(configuration)
     peerConnectionsRef.current.set(remoteUserId, peerConnection)
 
-    // Adicionar stream local
     localStreamRef.current.getTracks().forEach(track => {
       peerConnection.addTrack(track, localStreamRef.current!)
     })
 
-    // Receber stream remoto
     peerConnection.ontrack = (event) => {
-      console.log('Stream recebido de:', remoteUserId)
       const remoteAudio = new Audio()
       remoteAudio.srcObject = event.streams[0]
       remoteAudio.play().catch(e => console.log('Erro ao reproduzir:', e))
     }
 
-    // ICE candidates
-    peerConnection.onicecandidate = (event) => {
-      if (event.candidate) {
-        console.log('ICE candidate gerado')
-      }
-    }
-
-    // Criar offer
     try {
       const offer = await peerConnection.createOffer()
       await peerConnection.setLocalDescription(offer)
-      console.log('Offer criado para:', remoteUserId)
     } catch (err) {
       console.error('Erro ao criar offer:', err)
     }
   }
 
-  const startSpeaking = () => {
-    setIsSpeaking(true)
-  }
-
+  const startSpeaking = () => setIsSpeaking(true)
   const stopSpeaking = () => {
     setIsSpeaking(false)
     gerarRogerBeep()
@@ -213,7 +192,6 @@ export default function SalaComunicador() {
       .delete()
       .eq('canal_id', canalId)
       .eq('usuario_id', user.id)
-    
     router.push('/comunicador')
   }
 
@@ -238,39 +216,27 @@ export default function SalaComunicador() {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8 text-center">
-          <div className="relative">
-            <button
-              onMouseDown={startSpeaking}
-              onMouseUp={stopSpeaking}
-              onMouseLeave={stopSpeaking}
-              onTouchStart={startSpeaking}
-              onTouchEnd={stopSpeaking}
-              className={`
-                w-40 h-40 rounded-full shadow-xl transition-all duration-100
-                ${isSpeaking 
-                  ? 'bg-red-600 scale-95 shadow-inner' 
-                  : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:scale-105'
-                }
-                cursor-pointer active:scale-95
-              `}
-            >
-              <div className="flex flex-col items-center justify-center h-full">
-                <span className="text-5xl">{isSpeaking ? '🎤' : '🎙️'}</span>
-                <span className="text-sm font-semibold mt-2 text-white">
-                  {isSpeaking ? 'FALANDO...' : 'Pressione para falar'}
-                </span>
-              </div>
-            </button>
-            
-            {isSpeaking && (
-              <div className="absolute -top-2 -right-2">
-                <span className="relative flex h-4 w-4">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500"></span>
-                </span>
-              </div>
-            )}
-          </div>
+          <button
+            onMouseDown={startSpeaking}
+            onMouseUp={stopSpeaking}
+            onMouseLeave={stopSpeaking}
+            onTouchStart={startSpeaking}
+            onTouchEnd={stopSpeaking}
+            className={`
+              w-40 h-40 rounded-full shadow-xl transition-all duration-100
+              ${isSpeaking 
+                ? 'bg-red-600 scale-95 shadow-inner' 
+                : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:scale-105'}
+              cursor-pointer active:scale-95
+            `}
+          >
+            <div className="flex flex-col items-center justify-center h-full">
+              <span className="text-5xl">{isSpeaking ? '🎤' : '🎙️'}</span>
+              <span className="text-sm font-semibold mt-2 text-white">
+                {isSpeaking ? 'FALANDO...' : 'Pressione para falar'}
+              </span>
+            </div>
+          </button>
           
           <p className="text-sm text-gray-500 mt-6">
             Pressione e segure o botão para falar.<br/>
@@ -293,25 +259,19 @@ export default function SalaComunicador() {
           </div>
           {participantes.length === 1 && (
             <p className="text-xs text-yellow-600 mt-2 text-center">
-              ⏳ Aguardando mais participantes. Compartilhe o link com outros Preparados!
+              ⏳ Aguardando mais participantes. Compartilhe o link!
             </p>
           )}
         </div>
 
         <div className="mt-8">
-          <button
-            onClick={sairDoCanal}
-            className="w-full bg-red-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-600 transition"
-          >
+          <button onClick={sairDoCanal} className="w-full bg-red-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-600 transition">
             Sair do Canal
           </button>
         </div>
 
         <div className="mt-4">
-          <Link
-            href="/comunicador"
-            className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition"
-          >
+          <Link href="/comunicador" className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition">
             Voltar aos Canais
           </Link>
         </div>
