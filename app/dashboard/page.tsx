@@ -138,16 +138,14 @@ export default function Dashboard() {
 
         {/* Botões de acesso rápido */}
 <div className="grid grid-cols-1 gap-3 mb-8">
-  <a
-    href="https://wa.me/?text=🚨 *PREPARADOS - COMUNICADO DE EMERGÊNCIA* 🚨%0A%0AAcionei o comunicador do aplicativo PREPARADOS.%0A%0APreciso de informações e orientações.%0A%0A*Favor retornar o contato.*"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="bg-preparados-yellow text-preparados-blue p-4 rounded-xl text-center hover:bg-yellow-500 transition shadow-sm font-semibold"
-  >
-    <div className="text-2xl mb-1">💬</div>
-    <div className="text-sm font-semibold">Comunicador Via Rádio</div>
-    <div className="text-xs opacity-80">Canal de emergência</div>
-  </a>
+ <Link
+  href="/comunicador"
+  className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-4 rounded-xl text-center hover:from-blue-700 hover:to-cyan-700 transition shadow-sm"
+>
+  <div className="text-2xl mb-1">🎙️</div>
+  <div className="text-sm font-semibold">Comunicador Via Rádio</div>
+  <div className="text-xs opacity-90">PTT - Pressione para falar</div>
+</Link>
 </div>
 
         {/* Cards de Progresso */}
