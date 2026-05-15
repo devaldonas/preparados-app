@@ -11,11 +11,11 @@ export default function SalaComunicador() {
   const [participantes, setParticipantes] = useState<any[]>([])
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [error, setError] = useState('')
+  const [conectado, setConectado] = useState(false)
   
   const localStreamRef = useRef<MediaStream | null>(null)
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map())
   const audioContextRef = useRef<AudioContext | null>(null)
-  const channelRef = useRef<any>(null)
   
   const router = useRouter()
   const params = useParams()
@@ -64,15 +64,24 @@ export default function SalaComunicador() {
       } else {
         setUser(user)
         await carregarCanal()
-        await registrarNoCanal(user.id)
+        await registrarNoCanal()
         await carregarParticipantes()
         await iniciarMicrofone()
-        setupRealtimeListeners()
+        
+        // Inscrever para mudanças na tabela participantes
+        const subscription = supabase
+          .channel('participantes')
+          .on('postgres_changes', 
+            { event: '*', schema: 'public', table: 'comunicador_participantes', filter: `canal_id=eq.${canalId}` },
+            () => {
+              console.log('Mudança detectada, recarregando participantes...')
+              carregarParticipantes()
+            }
+          )
+          .subscribe()
         
         return () => {
-          if (channelRef.current) {
-            supabase.removeChannel(channelRef.current)
-          }
+          subscription.unsubscribe()
           peerConnectionsRef.current.forEach((conn) => conn.close())
           if (localStreamRef.current) {
             localStreamRef.current.getTracks().forEach(track => track.stop())
@@ -83,32 +92,19 @@ export default function SalaComunicador() {
     getUser()
   }, [])
 
-  // Quando a lista de participantes muda, conectar com novatos
+  // Quando a lista de participantes mudar, conectar com novos
   useEffect(() => {
-    if (!user) return
+    if (!user || !localStreamRef.current) return
     
-    const usuariosExistentes = Array.from(peerConnectionsRef.current.keys())
+    const outrosParticipantes = participantes.filter(p => p.usuario_id !== user.id)
     
-    participantes.forEach(participante => {
-      const participanteId = participante.usuario_id
-      if (participanteId !== user.id && !peerConnectionsRef.current.has(participanteId)) {
-        console.log('Conectando com:', participanteId)
-        iniciarConexao(participanteId)
+    outrosParticipantes.forEach(participante => {
+      if (!peerConnectionsRef.current.has(participante.usuario_id)) {
+        console.log('Criando conexão com:', participante.usuario_id)
+        criarConexao(participante.usuario_id)
       }
     })
-    
-    // Limpar conexões com usuários que saíram
-    participantes.forEach(p => {
-      if (p.usuario_id !== user.id && !usuariosExistentes.includes(p.usuario_id)) {
-        // Usuário saiu, fechar conexão se existir
-        const conn = peerConnectionsRef.current.get(p.usuario_id)
-        if (conn) {
-          conn.close()
-          peerConnectionsRef.current.delete(p.usuario_id)
-        }
-      }
-    })
-  }, [participantes])
+  }, [participantes, user, localStreamRef.current])
 
   const carregarCanal = async () => {
     const { data } = await supabase
@@ -119,14 +115,24 @@ export default function SalaComunicador() {
     if (data) setCanal(data)
   }
 
-  const registrarNoCanal = async (userId: string) => {
+  const registrarNoCanal = async () => {
+    // Primeiro, remover registro antigo (se existir)
     await supabase
       .from('comunicador_participantes')
-      .upsert({
+      .delete()
+      .eq('canal_id', canalId)
+      .eq('usuario_id', user.id)
+    
+    // Depois, adicionar novo
+    await supabase
+      .from('comunicador_participantes')
+      .insert({
         canal_id: canalId,
-        usuario_id: userId,
+        usuario_id: user.id,
         joined_at: new Date().toISOString()
       })
+    
+    console.log('Registrado no canal:', canalId)
   }
 
   const carregarParticipantes = async () => {
@@ -134,8 +140,11 @@ export default function SalaComunicador() {
       .from('comunicador_participantes')
       .select('*, profile:usuario_id(full_name)')
       .eq('canal_id', canalId)
+    
     if (data) {
+      console.log('Participantes no canal:', data.length)
       setParticipantes(data)
+      setConectado(data.length > 1)
     }
   }
 
@@ -150,38 +159,11 @@ export default function SalaComunicador() {
     }
   }
 
-  const setupRealtimeListeners = () => {
-    // Escutar convites (offers)
-    channelRef.current = supabase
-      .channel(`webrtc:${canalId}`)
-      .on('broadcast', { event: 'webrtc-offer' }, async ({ payload }) => {
-        console.log('Recebendo offer de:', payload.from)
-        await handleOffer(payload)
-      })
-      .on('broadcast', { event: 'webrtc-answer' }, async ({ payload }) => {
-        console.log('Recebendo answer de:', payload.from)
-        await handleAnswer(payload)
-      })
-      .on('broadcast', { event: 'webrtc-candidate' }, async ({ payload }) => {
-        console.log('Recebendo candidate de:', payload.from)
-        await handleCandidate(payload)
-      })
-      .subscribe()
-  }
-
-  const broadcast = (event: string, data: any) => {
-    channelRef.current?.send({
-      type: 'broadcast',
-      event: event,
-      payload: data
-    })
-  }
-
-  const iniciarConexao = async (remoteUserId: string) => {
+  const criarConexao = async (remoteUserId: string) => {
     if (!localStreamRef.current) return
     if (peerConnectionsRef.current.has(remoteUserId)) return
 
-    console.log('Iniciando conexão com:', remoteUserId)
+    console.log('Criando conexão WebRTC com:', remoteUserId)
     
     const peerConnection = new RTCPeerConnection(configuration)
     peerConnectionsRef.current.set(remoteUserId, peerConnection)
@@ -193,20 +175,16 @@ export default function SalaComunicador() {
 
     // Receber stream remoto
     peerConnection.ontrack = (event) => {
-      console.log('Recebendo stream remoto')
+      console.log('Stream recebido de:', remoteUserId)
       const remoteAudio = new Audio()
       remoteAudio.srcObject = event.streams[0]
       remoteAudio.play().catch(e => console.log('Erro ao reproduzir:', e))
     }
 
-    // Enviar candidatos ICE
+    // ICE candidates
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
-        broadcast('webrtc-candidate', {
-          from: user.id,
-          to: remoteUserId,
-          candidate: event.candidate
-        })
+        console.log('ICE candidate gerado')
       }
     }
 
@@ -214,87 +192,9 @@ export default function SalaComunicador() {
     try {
       const offer = await peerConnection.createOffer()
       await peerConnection.setLocalDescription(offer)
-      broadcast('webrtc-offer', {
-        from: user.id,
-        to: remoteUserId,
-        offer: offer
-      })
+      console.log('Offer criado para:', remoteUserId)
     } catch (err) {
       console.error('Erro ao criar offer:', err)
-    }
-  }
-
-  const handleOffer = async (payload: any) => {
-    if (payload.to !== user.id) return
-    if (peerConnectionsRef.current.has(payload.from)) return
-
-    console.log('Processando offer de:', payload.from)
-    
-    const peerConnection = new RTCPeerConnection(configuration)
-    peerConnectionsRef.current.set(payload.from, peerConnection)
-
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStreamRef.current!)
-      })
-    }
-
-    peerConnection.ontrack = (event) => {
-      console.log('Recebendo stream remoto via offer')
-      const remoteAudio = new Audio()
-      remoteAudio.srcObject = event.streams[0]
-      remoteAudio.play().catch(e => console.log('Erro ao reproduzir:', e))
-    }
-
-    peerConnection.onicecandidate = (event) => {
-      if (event.candidate) {
-        broadcast('webrtc-candidate', {
-          from: user.id,
-          to: payload.from,
-          candidate: event.candidate
-        })
-      }
-    }
-
-    try {
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.offer))
-      const answer = await peerConnection.createAnswer()
-      await peerConnection.setLocalDescription(answer)
-      broadcast('webrtc-answer', {
-        from: user.id,
-        to: payload.from,
-        answer: answer
-      })
-    } catch (err) {
-      console.error('Erro ao responder offer:', err)
-    }
-  }
-
-  const handleAnswer = async (payload: any) => {
-    if (payload.to !== user.id) return
-    
-    const peerConnection = peerConnectionsRef.current.get(payload.from)
-    if (!peerConnection) return
-
-    console.log('Processando answer de:', payload.from)
-    
-    try {
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(payload.answer))
-    } catch (err) {
-      console.error('Erro ao processar answer:', err)
-    }
-  }
-
-  const handleCandidate = async (payload: any) => {
-    if (payload.to !== user.id) return
-    
-    const peerConnection = peerConnectionsRef.current.get(payload.from)
-    if (!peerConnection) return
-
-    try {
-      await peerConnection.addIceCandidate(new RTCIceCandidate(payload.candidate))
-    } catch (err) {
-      console.error('Erro ao adicionar candidate:', err)
     }
   }
 
@@ -313,6 +213,7 @@ export default function SalaComunicador() {
       .delete()
       .eq('canal_id', canalId)
       .eq('usuario_id', user.id)
+    
     router.push('/comunicador')
   }
 
@@ -331,7 +232,7 @@ export default function SalaComunicador() {
           <div className="text-5xl mb-4">📻</div>
           <h1 className="text-2xl font-bold text-preparados-blue mb-2">{canal.nome}</h1>
           <p className="text-gray-600 text-sm">
-            {participantes.length > 1 ? '🟢 Conectado' : '🟡 Aguardando outros participantes...'}
+            {conectado ? '🟢 Conectado' : '🟡 Aguardando outros participantes...'}
           </p>
           {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
         </div>
