@@ -9,111 +9,57 @@ export default function SalaComunicador() {
   const [user, setUser] = useState<any>(null)
   const [canal, setCanal] = useState<any>(null)
   const [participantes, setParticipantes] = useState<any[]>([])
-  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
   const [error, setError] = useState('')
-  const [conectado, setConectado] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [audioURLs, setAudioURLs] = useState<{ id: string; url: string; from: string }[]>([])
   
-  const localStreamRef = useRef<MediaStream | null>(null)
-  const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map())
-  const audioContextRef = useRef<AudioContext | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const audioRef = useRef<HTMLAudioElement | null>(null)
   
   const router = useRouter()
   const params = useParams()
   const canalId = params.id as string
 
-  const configuration = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' }
-    ]
-  }
-
-  const gerarRogerBeep = () => {
-    try {
-      if (audioContextRef.current) audioContextRef.current.close()
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-      audioContextRef.current = audioContext
-      const oscillator = audioContext.createOscillator()
-      const gainNode = audioContext.createGain()
-      oscillator.connect(gainNode)
-      gainNode.connect(audioContext.destination)
-      oscillator.frequency.value = 880
-      gainNode.gain.value = 0.25
-      oscillator.start()
-      gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.25)
-      oscillator.stop(audioContext.currentTime + 0.25)
-      setTimeout(() => {
-        if (audioContextRef.current) {
-          audioContextRef.current.close()
-          audioContextRef.current = null
-        }
-      }, 400)
-    } catch (err) {
-      console.log('Erro ao gerar roger beep:', err)
-    }
-  }
-
-  // Carregar usuário primeiro
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      console.log('Usuário logado:', user?.id)
-      
       if (!user) {
         router.push('/auth/login')
         return
       }
-      
       setUser(user)
       await carregarCanal()
+      await registrarNoCanal()
+      await carregarParticipantes()
+      setLoading(false)
+      
+      // Inscrever para novos áudios
+      const channel = supabase
+        .channel(`audio:${canalId}`)
+        .on('broadcast', { event: 'novo-audio' }, (payload) => {
+          console.log('Áudio recebido:', payload)
+          adicionarAudio(payload.payload)
+        })
+        .subscribe()
+      
+      // Inscrever para participantes
+      const participantSubscription = supabase
+        .channel('participantes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'comunicador_participantes', filter: `canal_id=eq.${canalId}` },
+          () => carregarParticipantes()
+        )
+        .subscribe()
+      
+      return () => {
+        channel.unsubscribe()
+        participantSubscription.unsubscribe()
+      }
     }
     getUser()
   }, [])
-
-  // Depois que o usuário e canal estão carregados, registrar e iniciar
-  useEffect(() => {
-    if (!user || !canal) return
-    
-    const init = async () => {
-      await registrarNoCanal()
-      await carregarParticipantes()
-      await iniciarMicrofone()
-      setLoading(false)
-    }
-    init()
-    
-    // Inscrever para mudanças
-    const subscription = supabase
-      .channel('participantes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'comunicador_participantes', filter: `canal_id=eq.${canalId}` },
-        () => carregarParticipantes()
-      )
-      .subscribe()
-    
-    return () => {
-      subscription.unsubscribe()
-      peerConnectionsRef.current.forEach((conn) => conn.close())
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => track.stop())
-      }
-    }
-  }, [user, canal])
-
-  // Conectar com outros participantes
-  useEffect(() => {
-    if (!user || !localStreamRef.current || participantes.length === 0) return
-    
-    const outrosParticipantes = participantes.filter(p => p.usuario_id !== user.id)
-    outrosParticipantes.forEach(participante => {
-      if (!peerConnectionsRef.current.has(participante.usuario_id)) {
-        console.log('Criando conexão com:', participante.usuario_id)
-        criarConexao(participante.usuario_id)
-      }
-    })
-  }, [participantes, user, localStreamRef.current])
 
   const carregarCanal = async () => {
     const { data } = await supabase
@@ -122,109 +68,140 @@ export default function SalaComunicador() {
       .eq('id', canalId)
       .single()
     if (data) setCanal(data)
-    else console.error('Canal não encontrado')
   }
 
   const registrarNoCanal = async () => {
-  if (!user) {
-    console.error('Usuário não carregado')
-    return
+    if (!user) return
+    
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single()
+    
+    const fullName = profile?.full_name || 'Preparado'
+    
+    await supabase
+      .from('comunicador_participantes')
+      .delete()
+      .eq('canal_id', canalId)
+      .eq('usuario_id', user.id)
+    
+    await supabase
+      .from('comunicador_participantes')
+      .insert({
+        canal_id: canalId,
+        usuario_id: user.id,
+        full_name: fullName,
+        joined_at: new Date().toISOString()
+      })
   }
-  
-  console.log('Registrando no canal:', canalId, 'Usuário:', user.id)
-  
-  // Buscar nome do usuário
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name')
-    .eq('id', user.id)
-    .single()
-  
-  const fullName = profile?.full_name || 'Preparado'
-  
-  // Deletar registros antigos
-  await supabase
-    .from('comunicador_participantes')
-    .delete()
-    .eq('canal_id', canalId)
-    .eq('usuario_id', user.id)
-  
-  // Inserir novo registro
-  const { error } = await supabase
-    .from('comunicador_participantes')
-    .insert({
-      canal_id: canalId,
-      usuario_id: user.id,
-      full_name: fullName,
-      joined_at: new Date().toISOString()
-    })
-  
-  if (error) {
-    console.error('Erro ao inserir:', error)
-    setError('Erro ao entrar no canal')
-  } else {
-    console.log('Registrado com sucesso')
-  }
-}
 
   const carregarParticipantes = async () => {
-  const { data, error } = await supabase
-    .from('comunicador_participantes')
-    .select('*')
-    .eq('canal_id', canalId)
-  
-  if (error) {
-    console.error('Erro ao carregar participantes:', error)
-    return
+    const { data } = await supabase
+      .from('comunicador_participantes')
+      .select('*')
+      .eq('canal_id', canalId)
+    
+    if (data) {
+      setParticipantes(data)
+    }
   }
-  
-  if (data) {
-    console.log('Participantes:', data.length)
-    setParticipantes(data)
-    setConectado(data.length > 1)
-  }
-}
 
-  const iniciarMicrofone = async () => {
+  const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      localStreamRef.current = stream
-      console.log('Microfone ativado')
+      mediaRecorderRef.current = new MediaRecorder(stream)
+      audioChunksRef.current = []
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        await enviarAudio(audioBlob)
+        stream.getTracks().forEach(track => track.stop())
+      }
+
+      mediaRecorderRef.current.start()
+      setIsRecording(true)
+      
+      // Parar automaticamente após 15 segundos
+      setTimeout(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          stopRecording()
+        }
+      }, 15000)
     } catch (err) {
       console.error('Erro ao acessar microfone:', err)
-      setError('Não foi possível acessar o microfone. Verifique as permissões.')
+      setError('Não foi possível acessar o microfone')
     }
   }
 
-  const criarConexao = async (remoteUserId: string) => {
-    if (!localStreamRef.current) return
-    if (peerConnectionsRef.current.has(remoteUserId)) return
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
 
-    const peerConnection = new RTCPeerConnection(configuration)
-    peerConnectionsRef.current.set(remoteUserId, peerConnection)
-
-    localStreamRef.current.getTracks().forEach(track => {
-      peerConnection.addTrack(track, localStreamRef.current!)
+  const enviarAudio = async (audioBlob: Blob) => {
+    if (!user) return
+    
+    const fileName = `${Date.now()}_${user.id}.webm`
+    const filePath = `audio/${fileName}`
+    
+    // Upload para o Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('comunicador_audio')
+      .upload(filePath, audioBlob, { contentType: 'audio/webm' })
+    
+    if (uploadError) {
+      console.error('Erro ao enviar áudio:', uploadError)
+      return
+    }
+    
+    // Obter URL pública
+    const { data: urlData } = supabase.storage
+      .from('comunicador_audio')
+      .getPublicUrl(filePath)
+    
+    // Broadcast para todos no canal
+    supabase.channel(`audio:${canalId}`).send({
+      type: 'broadcast',
+      event: 'novo-audio',
+      payload: {
+        id: fileName,
+        url: urlData.publicUrl,
+        from: user.id,
+        fromName: participantes.find(p => p.usuario_id === user.id)?.full_name || 'Preparado',
+        timestamp: Date.now()
+      }
     })
-
-    peerConnection.ontrack = (event) => {
-      const remoteAudio = new Audio()
-      remoteAudio.srcObject = event.streams[0]
-      remoteAudio.play().catch(e => console.log('Erro ao reproduzir:', e))
-    }
-
-    try {
-      const offer = await peerConnection.createOffer()
-      await peerConnection.setLocalDescription(offer)
-    } catch (err) {
-      console.error('Erro ao criar offer:', err)
-    }
+    
+    // Reproduzir localmente
+    adicionarAudio({
+      id: fileName,
+      url: urlData.publicUrl,
+      from: user.id,
+      fromName: 'Você',
+      timestamp: Date.now()
+    })
   }
 
-  const startSpeaking = () => setIsSpeaking(true)
-  const stopSpeaking = () => {
-    setIsSpeaking(false)
-    gerarRogerBeep()
+  const adicionarAudio = (payload: any) => {
+    setAudioURLs(prev => [...prev, {
+      id: payload.id,
+      url: payload.url,
+      from: payload.from === user?.id ? 'Você' : payload.fromName
+    }])
+    
+    // Reproduzir automaticamente
+    const audio = new Audio(payload.url)
+    audio.play().catch(e => console.log('Erro ao reproduzir:', e))
   }
 
   const sairDoCanal = async () => {
@@ -243,7 +220,7 @@ export default function SalaComunicador() {
       </div>
     )
   }
-//novo
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -251,54 +228,69 @@ export default function SalaComunicador() {
           <div className="text-5xl mb-4">📻</div>
           <h1 className="text-2xl font-bold text-preparados-blue mb-2">{canal.nome}</h1>
           <p className="text-gray-600 text-sm">
-            {conectado ? '🟢 Conectado' : '🟡 Aguardando outros participantes...'}
+            {participantes.length > 1 ? '🟢 Conectado' : '🟡 Aguardando outros participantes...'}
           </p>
           {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8 text-center">
           <button
-            onMouseDown={startSpeaking}
-            onMouseUp={stopSpeaking}
-            onMouseLeave={stopSpeaking}
-            onTouchStart={startSpeaking}
-            onTouchEnd={stopSpeaking}
+            onMouseDown={startRecording}
+            onMouseUp={stopRecording}
+            onMouseLeave={stopRecording}
+            onTouchStart={startRecording}
+            onTouchEnd={stopRecording}
             className={`
               w-40 h-40 rounded-full shadow-xl transition-all duration-100
-              ${isSpeaking 
-                ? 'bg-red-600 scale-95 shadow-inner' 
+              ${isRecording 
+                ? 'bg-red-600 scale-95 shadow-inner animate-pulse' 
                 : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:scale-105'}
               cursor-pointer active:scale-95
             `}
           >
             <div className="flex flex-col items-center justify-center h-full">
-              <span className="text-5xl">{isSpeaking ? '🎤' : '🎙️'}</span>
+              <span className="text-5xl">{isRecording ? '🎤' : '🎙️'}</span>
               <span className="text-sm font-semibold mt-2 text-white">
-                {isSpeaking ? 'FALANDO...' : 'Pressione para falar'}
+                {isRecording ? 'GRAVANDO...' : 'Pressione para falar'}
               </span>
             </div>
           </button>
           
           <p className="text-sm text-gray-500 mt-6">
-            Pressione e segure o botão para falar.<br/>
-            Solte para ouvir os outros.
+            Pressione e segure para gravar (máximo 15 segundos).<br/>
+            Solte para enviar.
           </p>
         </div>
 
-       <div className="bg-gray-100 rounded-xl p-4">
-  <h3 className="font-semibold text-gray-700 mb-2">📡 Neste canal ({participantes.length} participante(s)):</h3>
-  <div className="flex flex-wrap gap-2">
-    {participantes.map((p) => (
-      <span key={p.id} className={`px-3 py-1 rounded-full text-sm ${
-        p.usuario_id === user?.id 
-          ? 'bg-blue-100 text-blue-700' 
-          : 'bg-green-100 text-green-700'
-      }`}>
-        {p.usuario_id === user?.id ? '🎤 Você' : (p.full_name || 'Preparado')}
-      </span>
-    ))}
-  </div>
-</div>
+        <div className="bg-gray-100 rounded-xl p-4">
+          <h3 className="font-semibold text-gray-700 mb-2">📡 Neste canal ({participantes.length} participante(s)):</h3>
+          <div className="flex flex-wrap gap-2">
+            {participantes.map((p) => (
+              <span key={p.id} className={`px-3 py-1 rounded-full text-sm ${
+                p.usuario_id === user?.id 
+                  ? 'bg-blue-100 text-blue-700' 
+                  : 'bg-green-100 text-green-700'
+              }`}>
+                {p.usuario_id === user?.id ? '🎤 Você' : (p.full_name || 'Preparado')}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Histórico de mensagens de áudio */}
+        {audioURLs.length > 0 && (
+          <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <h3 className="font-semibold text-gray-700 mb-2">📨 Últimas mensagens:</h3>
+            <div className="space-y-2">
+              {audioURLs.slice(-5).reverse().map((audio) => (
+                <div key={audio.id} className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-preparados-blue">{audio.from}:</span>
+                  <audio controls src={audio.url} className="h-8 w-48" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-8">
           <button onClick={sairDoCanal} className="w-full bg-red-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-600 transition">
