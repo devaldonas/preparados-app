@@ -12,6 +12,7 @@ export default function SalaComunicador() {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [error, setError] = useState('')
   const [conectado, setConectado] = useState(false)
+  const [loading, setLoading] = useState(true)
   
   const localStreamRef = useRef<MediaStream | null>(null)
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map())
@@ -54,40 +55,57 @@ export default function SalaComunicador() {
     }
   }
 
+  // Carregar usuário primeiro
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
+      console.log('Usuário logado:', user?.id)
+      
       if (!user) {
         router.push('/auth/login')
-      } else {
-        setUser(user)
-        await carregarCanal()
-        await registrarNoCanal()
-        await carregarParticipantes()
-        await iniciarMicrofone()
-        
-        const subscription = supabase
-          .channel('participantes')
-          .on('postgres_changes', 
-            { event: '*', schema: 'public', table: 'comunicador_participantes', filter: `canal_id=eq.${canalId}` },
-            () => carregarParticipantes()
-          )
-          .subscribe()
-        
-        return () => {
-          subscription.unsubscribe()
-          peerConnectionsRef.current.forEach((conn) => conn.close())
-          if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach(track => track.stop())
-          }
-        }
+        return
       }
+      
+      setUser(user)
+      await carregarCanal()
     }
     getUser()
   }, [])
 
+  // Depois que o usuário e canal estão carregados, registrar e iniciar
   useEffect(() => {
-    if (!user || !localStreamRef.current) return
+    if (!user || !canal) return
+    
+    const init = async () => {
+      await registrarNoCanal()
+      await carregarParticipantes()
+      await iniciarMicrofone()
+      setLoading(false)
+    }
+    init()
+    
+    // Inscrever para mudanças
+    const subscription = supabase
+      .channel('participantes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'comunicador_participantes', filter: `canal_id=eq.${canalId}` },
+        () => carregarParticipantes()
+      )
+      .subscribe()
+    
+    return () => {
+      subscription.unsubscribe()
+      peerConnectionsRef.current.forEach((conn) => conn.close())
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop())
+      }
+    }
+  }, [user, canal])
+
+  // Conectar com outros participantes
+  useEffect(() => {
+    if (!user || !localStreamRef.current || participantes.length === 0) return
+    
     const outrosParticipantes = participantes.filter(p => p.usuario_id !== user.id)
     outrosParticipantes.forEach(participante => {
       if (!peerConnectionsRef.current.has(participante.usuario_id)) {
@@ -104,10 +122,18 @@ export default function SalaComunicador() {
       .eq('id', canalId)
       .single()
     if (data) setCanal(data)
+    else console.error('Canal não encontrado')
   }
 
   const registrarNoCanal = async () => {
-    // Deletar TODOS os registros antigos
+    if (!user) {
+      console.error('Usuário não carregado')
+      return
+    }
+    
+    console.log('Registrando no canal:', canalId, 'Usuário:', user.id)
+    
+    // Deletar registros antigos
     await supabase
       .from('comunicador_participantes')
       .delete()
@@ -123,18 +149,26 @@ export default function SalaComunicador() {
         joined_at: new Date().toISOString()
       })
     
-    if (error) console.error('Erro ao registrar:', error)
-    else console.log('Registrado no canal')
+    if (error) {
+      console.error('Erro ao inserir:', error)
+      setError('Erro ao entrar no canal')
+    } else {
+      console.log('Registrado com sucesso')
+    }
   }
 
   const carregarParticipantes = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('comunicador_participantes')
       .select('*, profile:usuario_id(full_name)')
       .eq('canal_id', canalId)
     
+    if (error) {
+      console.error('Erro ao carregar participantes:', error)
+      return
+    }
+    
     if (data) {
-      // Remover duplicatas (usuários distintos)
       const usuariosUnicos = Array.from(
         new Map(data.map(p => [p.usuario_id, p])).values()
       )
@@ -195,7 +229,7 @@ export default function SalaComunicador() {
     router.push('/comunicador')
   }
 
-  if (!canal) {
+  if (loading || !canal) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-preparados-blue"></div>
@@ -257,11 +291,6 @@ export default function SalaComunicador() {
               </span>
             ))}
           </div>
-          {participantes.length === 1 && (
-            <p className="text-xs text-yellow-600 mt-2 text-center">
-              ⏳ Aguardando mais participantes. Compartilhe o link!
-            </p>
-          )}
         </div>
 
         <div className="mt-8">
