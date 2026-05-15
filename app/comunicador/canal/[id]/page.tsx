@@ -182,27 +182,24 @@ export default function SalaComunicador() {
       }
     })
     
-    // Reproduzir localmente
-    adicionarAudio({
-      id: fileName,
-      url: urlData.publicUrl,
-      from: user.id,
-      fromName: 'Você',
-      timestamp: Date.now()
-    })
   }
 
   const adicionarAudio = (payload: any) => {
-    setAudioURLs(prev => [...prev, {
-      id: payload.id,
-      url: payload.url,
-      from: payload.from === user?.id ? 'Você' : payload.fromName
-    }])
-    
-    // Reproduzir automaticamente
-    const audio = new Audio(payload.url)
-    audio.play().catch(e => console.log('Erro ao reproduzir:', e))
+  // Ignorar se for o próprio usuário
+  if (payload.from === user?.id) {
+    console.log('Ignorando próprio áudio')
+    return
   }
+  
+  setAudioURLs(prev => [...prev, {
+    id: payload.id,
+    url: payload.url,
+    from: payload.fromName || 'Preparado'
+  }])
+  
+  const audio = new Audio(payload.url)
+  audio.play().catch(e => console.log('Erro ao reproduzir:', e))
+}
 
   const sairDoCanal = async () => {
     await supabase
