@@ -126,57 +126,64 @@ export default function SalaComunicador() {
   }
 
   const registrarNoCanal = async () => {
-    if (!user) {
-      console.error('Usuário não carregado')
-      return
-    }
-    
-    console.log('Registrando no canal:', canalId, 'Usuário:', user.id)
-    
-    // Deletar registros antigos
-    await supabase
-      .from('comunicador_participantes')
-      .delete()
-      .eq('canal_id', canalId)
-      .eq('usuario_id', user.id)
-    
-    // Inserir novo registro
-    const { error } = await supabase
-      .from('comunicador_participantes')
-      .insert({
-        canal_id: canalId,
-        usuario_id: user.id,
-        joined_at: new Date().toISOString()
-      })
-    
-    if (error) {
-      console.error('Erro ao inserir:', error)
-      setError('Erro ao entrar no canal')
-    } else {
-      console.log('Registrado com sucesso')
-    }
+  if (!user) {
+    console.error('Usuário não carregado')
+    return
   }
+  
+  console.log('Registrando no canal:', canalId, 'Usuário:', user.id)
+  
+  // Buscar nome do usuário
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name')
+    .eq('id', user.id)
+    .single()
+  
+  const fullName = profile?.full_name || 'Preparado'
+  
+  // Deletar registros antigos
+  await supabase
+    .from('comunicador_participantes')
+    .delete()
+    .eq('canal_id', canalId)
+    .eq('usuario_id', user.id)
+  
+  // Inserir novo registro
+  const { error } = await supabase
+    .from('comunicador_participantes')
+    .insert({
+      canal_id: canalId,
+      usuario_id: user.id,
+      full_name: fullName,
+      joined_at: new Date().toISOString()
+    })
+  
+  if (error) {
+    console.error('Erro ao inserir:', error)
+    setError('Erro ao entrar no canal')
+  } else {
+    console.log('Registrado com sucesso')
+  }
+}
 
   const carregarParticipantes = async () => {
-    const { data, error } = await supabase
-      .from('comunicador_participantes')
-      .select('*, profile:usuario_id(full_name)')
-      .eq('canal_id', canalId)
-    
-    if (error) {
-      console.error('Erro ao carregar participantes:', error)
-      return
-    }
-    
-    if (data) {
-      const usuariosUnicos = Array.from(
-        new Map(data.map(p => [p.usuario_id, p])).values()
-      )
-      console.log('Participantes únicos:', usuariosUnicos.length)
-      setParticipantes(usuariosUnicos)
-      setConectado(usuariosUnicos.length > 1)
-    }
+  const { data, error } = await supabase
+    .from('comunicador_participantes')
+    .select('*')
+    .eq('canal_id', canalId)
+  
+  if (error) {
+    console.error('Erro ao carregar participantes:', error)
+    return
   }
+  
+  if (data) {
+    console.log('Participantes:', data.length)
+    setParticipantes(data)
+    setConectado(data.length > 1)
+  }
+}
 
   const iniciarMicrofone = async () => {
     try {
@@ -278,20 +285,20 @@ export default function SalaComunicador() {
           </p>
         </div>
 
-        <div className="bg-gray-100 rounded-xl p-4">
-          <h3 className="font-semibold text-gray-700 mb-2">📡 Neste canal ({participantes.length} participante(s)):</h3>
-          <div className="flex flex-wrap gap-2">
-            {participantes.map((p) => (
-              <span key={p.id} className={`px-3 py-1 rounded-full text-sm ${
-                p.usuario_id === user?.id 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'bg-green-100 text-green-700'
-              }`}>
-                {p.usuario_id === user?.id ? '🎤 Você' : (p.profile?.full_name || 'Preparado')}
-              </span>
-            ))}
-          </div>
-        </div>
+       <div className="bg-gray-100 rounded-xl p-4">
+  <h3 className="font-semibold text-gray-700 mb-2">📡 Neste canal ({participantes.length} participante(s)):</h3>
+  <div className="flex flex-wrap gap-2">
+    {participantes.map((p) => (
+      <span key={p.id} className={`px-3 py-1 rounded-full text-sm ${
+        p.usuario_id === user?.id 
+          ? 'bg-blue-100 text-blue-700' 
+          : 'bg-green-100 text-green-700'
+      }`}>
+        {p.usuario_id === user?.id ? '🎤 Você' : (p.full_name || 'Preparado')}
+      </span>
+    ))}
+  </div>
+</div>
 
         <div className="mt-8">
           <button onClick={sairDoCanal} className="w-full bg-red-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-600 transition">
