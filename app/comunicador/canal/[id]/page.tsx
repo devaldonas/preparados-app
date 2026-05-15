@@ -15,19 +15,54 @@ export default function SalaComunicador() {
   
   const localStreamRef = useRef<MediaStream | null>(null)
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map())
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const sinalizacaoChannelRef = useRef<any>(null)
   
   const router = useRouter()
   const params = useParams()
   const canalId = params.id as string
 
-  // Configuração do WebRTC (STUN servers gratuitos)
+  // Configuração do WebRTC
   const configuration = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' }
     ]
+  }
+
+  // Gerar bip de final de transmissão (Roger Beep)
+  const gerarRogerBeep = () => {
+    try {
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
+      }
+      
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      audioContextRef.current = audioContext
+      
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+      
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+      
+      oscillator.frequency.value = 880
+      gainNode.gain.value = 0.25
+      
+      oscillator.start()
+      gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.25)
+      oscillator.stop(audioContext.currentTime + 0.25)
+      
+      setTimeout(() => {
+        if (audioContextRef.current) {
+          audioContextRef.current.close()
+          audioContextRef.current = null
+        }
+      }, 400)
+    } catch (err) {
+      console.log('Erro ao gerar roger beep:', err)
+    }
   }
 
   useEffect(() => {
@@ -40,9 +75,10 @@ export default function SalaComunicador() {
         await carregarCanal()
         await registrarNoCanal(user.id)
         await carregarParticipantes()
-        iniciarMicrofone()
+        await iniciarMicrofone()
+        iniciarSinalizacao()
         
-        // Inscrever para novos participantes
+        // Inscrever para participantes do canal
         const channel = supabase
           .channel('comunicador')
           .on('postgres_changes', 
@@ -53,7 +89,9 @@ export default function SalaComunicador() {
         
         return () => {
           channel.unsubscribe()
-          // Fechar todas as conexões ao sair
+          if (sinalizacaoChannelRef.current) {
+            supabase.removeChannel(sinalizacaoChannelRef.current)
+          }
           peerConnectionsRef.current.forEach((conn) => conn.close())
           if (localStreamRef.current) {
             localStreamRef.current.getTracks().forEach(track => track.stop())
@@ -64,8 +102,8 @@ export default function SalaComunicador() {
     getUser()
   }, [])
 
+  // Conectar com novos participantes
   useEffect(() => {
-    // Conectar com novos participantes
     participantes.forEach(participante => {
       if (participante.usuario_id !== user?.id && !peerConnectionsRef.current.has(participante.usuario_id)) {
         criarConexao(participante.usuario_id)
@@ -111,14 +149,6 @@ export default function SalaComunicador() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       localStreamRef.current = stream
-      
-      // Criar elemento de áudio local (sem feedback)
-      const audio = new Audio()
-      audio.srcObject = stream
-      audio.muted = true
-      audio.play()
-      audioRef.current = audio
-      
       console.log('Microfone ativado')
     } catch (err) {
       console.error('Erro ao acessar microfone:', err)
@@ -126,50 +156,92 @@ export default function SalaComunicador() {
     }
   }
 
+  const iniciarSinalizacao = () => {
+    sinalizacaoChannelRef.current = supabase
+      .channel(`sinalizacao:${canalId}`)
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'comunicador_sinalizacao', filter: `sala_id=eq.${canalId}` },
+        (payload) => handleSinalizacao(payload.new)
+      )
+      .subscribe()
+  }
+
+  const handleSinalizacao = async (data: any) => {
+    if (data.de_usuario_id === user?.id) return
+
+    const peerConnection = peerConnectionsRef.current.get(data.de_usuario_id)
+    if (!peerConnection) return
+
+    try {
+      if (data.tipo === 'offer') {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.dados))
+        const answer = await peerConnection.createAnswer()
+        await peerConnection.setLocalDescription(answer)
+        await enviarSinalizacao(data.de_usuario_id, 'answer', answer)
+      } else if (data.tipo === 'answer') {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.dados))
+      } else if (data.tipo === 'candidate') {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(data.dados))
+      }
+    } catch (err) {
+      console.error('Erro na sinalização:', err)
+    }
+  }
+
+  const enviarSinalizacao = async (paraUsuarioId: string, tipo: string, dados: any) => {
+    await supabase
+      .from('comunicador_sinalizacao')
+      .insert({
+        sala_id: canalId,
+        de_usuario_id: user.id,
+        para_usuario_id: paraUsuarioId,
+        tipo: tipo,
+        dados: dados
+      })
+  }
+
   const criarConexao = async (participanteId: string) => {
     if (!localStreamRef.current) return
 
     const peerConnection = new RTCPeerConnection(configuration)
     
-    // Adicionar stream local
     localStreamRef.current.getTracks().forEach(track => {
       peerConnection.addTrack(track, localStreamRef.current!)
     })
 
-    // Receber stream remoto
     peerConnection.ontrack = (event) => {
       const remoteAudio = new Audio()
       remoteAudio.srcObject = event.streams[0]
       remoteAudio.play().catch(e => console.log('Erro ao reproduzir áudio:', e))
     }
 
-    // Criar oferta/negociação (simplificada)
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        enviarSinalizacao(participanteId, 'candidate', event.candidate)
+      }
+    }
+
+    peerConnectionsRef.current.set(participanteId, peerConnection)
+
     try {
       const offer = await peerConnection.createOffer()
       await peerConnection.setLocalDescription(offer)
-      
-      // Em produção, aqui você enviaria o SDP via Supabase
-      // Por enquanto, apenas armazenamos a conexão
-      peerConnectionsRef.current.set(participanteId, peerConnection)
+      await enviarSinalizacao(participanteId, 'offer', offer)
     } catch (err) {
-      console.error('Erro ao criar conexão:', err)
+      console.error('Erro ao criar oferta:', err)
     }
   }
 
-  // Simular PTT (Push-to-Talk)
-  // Em WebRTC, o áudio já é contínuo. O PTT é uma "simulação" de silêncio
   const startSpeaking = () => {
     setIsSpeaking(true)
-    // O áudio já está sendo transmitido via WebRTC
-    // Aqui poderíamos fazer um efeito visual
   }
 
   const stopSpeaking = () => {
     setIsSpeaking(false)
+    gerarRogerBeep()
   }
 
   const sairDoCanal = async () => {
-    // Remover participante
     await supabase
       .from('comunicador_participantes')
       .delete()
@@ -250,9 +322,6 @@ export default function SalaComunicador() {
                   : 'bg-gray-200 text-gray-700'
               }`}>
                 {p.usuario_id === user?.id ? '🎤 Você' : (p.profile?.full_name || 'Preparado')}
-                {p.usuario_id !== user?.id && !peerConnectionsRef.current.has(p.usuario_id) && (
-                  <span className="ml-1 text-xs text-yellow-500">⏳ conectando...</span>
-                )}
               </span>
             ))}
           </div>
@@ -274,12 +343,6 @@ export default function SalaComunicador() {
           >
             Voltar aos Canais
           </Link>
-        </div>
-
-        <div className="mt-6 text-center">
-          <p className="text-xs text-gray-400">
-            🔒 Comunicação em tempo real via WebRTC
-          </p>
         </div>
       </div>
     </div>
