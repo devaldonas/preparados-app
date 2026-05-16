@@ -91,42 +91,54 @@ export default function PessoasProximas() {
   }
 
   const getCurrentLocation = () => {
-    setError('')
-    setSharingLocation(true)
+  setError('')
+  setSharingLocation(true)
 
-    if (!navigator.geolocation) {
-      setError('Seu navegador não suporta geolocalização')
-      setSharingLocation(false)
-      return
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords
-        const loc = { lat: latitude, lng: longitude }
-        setLocation(loc)
-        
-        if (user) {
-          await supabase
-            .from('profiles')
-            .update({ 
-              latitude, 
-              longitude,
-              last_location_update: new Date().toISOString()
-            })
-            .eq('id', user.id)
-        }
-        
-        await buscarPessoasProximas(latitude, longitude)
-        setSharingLocation(false)
-      },
-      (err) => {
-        console.error('Erro ao obter localização:', err)
-        setError('Não foi possível obter sua localização. Verifique as permissões.')
-        setSharingLocation(false)
-      }
-    )
+  if (!navigator.geolocation) {
+    setError('Seu navegador não suporta geolocalização')
+    setSharingLocation(false)
+    return
   }
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const { latitude, longitude } = position.coords
+      console.log('Localização obtida:', { latitude, longitude })
+      
+      const loc = { lat: latitude, lng: longitude }
+      setLocation(loc)
+      
+      if (user) {
+        console.log('Salvando localização para usuário:', user.id)
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .update({ 
+            latitude, 
+            longitude,
+            last_location_update: new Date().toISOString()
+          })
+          .eq('id', user.id)
+          .select()
+        
+        if (error) {
+          console.error('Erro ao salvar localização:', error)
+          setError('Erro ao salvar localização: ' + error.message)
+        } else {
+          console.log('Localização salva com sucesso:', data)
+          setSharingLocation(false)
+          await buscarPessoasProximas(latitude, longitude)
+        }
+      }
+      setSharingLocation(false)
+    },
+    (err) => {
+      console.error('Erro ao obter localização:', err)
+      setError('Não foi possível obter sua localização. Verifique as permissões.')
+      setSharingLocation(false)
+    }
+  )
+}
 
   const buscarPessoasProximas = async (lat: number, lng: number) => {
   setRefreshing(true)
