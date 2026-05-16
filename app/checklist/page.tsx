@@ -381,60 +381,117 @@ export default function Checklist() {
           </div>
         )}
 
-        {/* Guia de Preparação da Mochila */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="text-2xl">📖</span> Guia de Preparação da Mochila
-          </h2>
-          
-          <div className="space-y-4">
-            <div className="border-b border-gray-100 pb-4">
-              <h3 className="font-bold text-gray-800 mb-2">🎒 Como escolher sua mochila</h3>
-              <p className="text-sm text-gray-600 mb-2">
-                Não existe mochila ideal que sirva para todo tipo de aventura, seja ela um trekking,
-bushcraft, trilha na montanha ou acampamento.
-De preferência por mochilas que tenham as alças largas com regulagem de altura e almofadadas em todos os pontos de contato com o corpo, resistentes ou a prova d'água com cinto abdominal.
-O Cinto abdominal também é de suma importância já que por sua vez ajuda na distribuição do peso, pois de nada vale você estar cheio de equipamentos, ser a pessoa mais preparada, é não conseguir carrega-los de forma eficaz, pois numa trilha de 10 km na estrada e diferente de uma trilha de 10 km na mata fechada.
-              </p>
-              <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside ml-2">
-                <li>Alças largas com regulagem de altura e almofadadas</li>
-                <li>Resistente ou à prova d'água</li>
-                <li>Com cinto abdominal</li>
-              </ul>
-            </div>
+        {/* Guia de Preparação da Mochila - Slides 1-7 (COMPLETO) */}
+<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+    <span className="text-2xl">📖</span> Guia de Preparação da Mochila
+  </h2>
+  
+  <div className="space-y-6">
+    {/* Slide 1 - Escola de Guerreiros */}
+    <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-600">
+      <p className="text-green-800 text-sm italic font-medium">
+        "Não é possível treinar a técnica física para todas as situações da sua vida, 
+        mas é possível treinar o estado mental para todas as situações. 
+        A maior arma de todas é a mente humana."
+      </p>
+      <p className="text-green-600 text-xs mt-2">— Escola de Guerreiros</p>
+    </div>
 
-            <div className="border-b border-gray-100 pb-4">
-              <h3 className="font-bold text-gray-800 mb-2">⚠️ Cuidados importantes</h3>
-              <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside ml-2">
-                <li>Jamais carregue a mochila em um só ombro</li>
-                <li>Menos peso = deslocamento mais rápido</li>
-                <li>Mais peso = deslocamento mais longe</li>
-              </ul>
-            </div>
+    {/* Slide 2 - Como escolher sua mochila */}
+    <div className="border-b border-gray-100 pb-4">
+      <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+        <span className="text-lg">🎒</span> Como escolher sua mochila
+      </h3>
+      <p className="text-sm text-gray-600">
+        Não existe mochila ideal que sirva para todo tipo de aventura, seja ela um trekking, 
+        bushcraft, trilha na montanha ou acampamento.
+      </p>
+    </div>
 
-            <div className="border-b border-gray-100 pb-4">
-              <h3 className="font-bold text-gray-800 mb-2">⚖️ Distribuição do peso</h3>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-sm font-medium text-green-700">Peso ideal:</p>
-                <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside ml-4 mt-1">
-                  <li><strong>Mulheres:</strong> até 10% do peso corporal</li>
-                  <li><strong>Homens:</strong> até 15% do peso corporal</li>
-                </ul>
-              </div>
-            </div>
+    {/* Slide 3 - Características da mochila (COMPLETO) */}
+    <div className="border-b border-gray-100 pb-4">
+      <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+        <span className="text-lg">✅</span> Características da mochila
+      </h3>
+      <p className="text-sm text-gray-600 leading-relaxed">
+        De preferência por mochilas que tenham as alças largas com regulagem de altura e almofadadas 
+        em todos os pontos de contato com o corpo, resistentes ou à prova d'água com cinto abdominal. 
+        O cinto abdominal também é de suma importância já que por sua vez ajuda na distribuição do peso, 
+        pois de nada vale você estar cheio de equipamentos, ser a pessoa mais preparada, e não conseguir 
+        carregá-los de forma eficaz, pois numa trilha de 10 km na estrada é diferente de uma trilha de 
+        10 km na mata fechada.
+      </p>
+    </div>
 
-            <div>
-              <h3 className="font-bold text-gray-800 mb-2">📦 Organização dos bolsos (fácil acesso)</h3>
-              <div className="flex flex-wrap gap-2">
-                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🩺 Kit primeiros socorros</span>
-                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">💧 Garrafa de água</span>
-                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🔪 Faca</span>
-                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🔥 Isqueiro</span>
-                <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🔦 Lanterna</span>
-              </div>
-            </div>
-          </div>
-        </div>
+    {/* Slide 4 - Cuidados importantes (COMPLETO) */}
+    <div className="border-b border-gray-100 pb-4">
+      <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+        <span className="text-lg">⚠️</span> Cuidados importantes
+      </h3>
+      <p className="text-sm text-gray-600 leading-relaxed">
+        Jamais carregue a mochila em um só ombro mesmo que seja apenas por um período curto de tempo, 
+        isso gera um estresse desnecessário junto ao corpo já que o mesmo tende a corrigir o lado mais pesado. 
+        Evite sobrecarregar os quadris e o joelho.
+      </p>
+    </div>
+
+    {/* Slide 5 - Distribuição do peso (COMPLETO) */}
+    <div className="border-b border-gray-100 pb-4">
+      <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+        <span className="text-lg">⚖️</span> Distribuição do peso
+      </h3>
+      <p className="text-sm text-gray-600 leading-relaxed">
+        Lembrando: menos peso = deslocamento mais rápido, mais peso = deslocamento mais longe. 
+        A distribuição do peso de maneira uniforme é muito importante, é imprescindível redistribuir 
+        o peso por igual na mochila, para que nem uma alça esteja forçando mais do que a outra, 
+        pois no deslocamento longo isso influenciará diretamente na sua coluna, comprometendo assim 
+        o seu rendimento. Uma mochila malfeita, mal preparada, mal balanceada pode acabar forçando 
+        você na caminhada, caminhando torto você será forçado a compensar o peso extra.
+      </p>
+    </div>
+
+    {/* Slide 6 - Peso ideal (COMPLETO) */}
+    <div className="border-b border-gray-100 pb-4">
+      <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+        <span className="text-lg">📊</span> Peso ideal da mochila
+      </h3>
+      <p className="text-sm text-gray-600 mb-2">
+        O ideal é que as alças da mochila fiquem com o mesmo ajuste de carga nos ombros.
+      </p>
+      <div className="bg-gray-50 p-3 rounded-lg mt-2">
+        <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside ml-2">
+          <li><strong>Mulheres:</strong> até <span className="font-bold text-green-700">10%</span> do peso corporal</li>
+          <li><strong>Homens:</strong> até <span className="font-bold text-green-700">15%</span> do peso corporal</li>
+        </ul>
+      </div>
+    </div>
+
+    {/* Slide 7 - Organização dos bolsos (COMPLETO) */}
+    <div>
+      <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
+        <span className="text-lg">📦</span> Organização dos bolsos (fácil acesso)
+      </h3>
+      <p className="text-sm text-gray-600 leading-relaxed">
+        Na preparação da mochila, nos bolsos de fácil acesso deve se deixar tudo que poderá ou não 
+        ser usado frequentemente, como:
+      </p>
+      <div className="flex flex-wrap gap-2 mt-3">
+        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🩺 Kit primeiros socorros</span>
+        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">💧 Garrafa de água</span>
+        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🎣 Material de pesca</span>
+        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">📝 Bloco para anotação</span>
+        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">✍️ Caneta</span>
+        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🔪 Faca</span>
+        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🔥 Isqueiro</span>
+        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🔦 Lanterna</span>
+      </div>
+      <p className="text-xs text-gray-500 mt-3">
+        📌 Tudo aquilo que você poderá precisar ao longo da jornada.
+      </p>
+    </div>
+  </div>
+</div>
 
         {/* Tipos de Mochila */}
         <div className="bg-gradient-to-r from-green-50 via-yellow-50 to-blue-50 rounded-xl p-5 mb-8 border border-gray-100">
@@ -506,16 +563,174 @@ O Cinto abdominal também é de suma importância já que por sua vez ajuda na d
           
           <div className="space-y-3">
             {[
-              { id: 'documentos', nome: 'Kit Documentos', icone: '📄', conteudo: ['Saco à prova d\'água', 'Dinheiro físico', 'Mapa da região', 'Cópias de documentos', 'Pendrive'] },
-              { id: 'agua', nome: 'Kit Água', icone: '💧', conteudo: ['Garrafa/cantil', 'Filtro de água', 'Cloro ou iodo'] },
-              { id: 'abrigo', nome: 'Kit Abrigo', icone: '🏠', conteudo: ['Cobertor térmico', 'Capa de chuva', 'Lona grossa', 'Barraca'] },
-              { id: 'fogo', nome: 'Kit Fogo', icone: '🔥', conteudo: ['Isqueiro', 'Pederneira', 'Algodão na vaselina', 'Fogareiro'] },
-              { id: 'primeirosSocorros', nome: 'Kit Primeiros Socorros', icone: '🩺', conteudo: ['Luvas', 'Gases e esparadrapo', 'Analgésico', 'Torniquete', 'Termômetro', 'Carvão ativado'] },
-              { id: 'higiene', nome: 'Kit Higiene', icone: '🧼', conteudo: ['Papel higiênico', 'Sabonete bactericida', 'Escova dental', 'Repelente', 'Protetor solar'] },
-              { id: 'tecnologia', nome: 'Kit Tecnologia', icone: '📱', conteudo: ['Powerbank', 'Lanterna', 'Rádio comunicador'] },
-              { id: 'ferramentas', nome: 'Kit Ferramentas', icone: '🔧', conteudo: ['Faca multifuncional', 'Paracord', 'Apito', 'Fita isolante', 'Bússola'] },
-              { id: 'alimentacao', nome: 'Kit Alimentação', icone: '🍲', conteudo: ['Água', 'Enlatados', 'Tsampa', 'Caneca e talheres', 'Sal', 'Mel'] },
-              { id: 'roupas', nome: 'Kit Roupas', icone: '👕', conteudo: ['Meias extras', 'Jaqueta impermeável', 'Camisa térmica', 'Bota para trilha'] },
+              { id: 'documentos', nome: 'Kit Documentos', icone: '📄', conteudo: [
+  'Saco à prova d água (prata)',
+  'Dinheiro físico (cédulas pequenas)',
+  'Mapa da sua região',
+  'Original ou cópia de todos os seus documentos',
+  'Documentos dos seus dependentes',
+  'Cópias em pendrive'
+] },
+              { id: 'agua', nome: 'Kit Água', icone: '💧', conteudo: [
+  'Garrafa de água ou cantil (inox ou alumínio)',
+  'Filtro de purificação',
+  'Clorin, água sanitária ou iodo'
+] },
+             { id: 'abrigo', nome: 'Kit Abrigo', icone: '🏠', conteudo: [
+  'Cobertor de alumínio',
+  'Capa de chuva ou poncho',
+  'Lona grossa',
+  'Barraca',
+  'Couchonete, rede, amadeira'
+] },
+             { id: 'fogo', nome: 'Kit Fogo', icone: '🔥', conteudo: [
+  'Fogareiro e gás',
+  'Pederneira',
+  'Isqueiro comum ou maçarico',
+  'Algodão na vaselina',
+  'Iniciador ou álcool',
+  'Iscas de fogo'
+] },
+             { id: 'primeirosSocorros', nome: 'Kit Primeiros Socorros', icone: '🩺', conteudo: [
+  'Remédios de uso contínuo',
+  'Par de luvas',
+  'Torniquete',
+  'Traqueia',
+  'Bandagem elástica',
+  'Termômetro',
+  'Toalhas de álcool',
+  'Pinça',
+  'Cortador',
+  'Chás para resfriado',
+  'Fio de sutura',
+  'Lâmina de bisturi',
+  'Colírio',
+  'Tesoura sem ponta',
+  'Repelente',
+  'Protetor solar',
+  'Esparadrapo',
+  'Bandagem',
+  'Gases',
+  'Band-aid',
+  'Algodão',
+  'Pomada antisséptica',
+  'Spray para dor muscular',
+  'Analgésico dor muscular',
+  'Cotonetes',
+  'Toalhas moeda',
+  'Absorventes',
+  'Analgésico',
+  'Dorflex',
+  'Paracetamol',
+  'Carvão ativado',
+  'Pastilhas para garganta',
+  'Hidraplex',
+  'Fenaflan adesivo',
+  'Hidratante labial',
+  'Benegrip',
+  'Spray anti-séptico',
+  'Álcool gel',
+  'Soro fisiológico',
+  'Pomada Minâncora',
+  'Iodo',
+  'Alivium'
+] },
+              { id: 'higiene', nome: 'Kit Higiene', icone: '🧼', conteudo: [
+  'Papel higiênico',
+  'Lenços umedecidos',
+  'Lenços de papel',
+  'Cortador de unha',
+  'Barbeador',
+  'Pinça',
+  'Alicate de cotícula',
+  'Sabonete bactericida',
+  'Creme dental (sem flúor)',
+  'Escova pequena',
+  'Cotonete',
+  'Talco',
+  'Pomada Minâncora',
+  'Protetor solar',
+  'Repelente'
+] },
+              { id: 'tecnologia', nome: 'Kit Tecnologia', icone: '📱', conteudo: [
+  'Celular com carregadores',
+  'Fones de ouvido',
+  'Rádio comunicador',
+  'Powerbank solar',
+  'Lanterna de cabeça',
+  'Lanterna a pilha',
+  'Pilhas extras'
+] },
+              { id: 'ferramentas', nome: 'Kit Ferramentas', icone: '🔧', conteudo: [
+  'Bússola',
+  'Faca lâmina integral',
+  'Canivete multifuncional',
+  'Mosquetão 2700kg',
+  'Paracord multifilamentos',
+  'Afiador de faca',
+  'Cintas plásticas',
+  'Fita isolante',
+  'Cola',
+  'Apito',
+  'Boné',
+  'Binóculo',
+  'Sinalizador laser',
+  'Velas'
+] },
+              { id: 'alimentacao', nome: 'Kit Alimentação', icone: '🍲', conteudo: [
+  'Caneca, faca, colher, garfo',
+  'Água e comida (Tsampa)',
+  'Café, sal, mel',
+  'Enlatados'
+] },
+             { id: 'roupas', nome: 'Kit Roupas', icone: '👕', conteudo: [
+  'Três pares de mudas de roupa completo',
+  'Jaqueta à prova d água',
+  'Camisa térmica',
+  'Bota para trilha'
+] },
+{ id: 'limpeza', nome: 'Kit Limpeza de Equipamento', icone: '🧹', conteudo: [
+  'Flanela branca',
+  'Flanela escura',
+  'Escova',
+  'Cordão passador',
+  'Óleo'
+] },
+{ id: 'pesca', nome: 'Kit Pesca', icone: '🎣', conteudo: [
+  'Anzóis',
+  'Chumbada',
+  'Linha',
+  'Boia',
+  'Isca',
+  'Empate',
+  'Rede'
+] },
+{ id: 'costura', nome: 'Kit Costura', icone: '🪡', conteudo: [
+  '2 botões',
+  '2 agulhas',
+  '1 carretel de linha',
+  '2 joaninhas'
+] },
+{ id: 'variavel', nome: 'Kit Variável', icone: '🎒', conteudo: [
+  'Bússola',
+  'Faca lâmina integral',
+  'Canivete',
+  'Mosquetão',
+  'Paracord',
+  'Afiador de faca',
+  'Cintas plásticas',
+  'Fita isolante',
+  'Apito',
+  'Boné',
+  'Binóculo',
+  'Lanterna de cabeça',
+  'Lanterna a pilha',
+  'Pilhas extras',
+  'Sacos BGS impermeável',
+  'Caneta e bloco para anotações',
+  'Sinalizador laser',
+  'Velas'
+] },
             ].map((kit) => (
               <div key={kit.id} className="border border-gray-200 rounded-lg overflow-hidden">
                 <button onClick={() => toggleKit(kit.id)} className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition">
