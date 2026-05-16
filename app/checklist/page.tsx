@@ -391,7 +391,10 @@ export default function Checklist() {
             <div className="border-b border-gray-100 pb-4">
               <h3 className="font-bold text-gray-800 mb-2">🎒 Como escolher sua mochila</h3>
               <p className="text-sm text-gray-600 mb-2">
-                Não existe mochila ideal que sirva para todo tipo de aventura.
+                Não existe mochila ideal que sirva para todo tipo de aventura, seja ela um trekking,
+bushcraft, trilha na montanha ou acampamento.
+De preferência por mochilas que tenham as alças largas com regulagem de altura e almofadadas em todos os pontos de contato com o corpo, resistentes ou a prova d'água com cinto abdominal.
+O Cinto abdominal também é de suma importância já que por sua vez ajuda na distribuição do peso, pois de nada vale você estar cheio de equipamentos, ser a pessoa mais preparada, é não conseguir carrega-los de forma eficaz, pois numa trilha de 10 km na estrada e diferente de uma trilha de 10 km na mata fechada.
               </p>
               <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside ml-2">
                 <li>Alças largas com regulagem de altura e almofadadas</li>
