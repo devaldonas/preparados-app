@@ -5,6 +5,14 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 
+// Silenciar erro específico do Supabase Realtime
+const originalConsoleError = console.error
+console.error = (...args: any[]) => {
+  if (args[0]?.includes?.('cannot add `postgres_changes` callbacks')) return
+  if (args[0]?.includes?.('after `subscribe()`')) return
+  originalConsoleError(...args)
+}
+
 export default function SalaComunicador() {
   const [user, setUser] = useState<any>(null)
   const [canal, setCanal] = useState<any>(null)
@@ -16,21 +24,42 @@ export default function SalaComunicador() {
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
-  const audioRef = useRef<HTMLAudioElement | null>(null)
   
   const router = useRouter()
   const params = useParams()
   const canalId = params.id as string
 
   const gerarRogerBeep = () => {
-  try {
-    const audio = new Audio('/sounds/roger-beep.mp3')
-    audio.volume = 0.5
-    audio.play().catch(e => console.log('Erro ao tocar beep:', e))
-  } catch (err) {
-    console.log('Erro ao reproduzir beep:', err)
+    try {
+      const audio = new Audio('/sounds/roger-beep.mp3')
+      audio.volume = 0.5
+      audio.play().catch(e => console.log('Erro ao tocar beep:', e))
+    } catch (err) {
+      console.log('Erro ao reproduzir beep:', err)
+    }
   }
-}
+
+  const gerarBeepRecebido = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+      
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+      
+      oscillator.frequency.value = 660
+      gainNode.gain.value = 0.2
+      
+      oscillator.start()
+      gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.2)
+      oscillator.stop(audioContext.currentTime + 0.2)
+      
+      setTimeout(() => audioContext.close(), 300)
+    } catch (err) {
+      console.log('Erro ao gerar beep de recepção:', err)
+    }
+  }
 
   useEffect(() => {
     const getUser = async () => {
@@ -44,32 +73,34 @@ export default function SalaComunicador() {
       await registrarNoCanal()
       await carregarParticipantes()
       setLoading(false)
-      
-      // Inscrever para novos áudios
-      const channel = supabase
-        .channel(`audio:${canalId}`)
-        .on('broadcast', { event: 'novo-audio' }, (payload) => {
-          console.log('Áudio recebido:', payload)
-          adicionarAudio(payload.payload)
-        })
-        .subscribe()
-      
-      // Inscrever para participantes
-      const participantSubscription = supabase
-        .channel('participantes')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'comunicador_participantes', filter: `canal_id=eq.${canalId}` },
-          () => carregarParticipantes()
-        )
-        .subscribe()
-      
-      return () => {
-        channel.unsubscribe()
-        participantSubscription.unsubscribe()
-      }
     }
     getUser()
   }, [])
+
+  useEffect(() => {
+    if (!user || !canal) return
+
+    const audioChannel = supabase
+      .channel(`audio:${canalId}`)
+      .on('broadcast', { event: 'novo-audio' }, (payload) => {
+        console.log('Áudio recebido:', payload)
+        adicionarAudio(payload.payload)
+      })
+      .subscribe()
+
+    const participantChannel = supabase
+      .channel('participantes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'comunicador_participantes', filter: `canal_id=eq.${canalId}` },
+        () => carregarParticipantes()
+      )
+      .subscribe()
+
+    return () => {
+      audioChannel.unsubscribe()
+      participantChannel.unsubscribe()
+    }
+  }, [user, canal, canalId])
 
   const carregarCanal = async () => {
     const { data } = await supabase
@@ -139,7 +170,6 @@ export default function SalaComunicador() {
       mediaRecorderRef.current.start()
       setIsRecording(true)
       
-      // Parar automaticamente após 15 segundos
       setTimeout(() => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
           stopRecording()
@@ -165,7 +195,6 @@ export default function SalaComunicador() {
     const fileName = `${Date.now()}_${user.id}.webm`
     const filePath = `audio/${fileName}`
     
-    // Upload para o Supabase Storage
     const { error: uploadError } = await supabase.storage
       .from('comunicador_audio')
       .upload(filePath, audioBlob, { contentType: 'audio/webm' })
@@ -175,12 +204,10 @@ export default function SalaComunicador() {
       return
     }
     
-    // Obter URL pública
     const { data: urlData } = supabase.storage
       .from('comunicador_audio')
       .getPublicUrl(filePath)
     
-    // Broadcast para todos no canal
     supabase.channel(`audio:${canalId}`).send({
       type: 'broadcast',
       event: 'novo-audio',
@@ -192,25 +219,25 @@ export default function SalaComunicador() {
         timestamp: Date.now()
       }
     })
-    
   }
 
   const adicionarAudio = (payload: any) => {
-  // Ignorar se for o próprio usuário
-  if (payload.from === user?.id) {
-    console.log('Ignorando próprio áudio')
-    return
+    if (payload.from === user?.id) {
+      console.log('Ignorando próprio áudio')
+      return
+    }
+    
+    gerarBeepRecebido()
+    
+    setAudioURLs(prev => [...prev, {
+      id: payload.id,
+      url: payload.url,
+      from: payload.fromName || 'Preparado'
+    }])
+    
+    const audio = new Audio(payload.url)
+    audio.play().catch(e => console.log('Erro ao reproduzir:', e))
   }
-  
-  setAudioURLs(prev => [...prev, {
-    id: payload.id,
-    url: payload.url,
-    from: payload.fromName || 'Preparado'
-  }])
-  
-  const audio = new Audio(payload.url)
-  audio.play().catch(e => console.log('Erro ao reproduzir:', e))
-}
 
   const sairDoCanal = async () => {
     await supabase
@@ -285,7 +312,6 @@ export default function SalaComunicador() {
           </div>
         </div>
 
-        {/* Histórico de mensagens de áudio */}
         {audioURLs.length > 0 && (
           <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <h3 className="font-semibold text-gray-700 mb-2">📨 Últimas mensagens:</h3>
