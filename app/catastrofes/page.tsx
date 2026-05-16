@@ -328,7 +328,37 @@ export default function Catastrofes() {
       </div>
     </div>
 
-    {/* Dicas Estratégicas */}
+    {/* Recursos Valiosos (Farmácias, Mercados, Postos) */}
+<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+  <h3 className="text-lg font-bold text-purple-600 mb-3">🏪 Recursos Valiosos na Rota</h3>
+  <p className="text-gray-700 mb-3">
+    Mesmo em deslocamento na rota de fuga, você ainda pode adquirir recursos valiosos.
+  </p>
+  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+    <img src="/images/catastrofes/recursos-slide1.png" alt="Recursos 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+    <img src="/images/catastrofes/recursos-slide2.png" alt="Recursos 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+    <img src="/images/catastrofes/recursos-slide3.png" alt="Recursos 3" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+  </div>
+  <ul className="list-disc list-inside text-gray-600 mt-3 text-sm">
+    <li><strong>Farmácias</strong> - Medicamentos e primeiros socorros</li>
+    <li><strong>Mercados</strong> - Alimentos e água</li>
+    <li><strong>Postos de combustível</strong> - Combustível e suprimentos</li>
+  </ul>
+</div>
+
+{/* Guard Rails */}
+<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+  <h3 className="text-lg font-bold text-orange-600 mb-3">🛣️ Guard Rails e Rotas Alternativas</h3>
+  <p className="text-gray-700 mb-3">
+    Trace sua rota em estradas com poucos ou nenhum guard rail. Tenha sempre uma chave para retirá-los em caso de engarrafamento.
+  </p>
+  <div className="grid grid-cols-2 gap-3 mt-4">
+    <img src="/images/catastrofes/guardrail-slide1.png" alt="Guard Rail 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+    <img src="/images/catastrofes/guardrail-slide2.png" alt="Guard Rail 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+  </div>
+  <p className="text-sm text-gray-600 mt-3">
+
+      {/* Dicas Estratégicas */}
     <div className="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 p-6">
       <h3 className="text-lg font-bold text-yellow-800 mb-3">💡 Dicas Estratégicas</h3>
       <ul className="list-disc list-inside text-yellow-800 space-y-2">
@@ -337,34 +367,85 @@ export default function Catastrofes() {
         <li>Assim você conseguirá seguir nos dois sentidos se necessário</li>
       </ul>
     </div>
+    
+  </p>
+</div>
 
-    {/* Plano de Ação Familiar */}
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <h3 className="text-lg font-bold text-gray-900 mb-3">👨‍👩‍👧‍👦 Plano de Ação Familiar</h3>
-      <div className="space-y-4">
-        <div>
-          <h4 className="font-bold text-gray-900">📌 Organização Familiar</h4>
-          <ul className="list-disc list-inside text-gray-700 ml-4">
-            <li>Definir previamente um ponto de encontro com a família</li>
-            <li>Manter cópia dos documentos pessoais (físico ou digital) em embalagem à prova d'água</li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="font-bold text-gray-900">📞 Comunicação Alternativa</h4>
-          <ul className="list-disc list-inside text-gray-700 ml-4">
-            <li>Estabelecer canal alternativo com familiares (apps de emergência, rádio comunitário)</li>
-            <li>Anotar contatos de emergência em papel (não só no celular)</li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="font-bold text-gray-900">🏥 Cuidados com a Saúde</h4>
-          <ul className="list-disc list-inside text-gray-700 ml-4">
-            <li>Levar medicamentos de uso contínuo</li>
-            <li>Manter itens de higiene pessoal</li>
-          </ul>
-        </div>
-      </div>
+{/* Fontes de Água */}
+<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+  <h3 className="text-lg font-bold text-blue-600 mb-3">💧 Mapear Fontes de Água</h3>
+  <p className="text-gray-700 mb-3">
+    Mapear fontes de água na sua região também é uma estratégia inteligente, pois é um recurso indispensável que pouca gente armazena.
+  </p>
+  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+    <img src="/images/catastrofes/fontesdeagua-slide1.png" alt="Fontes de Água 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+    <img src="/images/catastrofes/fontesdeagua-slide2.png" alt="Fontes de Água 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+    <img src="/images/catastrofes/fontesdeagua-slide3.png" alt="Fontes de Água 3" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+  </div>
+</div>
+
+{/* Plano de Ação Familiar (expandido) */}
+<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+  <h3 className="text-lg font-bold text-gray-900 mb-3">👨‍👩‍👧‍👦 Plano de Ação em Situações de Emergência</h3>
+  
+  <div className="grid md:grid-cols-2 gap-6">
+    <div>
+      <h4 className="font-bold text-green-700 mb-2">📌 Organização Familiar</h4>
+      <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
+        <li>Definir previamente um ponto de encontro com a família</li>
+        <li>Manter cópia dos documentos pessoais (físico ou digital) em embalagem à prova d'água</li>
+      </ul>
     </div>
+    <div>
+      <h4 className="font-bold text-blue-700 mb-2">🚨 Passos Subsequentes</h4>
+      <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
+        <li>Informar-se sobre rotas de evacuação e abrigos disponíveis</li>
+        <li>Seguir orientações da Defesa Civil, Corpo de Bombeiros</li>
+      </ul>
+    </div>
+    <div>
+      <h4 className="font-bold text-orange-700 mb-2">🎒 Kit de Emergência</h4>
+      <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
+        <li>Água potável e alimentos não perecíveis</li>
+        <li>Lanterna, pilhas, rádio portátil</li>
+        <li>Kit de primeiros socorros, máscara, álcool em gel</li>
+        <li>Roupas extras</li>
+      </ul>
+    </div>
+    <div>
+      <h4 className="font-bold text-purple-700 mb-2">📞 Comunicação Alternativa</h4>
+      <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
+        <li>Mensagens de texto, aplicativos de emergência, rádio comunitário</li>
+        <li>Anotar contatos de emergência em papel (não só no celular)</li>
+      </ul>
+    </div>
+    <div>
+      <h4 className="font-bold text-red-700 mb-2">🏥 Cuidados com a Saúde</h4>
+      <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
+        <li>Levar medicamentos de uso contínuo</li>
+        <li>Manter itens de higiene pessoal</li>
+      </ul>
+    </div>
+    <div>
+      <h4 className="font-bold text-yellow-700 mb-2">🏠 Retorno à Residência</h4>
+      <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
+        <li>Somente retornar após liberação oficial das autoridades</li>
+        <li>Verificar integridade da estrutura do imóvel</li>
+        <li>Checar registros de água, gás e energia antes de utilizar</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+{/* Mensagem final - Seja mestre de si mesmo */}
+<div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 text-center">
+  <p className="text-green-800 font-semibold text-lg">
+    🎯 "Seja mestre de si mesmo e busquem conhecimentos."
+  </p>
+  <p className="text-green-600 text-sm mt-2">
+    Escola de Guerreiros
+  </p>
+</div>
 
     {/* Mensagem final */}
     <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 text-center">

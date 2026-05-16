@@ -33,17 +33,24 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <div className="text-center">
+          <img 
+            src="/logo.svg" 
+            alt="PREPARADOS" 
+            className="h-16 mx-auto mb-4"
+            onError={(e) => { e.currentTarget.style.display = 'none' }}
+          />
+          <h2 className="text-3xl font-extrabold text-gray-900">
             Entrar no <span className="text-green-700">PREPARADOS</span>
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-600">
             Ou{' '}
             <Link href="/auth/cadastro" className="font-medium text-green-600 hover:text-green-500">
               crie sua conta gratuitamente
             </Link>
           </p>
         </div>
+        
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           {error && (
             <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -82,13 +89,6 @@ export default function Login() {
               Esqueceu sua senha?
             </Link>
           </div>
-
-          <div className="text-center">
-  <img src="/logo.png" alt="PREPARADOS" className="h-16 mx-auto mb-4" />
-  <h2 className="text-center text-3xl font-extrabold text-gray-900">
-    Entrar no <span className="text-green-700">PREPARADOS</span>
-  </h2>
-</div>
 
           <div>
             <button
