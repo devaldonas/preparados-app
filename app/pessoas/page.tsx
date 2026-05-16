@@ -129,80 +129,60 @@ export default function PessoasProximas() {
   }
 
   const buscarPessoasProximas = async (lat: number, lng: number) => {
-    setRefreshing(true)
+  setRefreshing(true)
+  
+  if (!user || !user.id) {
+    console.log('Usuário não autenticado')
+    setRefreshing(false)
+    return
+  }
+  
+  try {
+    // Buscar TODOS os perfis com localização (exceto o próprio)
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, latitude, longitude, mochila_tipo, last_location_update')
+      .not('id', 'eq', user.id)
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null)
     
-    if (!user || !user.id) {
-      console.log('Usuário não autenticado, usando modo demonstração')
-      setUseMockData(true)
-      const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
-        ...p,
-        distance: calcularDistancia(lat, lng, p.latitude, p.longitude)
-      }))
-      const filtradas = pessoasComDistancia.filter(p => p.distance <= radius)
-      setPessoas(filtradas)
+    if (error) {
+      console.error('Erro Supabase:', error)
+      setPessoas([])
       setRefreshing(false)
       return
     }
-    
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, latitude, longitude, mochila_tipo, last_location_update')
-        .not('id', 'eq', user.id)
-        .not('latitude', 'is', null)
-        .not('longitude', 'is', null)
-      
-      if (error) {
-        console.error('Erro Supabase:', error)
-        setUseMockData(true)
-        const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
-          ...p,
-          distance: calcularDistancia(lat, lng, p.latitude, p.longitude)
-        }))
-        const filtradas = pessoasComDistancia.filter(p => p.distance <= radius)
-        setPessoas(filtradas)
-        setRefreshing(false)
-        return
-      }
 
-      if (!data || data.length === 0) {
-        setUseMockData(true)
-        const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
-          ...p,
-          distance: calcularDistancia(lat, lng, p.latitude, p.longitude)
-        }))
-        const filtradas = pessoasComDistancia.filter(p => p.distance <= radius)
-        setPessoas(filtradas)
-        setRefreshing(false)
-        return
-      }
-
-      setUseMockData(false)
-      const pessoasComDistancia = data.map((pessoa) => ({
-        ...pessoa,
-        distance: calcularDistancia(lat, lng, pessoa.latitude, pessoa.longitude),
-        last_seen: pessoa.last_location_update,
-      }))
-      
-      const pessoasProximas = pessoasComDistancia
-        .filter(p => p.distance <= radius)
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, 50)
-      
-      setPessoas(pessoasProximas)
-    } catch (err) {
-      console.error('Erro inesperado:', err)
-      const pessoasComDistancia = MOCK_PESSOAS.map(p => ({
-        ...p,
-        distance: calcularDistancia(lat, lng, p.latitude, p.longitude)
-      }))
-      const filtradas = pessoasComDistancia.filter(p => p.distance <= radius)
-      setPessoas(filtradas)
-      setUseMockData(true)
-    } finally {
+    if (!data || data.length === 0) {
+      console.log('Nenhuma pessoa real com localização encontrada')
+      setPessoas([])
+      setUseMockData(false)  // Desativa mock
       setRefreshing(false)
+      return
     }
+
+    // Usar dados reais
+    setUseMockData(false)
+    const pessoasComDistancia = data.map((pessoa) => ({
+      ...pessoa,
+      distance: calcularDistancia(lat, lng, pessoa.latitude, pessoa.longitude),
+      last_seen: pessoa.last_location_update,
+    }))
+    
+    const pessoasProximas = pessoasComDistancia
+      .filter(p => p.distance <= radius)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 50)
+    
+    console.log(`Pessoas reais encontradas: ${pessoasProximas.length}`)
+    setPessoas(pessoasProximas)
+  } catch (err) {
+    console.error('Erro inesperado:', err)
+    setPessoas([])
+  } finally {
+    setRefreshing(false)
   }
+}
 
   const calcularDistancia = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371
