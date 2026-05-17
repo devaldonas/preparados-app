@@ -49,7 +49,7 @@ export default function CarouselFooter() {
   const botaoAtivo = botoes[indiceAtivo]
 
   const renderBotao = () => {
-    const className = `flex items-center justify-between w-full p-5 bg-gradient-to-r ${botaoAtivo.cor} text-white rounded-2xl shadow-xl transition-all duration-500 transform hover:scale-105`
+    const className = `flex items-center justify-between w-full p-3 bg-gradient-to-r ${botaoAtivo.cor} text-white rounded-xl shadow-lg transition-all duration-500 transform hover:scale-105`
 
     const conteudo = (
       <>
