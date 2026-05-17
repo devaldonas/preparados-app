@@ -139,13 +139,13 @@ export default function Dashboard() {
 {/* Botões de acesso rápido */}
 <div className="grid grid-cols-1 gap-3 mb-8">
   <Link
-    href="/comunicador/canal/8bfb8c3e-9fb0-4a43-a781-dc96b0a09baf"
-    className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-4 rounded-xl text-center hover:from-blue-700 hover:to-cyan-700 transition shadow-sm"
-  >
-    <div className="text-2xl mb-1">🎙️</div>
-    <div className="text-sm font-semibold">Comunicador Via Rádio</div>
-    <div className="text-xs opacity-90">PTT - Pressione para falar</div>
-  </Link>
+  href="/comunicador/canal/8bfb8c3e-9fb0-4a43-a781-dc96b0a09baf"
+  className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-3 rounded-lg text-center hover:from-blue-700 hover:to-cyan-700 transition shadow-sm"
+>
+  <div className="text-xl mb-1">🎙️</div>
+  <div className="text-xs font-semibold">Comunicador Via Rádio</div>
+  <div className="text-[10px] opacity-90">PTT - Pressione para falar</div>
+</Link>
 </div>
 
         {/* Cards de Progresso */}
