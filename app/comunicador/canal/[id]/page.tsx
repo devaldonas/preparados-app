@@ -270,28 +270,6 @@ export default function SalaComunicador() {
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8 text-center">
           <button
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            onMouseLeave={stopRecording}
-            onTouchStart={startRecording}
-            onTouchEnd={stopRecording}
-            className={`
-              w-40 h-40 rounded-full shadow-xl transition-all duration-100
-              ${isRecording 
-                ? 'bg-red-600 scale-95 shadow-inner animate-pulse' 
-                : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:scale-105'}
-              cursor-pointer active:scale-95
-            `}
-          >
-            <div className="flex flex-col items-center justify-center h-full">
-              <span className="text-5xl">{isRecording ? '🎤' : '🎙️'}</span>
-              <span className="text-sm font-semibold mt-2 text-white">
-                {isRecording ? 'GRAVANDO...' : 'Pressione para falar'}
-              </span>
-            </div>
-          </button>
-
-          <button
   onMouseDown={startRecording}
   onMouseUp={stopRecording}
   onMouseLeave={stopRecording}
@@ -313,8 +291,7 @@ export default function SalaComunicador() {
       {isRecording ? 'GRAVANDO...' : 'Pressione para falar'}
     </span>
   </div>
-</button>
-          
+</button>      
           <p className="text-sm text-gray-500 mt-6">
             Pressione e segure para gravar (máximo 15 segundos).<br/>
             Solte para enviar.

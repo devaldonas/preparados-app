@@ -26,7 +26,7 @@ const botoes: BotaoCarrossel[] = [
   },
   { 
     id: 2, 
-    nome: 'Comunicador Via Rádio', 
+    nome: 'Comunicador Via Whatsapp', 
     icone: '💬', 
     descricao: 'Canal de emergência e comunicação',
     href: 'https://wa.me/?text=🚨 *PREPARADOS - COMUNICADO DE EMERGÊNCIA* 🚨%0A%0AAcionei o comunicador do aplicativo PREPARADOS.%0A%0APreciso de informações e orientações.%0A%0A*Favor retornar o contato.*', 

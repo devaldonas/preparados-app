@@ -146,7 +146,10 @@ export default function Dashboard() {
   <div className="text-xs font-semibold">Comunicador Via Rádio</div>
   <div className="text-[10px] opacity-90">PTT - Pressione para falar</div>
 </Link>
+<<<<<<< HEAD
 
+=======
+>>>>>>> 79e4acede48292139f552e6d190b0fc82cb5dace
 </div>
 
         {/* Cards de Progresso */}
