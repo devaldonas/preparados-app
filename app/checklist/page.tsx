@@ -581,7 +581,8 @@ export default function Checklist() {
   'Capa de chuva ou poncho',
   'Lona grossa',
   'Barraca',
-  'Couchonete, rede, amadeira'
+  'Colchonete',
+  'Rede armadeira'
 ] },
              { id: 'fogo', nome: 'Kit Fogo', icone: '🔥', conteudo: [
   'Fogareiro e gás',
