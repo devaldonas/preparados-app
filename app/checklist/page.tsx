@@ -532,30 +532,42 @@ export default function Checklist() {
           </div>
         </div>
 
-        {/* Regra Defesa */}
-        <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-5 mb-8 border border-red-100">
-          <h2 className="text-lg font-bold text-red-800 mb-3 flex items-center gap-2">
-            <span className="text-2xl">🛡️</span> Regra Defesa - Os 4 Pilares
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-white rounded-lg p-3 text-center">
-              <span className="text-2xl">💧</span>
-              <p className="font-bold text-blue-600 text-sm">Água</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 text-center">
-              <span className="text-2xl">🏠</span>
-              <p className="font-bold text-green-600 text-sm">Abrigo</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 text-center">
-              <span className="text-2xl">🍲</span>
-              <p className="font-bold text-yellow-600 text-sm">Alimento</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 text-center">
-              <span className="text-2xl">🔥</span>
-              <p className="font-bold text-red-600 text-sm">Fogo</p>
-            </div>
-          </div>
-        </div>
+        {/* Regra Defesa - Os 5 Pilares */}
+<div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-5 mb-8 border border-red-100">
+  <h2 className="text-lg font-bold text-red-800 mb-3 flex items-center gap-2">
+    <span className="text-2xl">🛡️</span> Regra Defesa - Os 5 Pilares
+  </h2>
+  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div className="bg-white rounded-lg p-3 text-center">
+      <span className="text-2xl">🛡️</span>
+      <p className="font-bold text-purple-600 text-sm">Defesa</p>
+      <p className="text-xs text-gray-500">Atitude mental</p>
+    </div>
+    <div className="bg-white rounded-lg p-3 text-center">
+      <span className="text-2xl">💧</span>
+      <p className="font-bold text-blue-600 text-sm">Água</p>
+      <p className="text-xs text-gray-500">Hidratação</p>
+    </div>
+    <div className="bg-white rounded-lg p-3 text-center">
+      <span className="text-2xl">🏠</span>
+      <p className="font-bold text-green-600 text-sm">Abrigo</p>
+      <p className="text-xs text-gray-500">Proteção</p>
+    </div>
+    <div className="bg-white rounded-lg p-3 text-center">
+      <span className="text-2xl">🍲</span>
+      <p className="font-bold text-yellow-600 text-sm">Alimento</p>
+      <p className="text-xs text-gray-500">Energia</p>
+    </div>
+    <div className="bg-white rounded-lg p-3 text-center">
+      <span className="text-2xl">🔥</span>
+      <p className="font-bold text-red-600 text-sm">Fogo</p>
+      <p className="text-xs text-gray-500">Calor e preparo</p>
+    </div>
+  </div>
+  <p className="text-xs text-center text-gray-600 mt-3">
+    🛡️ A Defesa é o primeiro pilar: esteja mentalmente preparado para qualquer situação.
+  </p>
+</div>
 
         {/* Kits Detalhados */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
