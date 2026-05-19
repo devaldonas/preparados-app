@@ -674,22 +674,7 @@ export default function Checklist() {
   'Lanterna a pilha',
   'Pilhas extras'
 ] },
-              { id: 'ferramentas', nome: 'Kit Ferramentas', icone: '🔧', conteudo: [
-  'Bússola',
-  'Faca lâmina integral',
-  'Canivete multifuncional',
-  'Mosquetão 2700kg',
-  'Paracord multifilamentos',
-  'Afiador de faca',
-  'Cintas plásticas',
-  'Fita isolante',
-  'Cola',
-  'Apito',
-  'Boné',
-  'Binóculo',
-  'Sinalizador laser',
-  'Velas'
-] },
+              
               { id: 'alimentacao', nome: 'Kit Alimentação', icone: '🍲', conteudo: [
   'Caneca, faca, colher, garfo',
   'Água e comida (Tsampa)',
