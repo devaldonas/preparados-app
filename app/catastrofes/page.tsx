@@ -49,6 +49,16 @@ export default function Catastrofes() {
           >
             🗺️ Rotas de Fuga
           </button>
+          <button
+  onClick={() => setAbaAtiva('defesa')}
+  className={`flex-1 py-3 text-center font-semibold transition ${
+    abaAtiva === 'defesa'
+      ? 'text-green-700 border-b-2 border-green-700'
+      : 'text-gray-500 hover:text-green-600'
+  }`}
+>
+  ❄️ Defesa e Preparação
+</button>
         </div>
 
         {/* Conteúdo - TERREMOTO */}
@@ -456,7 +466,277 @@ export default function Catastrofes() {
     </div>
   </div>
 )}
+{/* Conteúdo - DEFESA E PREPARAÇÃO (FRIO EXTREMO) */}
+{abaAtiva === 'defesa' && (
+  <div className="space-y-6">
+    
+    {/* Slide 3 - Sistema de Camadas */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h2 className="text-xl font-bold text-blue-700 mb-3 flex items-center gap-2">
+        <span className="text-2xl">🥶</span> Sistema de Camadas
+      </h2>
+      <img src="/images/catastrofes/camadas-slide1.png" alt="Sistema de Camadas" className="rounded-lg w-full h-auto object-cover mb-4 border border-gray-200" />
+      <p className="text-gray-700">
+        É o sistema usado por moradores de regiões frias, alpinistas e pessoas em expedições em locais de frio extremo.
+      </p>
+    </div>
 
+    {/* Slide 4 - Primeira Camada */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-blue-700 mb-2">🧥 Primeira Camada (Roupa Térmica)</h3>
+      <p className="text-gray-700">
+        Gerenciamento de umidade, absorção e dissipação de suor. Minimiza a perda de calor por indução. 
+        A maioria das roupas térmicas é sintática, extremamente leve. Sua principal função é manter o corpo aquecido e seco. 
+        Sua malha possui microporos para facilitar a respiração da pele, fica colada ao corpo (segunda pele), 
+        eliminando rapidamente o suor e não retendo umidade, mantendo assim o corpo sempre aquecido e seco.
+      </p>
+    </div>
+
+    {/* Slide 5 - Segunda Camada */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-blue-700 mb-2">🧥 Segunda Camada (Gerenciamento Térmico)</h3>
+      <p className="text-gray-700">
+        Deve se vestir por cima das roupas térmicas, fortalecendo a primeira camada, isolando mais a temperatura do corpo. 
+        Função: reter o calor do corpo. Pode ser de fibras naturais (lã grossa) ou artificiais (fleece - poliéster de fibra sintética).
+      </p>
+    </div>
+
+    {/* Slide 6 - Terceira Camada */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-blue-700 mb-2">🧥 Terceira Camada (Camada Exterior)</h3>
+      <p className="text-gray-700">
+        Jaqueta e calça. Age como isolante. Deve ser totalmente impermeável, respirável, à prova de vento, neve e chuva, 
+        mantendo as demais camadas secas.
+      </p>
+      <img src="/images/catastrofes/preparadoparaofrio-slide1.png" alt="Preparação para o Frio" className="rounded-lg w-full h-auto object-cover mt-4 border border-gray-200" />
+    </div>
+
+    {/* Slide 8 - Extremidades */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-red-600 mb-2">⚠️ Atenção às Extremidades</h3>
+      <p className="text-gray-700 mb-3">
+        Por onde perdemos mais calor. O sangue vai para o centro do corpo para preservar os órgãos vitais, 
+        deixando mãos, pés, nariz e orelhas com menos circulação, mais propícios a queimaduras e, em casos extremos, necrose.
+      </p>
+      <ul className="list-disc list-inside text-gray-700 space-y-1 ml-2">
+        <li>Meias térmicas com absorção de suor, respirabilidade e secagem rápida</li>
+        <li>Bota com solado grosso, resistente, antiderrapante, com forro térmico e à prova d'água</li>
+        <li>Balaclava e gorro, gola térmica e manta de pescoço</li>
+        <li>Luvas com proteção térmica, resistentes à água e vento</li>
+        <li>Óculos de sol espelhado para evitar cegueira da neve</li>
+        <li>⚠️ Nada de metal diretamente ligado à pele (o metal gruda)</li>
+      </ul>
+    </div>
+
+    {/* Slide 9 - Controle Térmico */}
+    <div className="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 p-6">
+      <h3 className="text-lg font-bold text-yellow-800 mb-2">🔥 Controle Térmico</h3>
+      <p className="text-yellow-800">
+        Atenção ao gerenciamento do controle térmico. Suor em excesso resfria o corpo rapidamente. 
+        Na neve, se você suar muito, você morre. Ex: num deslocamento, devido ao esforço o corpo aquece; 
+        se aquece demais, produz suor; se suar, depois é difícil se aquecer.
+      </p>
+    </div>
+
+    {/* Slide 11-13 - Hipotermia */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-blue-700 mb-2">🥶 Hipotermia</h3>
+      <p className="text-gray-700 mb-3">
+        <strong>O que é:</strong> Quando a temperatura do corpo cai abaixo de 35°C. O organismo precisa estar entre 36°C e 37,5°C 
+        para realizar suas funções metabólicas.
+      </p>
+      <p className="text-gray-700 mb-3">
+        <strong>Causas:</strong> Longo período exposto ao frio intenso. O corpo humano libera mais calor do que consegue reter. 
+        Corpo molhado ou exposto ao vento perde calor 25 vezes mais rápido.
+      </p>
+      <p className="text-gray-700 mb-3">
+        <strong>Sintomas:</strong> Tremores (fricção para aquecer o corpo), mãos e pés dormentes, cansaço, lentidão, 
+        dificuldade no falar, frequência cardíaca diminuída, dificuldade em respirar, perda de controle dos membros, 
+        perda de consciência, parada cardíaca.
+      </p>
+      <p className="text-gray-700">
+        <strong>Tratamento:</strong> Aquecer o organismo imediatamente, progressivamente, principalmente as extremidades, 
+        aquecendo de dentro para fora com bebidas quentes. Cobrir a pessoa com mantas térmicas e cobertores, ficar perto do calor.
+      </p>
+    </div>
+
+    {/* Slide 14 - Isolantes Térmicos */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-blue-700 mb-2">🏠 Isolantes Térmicos - Use sua criatividade</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <img src="/images/catastrofes/isolantes-slide1.png" alt="Isolante 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/isolantes-slide2.png" alt="Isolante 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/isolantes-slide3.png" alt="Isolante 3" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/isolantes-slide4.png" alt="Isolante 4" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/isolantes-slide5.png" alt="Isolante 5" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/isolantes-slide6.png" alt="Isolante 6" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/isolantes-slide7.png" alt="Isolante 7" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/isolantes-slide8.png" alt="Isolante 8" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+      </div>
+      <ul className="list-disc list-inside text-gray-700 space-y-1">
+        <li>Cobertores grossos, saco de dormir</li>
+        <li>Roupas para pets, mantas térmicas para telhado</li>
+        <li>Papel, papelão, caixas de leite</li>
+        <li>Placas de isopor, placas de lã</li>
+      </ul>
+    </div>
+
+    {/* Slide 15-16 - Casa vs Apartamento (EXPANDIDO) */}
+<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+  <h3 className="text-lg font-bold text-blue-700 mb-2">🏠 Casa vs Apartamento - Preparação para Frio Extremo</h3>
+  
+  <div className="grid md:grid-cols-2 gap-6">
+    
+    {/* CASA */}
+    <div className="bg-green-50 rounded-lg p-4">
+      <h4 className="font-bold text-green-800 text-lg mb-3 flex items-center gap-2">
+        <span className="text-2xl">🏡</span> Quem mora em CASA
+      </h4>
+      <div className="space-y-3">
+        <img src="/images/catastrofes/fogaovslareira-slide1.png" alt="Fogão a lenha" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
+          <li>Reforçar portas e grades nas janelas</li>
+          <li>Tratar a casa como se fosse nosso castelo, nosso refúgio</li>
+          <li>Não precisando sair de casa</li>
+          <li>Instalar fogão a lenha ou lareira (lareira a álcool não é muito viável)</li>
+          <li>Guardar lenha (é mais fácil do que em apartamento)</li>
+          <li>Aumentar o muro para maior segurança</li>
+          <li>Em dias nublados, o fogo normal no fogão a lenha funciona</li>
+          <li>A neblina camufla a fumaça</li>
+          <li>⚠️ O cheiro da comida não pode sair do local para não atrair invasores</li>
+          <li>Consegue armazenar melhor: lenha, botijões de gás, reservatório de água</li>
+        </ul>
+      </div>
+    </div>
+    
+    {/* APARTAMENTO */}
+    <div className="bg-blue-50 rounded-lg p-4">
+      <h4 className="font-bold text-blue-800 text-lg mb-3 flex items-center gap-2">
+        <span className="text-2xl">🏢</span> Quem mora em APARTAMENTO
+      </h4>
+      <div className="space-y-3">
+        <img src="/images/catastrofes/fogaovslareira-slide2.png" alt="Apartamento" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
+          <li>Apartamento tem um pouco mais de segurança</li>
+          <li>Mais pontos de estrangulamento (escadas, elevador)</li>
+          <li>Pode bloquear as escadas ou trancar o elevador</li>
+          <li>⚠️ Se os vizinhos forem "ovelhas do sistema", complica</li>
+          <li>Levar a ideia para discussão nas reuniões do condomínio</li>
+          <li>Sugestão: instalar fogões a lenha (é só um buraco na parede para o cano)</li>
+          <li>Não precisa de muito esquema, desde que as regras do condomínio permitam</li>
+          <li>Em apartamentos com gás encanado, não é permitido ter botijões extras</li>
+          <li>Pensar em como levar os botijões camuflados para dentro</li>
+        </ul>
+      </div>
+    </div>
+    
+  </div>
+  
+  <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+    <p className="text-yellow-800 text-sm">
+      💡 <strong>Dica importante:</strong> Em ambos os casos, o armazenamento adequado de lenha, água e alimentos 
+      é fundamental para sobreviver ao frio extremo sem precisar sair de casa.
+    </p>
+  </div>
+</div>
+
+    {/* Slide 18-19 - Alimentos e Hidratação */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-green-700 mb-2">🍲 Alimentos e Hidratação</h3>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+        <img src="/images/catastrofes/alimentos-slide1.png" alt="Alimento 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/alimentos-slide2.png" alt="Alimento 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/alimentos-slide3.png" alt="Alimento 3" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/alimentos-slide4.png" alt="Alimento 4" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/alimentos-slide5.png" alt="Alimento 5" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+      </div>
+      <ul className="list-disc list-inside text-gray-700 space-y-1">
+        <li>Sopas e caldos (além de aquecer, tem valor psicológico)</li>
+        <li>Temperos secos: cebola, salsa, alho</li>
+        <li>Chocolate quente, chás, café, canela, vitamina D</li>
+        <li>⚠️ Evitar bebidas alcoólicas (inibem a termorregulação), reduzindo a capacidade do
+organismo se regular, reagir às baixas temperaturas.</li>
+        <li>Cuidado com desidratação: O frio atenua a sensação de sede, dessa forma não bebemos água suficiente.
+Desidratação, é algo silencioso, pois perdemos liquido no vapor que sai da nossa boca, e acabamos não percebendo em situação de extremo frio</li>
+      </ul>
+    </div>
+
+    {/* Slide 20-22 - Deslocamento no Frio */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-blue-700 mb-2">🚶 Deslocamento no Frio</h3>
+      <img src="/images/catastrofes/deslocamento-frio-slide1.png" alt="Deslocamento no Frio" className="rounded-lg w-full h-auto object-cover mb-4 border border-gray-200" />
+      <p className="text-gray-700 mb-3">
+        Há inúmeros registros de alpinistas que sucumbiram ao frio extremo, devido ao fato de seus pensamentos ficarem
+cada vez mais desorientados e se sentindo fracos, prejudicando a tomada de decisão.
+Em uma das últimas mensagens de uma alpinista, ela relatou que estva sem força para apertar o botão
+transmissor do rádio comunicador.
+        Quando você está em deslocamento, não é necessário usar camadas pesadas para se aquecer. 
+        Se você continuar se movendo e estiver minimamente isolado, produzirá calor suficiente.
+      </p>
+      ⚠️ DICA APRENDA A FAZER UMA RAQUETE DE NEVE!
+
+      <p className="text-gray-700">
+        <strong>Manter a mente ativa:</strong> Jogos para crianças, exercícios em família, criar uma rotina. 
+        Proteger janelas e portas com material isolante (plásticos rígidos, papelão). 
+        Tapetes e carpetes no chão, pois o chão drena muito calor.
+      </p>
+    </div>
+
+    {/* Slide 23-27 - Infraestrutura */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-red-600 mb-2">⚠️ Infraestrutura no Frio Extremo</h3>
+      <p className="text-gray-700 mb-3">
+        Nossas casas e carros não foram feitos para frios extremos. O sistema hidráulico não funciona, 
+        canos dilatam e quebram com a formação de gelo. Vasos sanitários congelam. 
+        Carros não ligam (fluidos congelam).
+      </p>
+      <div className="grid md:grid-cols-2 gap-4 mt-4">
+        <div>
+          <h4 className="font-bold text-blue-700">💧 Armazenamento de Água - 240 litros ou 1000 litros de preferência com Bomba Manual</h4>
+          <img src="/images/catastrofes/agua-slide1.png" alt="Água 1" className="rounded-lg w-full h-auto object-cover border border-gray-200 mb-2" />
+          <img src="/images/catastrofes/agua-slide2.png" alt="Água 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        </div>
+        <div>
+          <h4 className="font-bold text-orange-700">🔥 Cuidados com Gás dentro de casa</h4>
+          <img src="/images/catastrofes/gas-slide1.png" alt="Gás 1" className="rounded-lg w-full h-auto object-cover border border-gray-200 mb-2" />
+          <img src="/images/catastrofes/gas-slide2.png" alt="Gás 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        </div>
+      </div>
+    </div>
+
+    {/* Como cozinhar sem gás */}
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 className="text-lg font-bold text-orange-700 mb-2">🍳 Como Cozinhar sem Gás</h3>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <img src="/images/catastrofes/cozinhar-slide1.png" alt="Cozinhar 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/cozinhar-slide2.png" alt="Cozinhar 2" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+        <img src="/images/catastrofes/cozinhar-slide3.png" alt="Cozinhar 3" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
+      </div>
+      <p className="text-gray-700 mt-3">
+        Formas simples de cozinhar sem gás: óleo de cozinha como combustível, lata ou panela, álcool de posto.
+      </p>
+    </div>
+
+    {/* Cálculo de reservas */}
+    <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-5 border border-blue-100">
+      <h3 className="text-lg font-bold text-preparados-blue mb-2">📊 Planejamento de Reservas</h3>
+      <p className="text-gray-700 text-sm">
+        Exemplo: Família de 3 pessoas (marido, esposa e um filho) consome aproximadamente 30 litros de água por dia 
+        (consumo, alimentação e higiene). Para 6 meses: cerca de 5.400 litros.
+      </p>
+      <p className="text-gray-700 text-sm mt-2">
+        Gás: se gasta 13kg por mês, 6 botijões de 13kg são suficientes para 6 meses.
+      </p>
+    </div>
+
+    {/* Mensagem final */}
+    <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 text-center">
+      <p className="text-green-800 font-semibold">
+        🔍 Busquem conhecimento! <br />
+              </p>
+    </div>
+  </div>
+)}
         {/* Botão Voltar */}
         <div className="mt-8">
           <Link
