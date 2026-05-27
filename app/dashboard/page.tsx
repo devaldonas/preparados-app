@@ -88,10 +88,16 @@ export default function Dashboard() {
     return '⛰️'
   }
 
+  // Pegar apenas o primeiro nome
+  const getFirstName = (fullName: string) => {
+    if (!fullName) return 'Preparado'
+    return fullName.split(' ')[0]
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
       </div>
     )
   }
@@ -101,51 +107,36 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
+        
         {/* Header com saudação e logo */}
         <div className="mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <img 
-                src="/logo.svg" 
-                alt="PREPARADOS" 
-                className="h-10 w-auto"
+                src="/logo1.svg" 
+                alt="PREPARADO" 
+                className="h-14 w-auto"
                 onError={(e) => { e.currentTarget.style.display = 'none' }}
               />
               <div>
-                <h1 className="text-3xl font-bold text-preparados-blue">
-                  Olá, {user.user_metadata?.full_name || 'Preparado'}! 👋
+                <h1 className="text-2xl font-bold text-black">
+                  Olá, {getFirstName(user.user_metadata?.full_name || 'Preparado')}!
                 </h1>
-                <p className="text-gray-600 mt-1">
+                <p className="text-gray-500 text-sm mt-0.5">
                   Continue sua jornada de preparação
                 </p>
               </div>
             </div>
-            <div className="bg-preparados-yellow text-preparados-blue px-4 py-2 rounded-full flex items-center gap-2">
-              <span className="text-lg">{getTipoIcon()}</span>
-              <span className="text-sm font-medium">{getTipoLabel()}</span>
+            <div className="flex items-center gap-2">
+              <img 
+                src="/images/mochila-icon.png" 
+                alt="Mochila" 
+                className="w-9 h-9 object-contain"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
+              />
+              <span className="text-sm font-medium text-gray-700">{getTipoLabel()}</span>
             </div>
           </div>
-        </div>
-
-        {/* Player da Rádio Diamante integrado no topo */}
-        <div className="mb-8">
-          <RadioPlayer 
-            minimizado={false}
-            onClose={() => setMostrarRadio(false)}
-            integrado={true}
-          />
-        </div>
-
-        {/* Botões de acesso rápido */}
-        <div className="grid grid-cols-1 gap-3 mb-8">
-          <Link
-            href="/comunicador/canal/8bfb8c3e-9fb0-4a43-a781-dc96b0a09baf"
-            className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-3 rounded-lg text-center hover:from-blue-700 hover:to-cyan-700 transition shadow-sm"
-          >
-            <div className="text-xl mb-1">🎙️</div>
-            <div className="text-xs font-semibold">Comunicador Via Rádio</div>
-            <div className="text-[10px] opacity-90">PTT - Pressione para falar</div>
-          </Link>
         </div>
 
         {/* Cards de Progresso */}
@@ -153,11 +144,11 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div className="flex items-center justify-between mb-3">
               <span className="text-gray-500 text-sm">Preparação Geral</span>
-              <span className="text-preparados-blue font-bold text-lg">{Math.round(progress)}%</span>
+              <span className="text-black font-bold text-lg">{Math.round(progress)}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2.5">
               <div 
-                className="bg-preparados-blue h-2.5 rounded-full transition-all duration-500"
+                className="bg-[#FFB800] h-2.5 rounded-full transition-all duration-500"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -168,7 +159,12 @@ export default function Dashboard() {
           
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl">🧠</span>
+              <img 
+                src="/images/checkin-icon.png" 
+                alt="Check-in" 
+                className="w-9 h-9 object-contain"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
+              />
               <div>
                 <p className="text-sm text-gray-500">Check-in</p>
                 <p className="font-medium text-gray-900">
@@ -179,12 +175,12 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Menu Principal - Cards de Acesso Rápido */}
+        {/* Menu Principal - Cards de Acesso Rápido (sem Ecossistema Dakila) */}
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Acesso Rápido</h2>
         <div className="grid grid-cols-2 gap-4 mb-8">
           <Link 
             href="/check-in" 
-            className={`bg-white p-5 rounded-xl shadow-sm border hover:shadow-md transition text-center ${!checkinCompleted ? 'ring-2 ring-green-500 ring-offset-2' : 'border-gray-100'}`}
+            className={`bg-white p-5 rounded-xl shadow-sm border hover:shadow-md transition text-center ${!checkinCompleted ? 'ring-2 ring-[#FFB800] ring-offset-2' : 'border-gray-100'}`}
           >
             <img 
               src="/images/checkin-icon.png" 
@@ -242,37 +238,50 @@ export default function Dashboard() {
             <p className="text-xs text-gray-500 mt-1">Orientação e rotas</p>
           </Link>
 
-          {/* Card do Ecossistema Dakila com imagem de fundo */}
-          <a
-            href="https://www.dakila.com.br"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="relative overflow-hidden bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-5 rounded-xl shadow-sm border hover:shadow-md transition text-center group"
+          {/* Comunicador Via Rádio (no lugar do Ecossistema Dakila) */}
+          <Link
+            href="/comunicador/canal/8bfb8c3e-9fb0-4a43-a781-dc96b0a09baf"
+            className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center"
           >
-            <div 
-              className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-40 transition"
-              style={{ backgroundImage: "url('/images/dakila/dakila-slide1.png')" }}
+            <img 
+              src="/images/comunicador-icon.jpeg" 
+              alt="Comunicador Via Rádio" 
+              className="w-12 h-12 mx-auto mb-2 object-contain"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
-            <div className="relative z-10">
-              <div className="text-4xl mb-2">🌍</div>
-              <h3 className="font-semibold">Ecossistema Dakila</h3>
-              <p className="text-xs text-white/80 mt-1">Ciência e tecnologia</p>
-            </div>
-          </a>
+            <h3 className="font-semibold text-gray-900">Comunicador Via Rádio</h3>
+            <p className="text-xs text-gray-500 mt-1">PTT - Pressione para falar</p>
+          </Link>
         </div>
 
-        {/* Mapa de Monitoramento Global */}
+        {/* Mapa de Monitoramento Global com fundo preto */}
         <div className="mb-8">
-          <MapaMonitoramentoCompleto />
+          <div className="bg-black rounded-xl overflow-hidden">
+            <div className="p-4 border-b border-gray-800">
+              <h3 className="font-semibold text-white flex items-center gap-2">
+                <span className="text-xl">🌍</span> Monitoramento Global - Terremotos
+              </h3>
+            </div>
+            <MapaMonitoramentoCompleto />
+          </div>
+        </div>
+
+        {/* Rádio Diamante (movido para baixo) */}
+        <div className="mb-8">
+          <RadioPlayer 
+            minimizado={false}
+            onClose={() => setMostrarRadio(false)}
+            integrado={true}
+          />
         </div>
 
         {/* Seção de Dicas */}
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 border border-green-100">
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5 border border-gray-200">
           <div className="flex items-start gap-3">
             <span className="text-2xl">💡</span>
             <div>
-              <h3 className="font-semibold text-green-800 mb-1">Dica do dia</h3>
-              <p className="text-sm text-green-700">
+              <h3 className="font-semibold text-gray-800 mb-1">Dica do dia</h3>
+              <p className="text-sm text-gray-600">
                 "A maior arma de todas é a mente humana. Continue se preparando, 
                 compartilhe sua localização para conectar-se com pessoas próximas 
                 e ajude sua comunidade a estar preparada também!"

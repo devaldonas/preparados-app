@@ -15,7 +15,8 @@ export default function ClientLayout({
     '/auth/login', 
     '/auth/cadastro', 
     '/auth/recuperar-senha', 
-    '/auth/atualizar-senha'
+    '/auth/atualizar-senha',
+    '/'  // ← ADICIONE ESTA LINHA para esconder na home
   ]
   const showCarousel = !hideCarouselRoutes.includes(pathname)
 
