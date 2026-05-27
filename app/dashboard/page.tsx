@@ -88,7 +88,6 @@ export default function Dashboard() {
     return '⛰️'
   }
 
-  // Pegar apenas o primeiro nome
   const getFirstName = (fullName: string) => {
     if (!fullName) return 'Preparado'
     return fullName.split(' ')[0]
@@ -175,7 +174,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Menu Principal - Cards de Acesso Rápido (sem Ecossistema Dakila) */}
+        {/* Menu Principal - Cards de Acesso Rápido */}
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Acesso Rápido</h2>
         <div className="grid grid-cols-2 gap-4 mb-8">
           <Link 
@@ -185,11 +184,11 @@ export default function Dashboard() {
             <img 
               src="/images/checkin-icon.png" 
               alt="Check-in" 
-              className="w-12 h-12 mx-auto mb-2 object-contain"
+              className="w-16 h-16 mx-auto mb-2 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
-            <h3 className="font-semibold text-gray-900">Check-in</h3>
-            <p className="text-xs text-gray-500 mt-1">
+            <h3 className="font-bold text-gray-900 text-base">Check-in</h3>
+            <p className="text-sm text-gray-500 mt-1">
               {checkinCompleted ? 'Atualizar diagnóstico' : 'Iniciar avaliação'}
             </p>
           </Link>
@@ -198,60 +197,69 @@ export default function Dashboard() {
             <img 
               src="/images/mochila-icon.png" 
               alt="Mochila" 
-              className="w-12 h-12 mx-auto mb-2 object-contain"
+              className="w-16 h-16 mx-auto mb-2 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
-            <h3 className="font-semibold text-gray-900">Mochila</h3>
-            <p className="text-xs text-gray-500 mt-1">Itens essenciais</p>
+            <h3 className="font-bold text-gray-900 text-base">Mochila</h3>
+            <p className="text-sm text-gray-500 mt-1">Itens essenciais</p>
           </Link>
 
           <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
             <img 
               src="/images/pessoas-icon.png" 
               alt="Pessoas Próximas" 
-              className="w-12 h-12 mx-auto mb-2 object-contain"
+              className="w-16 h-16 mx-auto mb-2 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
-            <h3 className="font-semibold text-gray-900">Pessoas Próximas</h3>
-            <p className="text-xs text-gray-500 mt-1">Comunidade preparada</p>
+            <h3 className="font-bold text-gray-900 text-base">Pessoas Próximas</h3>
+            <p className="text-sm text-gray-500 mt-1">Comunidade preparada</p>
           </Link>
 
           <Link href="/loja" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
             <img 
               src="/images/loja-icon.jpeg" 
               alt="Loja" 
-              className="w-12 h-12 mx-auto mb-2 object-contain"
+              className="w-16 h-16 mx-auto mb-2 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
-            <h3 className="font-semibold text-gray-900">Loja</h3>
-            <p className="text-xs text-gray-500 mt-1">Produtos essenciais</p>
+            <h3 className="font-bold text-gray-900 text-base">Loja</h3>
+            <p className="text-sm text-gray-500 mt-1">Produtos essenciais</p>
           </Link>
 
           <Link href="/catastrofes" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
             <img 
               src="/images/catastrofes-icon.jpeg" 
               alt="Catástrofes" 
-              className="w-12 h-12 mx-auto mb-2 object-contain"
+              className="w-16 h-16 mx-auto mb-2 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
-            <h3 className="font-semibold text-gray-900">Catástrofes</h3>
-            <p className="text-xs text-gray-500 mt-1">Orientação e rotas</p>
+            <h3 className="font-bold text-gray-900 text-base">Catástrofes</h3>
+            <p className="text-sm text-gray-500 mt-1">Orientação e rotas</p>
           </Link>
 
-          {/* Comunicador Via Rádio (no lugar do Ecossistema Dakila) */}
+          {/* Comunicador Via Rádio */}
           <Link
             href="/comunicador/canal/8bfb8c3e-9fb0-4a43-a781-dc96b0a09baf"
             className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center"
           >
             <img 
-              src="/images/comunicador-icon.jpeg" 
+              src="/images/comunicador-icon.png" 
               alt="Comunicador Via Rádio" 
-              className="w-12 h-12 mx-auto mb-2 object-contain"
+              className="w-16 h-16 mx-auto mb-2 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
-            <h3 className="font-semibold text-gray-900">Comunicador Via Rádio</h3>
-            <p className="text-xs text-gray-500 mt-1">PTT - Pressione para falar</p>
+            <h3 className="font-bold text-gray-900 text-base">Comunicador Via Rádio</h3>
+            <p className="text-sm text-gray-500 mt-1">PTT - Pressione para falar</p>
           </Link>
+        </div>
+
+         {/* Rádio Diamante */}
+        <div className="mb-8">
+          <RadioPlayer 
+            minimizado={false}
+            onClose={() => setMostrarRadio(false)}
+            integrado={true}
+          />
         </div>
 
         {/* Mapa de Monitoramento Global com fundo preto */}
@@ -266,19 +274,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Rádio Diamante (movido para baixo) */}
-        <div className="mb-8">
-          <RadioPlayer 
-            minimizado={false}
-            onClose={() => setMostrarRadio(false)}
-            integrado={true}
-          />
-        </div>
-
-        {/* Seção de Dicas */}
+               {/* Seção de Dicas */}
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5 border border-gray-200">
           <div className="flex items-start gap-3">
-            <span className="text-2xl">💡</span>
+            <img 
+              src="/images/lampada.jpeg" 
+              alt="Dica" 
+              className="w-8 h-8 object-contain"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
             <div>
               <h3 className="font-semibold text-gray-800 mb-1">Dica do dia</h3>
               <p className="text-sm text-gray-600">
