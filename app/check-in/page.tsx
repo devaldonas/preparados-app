@@ -1,4 +1,4 @@
- 'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
@@ -103,6 +103,7 @@ export default function CheckIn() {
         setUser(user)
         await loadPreviousAnswers(user.id)
       }
+      setLoading(false)
     }
     getUser()
   }, [])
@@ -149,13 +150,11 @@ export default function CheckIn() {
     setSaving(true)
     setLoading(true)
 
-    // Verificar se já existem respostas para este usuário
     const { data: existing } = await supabase
       .from('checkin_answers')
       .select('id')
       .eq('user_id', user.id)
 
-    // Deletar respostas antigas se existirem
     if (existing && existing.length > 0) {
       await supabase
         .from('checkin_answers')
@@ -163,7 +162,6 @@ export default function CheckIn() {
         .eq('user_id', user.id)
     }
 
-    // Salvar novas respostas
     const answersToSave = Object.entries(answers).map(([questionId, data]: [string, any]) => ({
       user_id: user.id,
       question: questionId,
@@ -178,7 +176,6 @@ export default function CheckIn() {
     if (error) {
       console.error('Erro ao salvar:', error)
     } else {
-      // Calcular pontuação total e redirecionar
       const totalScore = Object.values(answers).reduce((acc: number, curr: any) => acc + curr.score, 0)
       const maxScore = questions.reduce((acc, q) => acc + (q.options[0]?.score || 0), 0)
       const percentage = Math.round((totalScore / maxScore) * 100)
@@ -194,7 +191,7 @@ export default function CheckIn() {
   const currentAnswer = answers[currentQuestion?.id]?.value || ''
   const progress = ((currentStep + 1) / questions.length) * 100
 
-  if (!user) {
+  if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
   }
 
@@ -203,11 +200,11 @@ export default function CheckIn() {
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-green-700 mb-2">🧠 CHECK-IN</h1>
+          <h1 className="text-3xl font-bold text-black mb-2">CHECK-IN</h1>
           <p className="text-gray-600">Descubra seu nível de preparação</p>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar - Amarela */}
         <div className="mb-8">
           <div className="flex justify-between text-sm text-gray-600 mb-2">
             <span>Questão {currentStep + 1} de {questions.length}</span>
@@ -215,7 +212,7 @@ export default function CheckIn() {
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              className="bg-green-600 h-2 rounded-full transition-all duration-300"
+              className="bg-[#FFB800] h-2 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -231,10 +228,10 @@ export default function CheckIn() {
             {currentQuestion.options.map((option) => (
               <label
                 key={option.value}
-                className={`flex items-center p-4 border rounded-lg cursor-pointer transition ${
+                className={`flex items-center p-4 rounded-lg cursor-pointer transition ${
                   currentAnswer === option.value
-                    ? 'border-green-500 bg-green-50'
-                    : 'border-gray-200 hover:border-green-300'
+                    ? 'border-2 border-black bg-gray-100'
+                    : 'border border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <input
@@ -243,7 +240,7 @@ export default function CheckIn() {
                   value={option.value}
                   checked={currentAnswer === option.value}
                   onChange={() => handleAnswer(currentQuestion.id, option.value, option.score)}
-                  className="w-4 h-4 text-green-600 focus:ring-green-500"
+                  className="w-4 h-4 text-black focus:ring-black"
                 />
                 <span className="ml-3 text-gray-700">{option.label}</span>
               </label>
@@ -257,7 +254,7 @@ export default function CheckIn() {
             <button
               onClick={handlePrevious}
               disabled={loading}
-              className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition"
+              className="flex-1 py-3 px-4 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 transition"
             >
               Voltar
             </button>
@@ -265,10 +262,10 @@ export default function CheckIn() {
           <button
             onClick={handleNext}
             disabled={!currentAnswer || loading}
-            className={`flex-1 py-3 px-4 font-medium rounded-lg transition ${
+            className={`flex-1 py-3 px-4 font-semibold rounded-lg transition ${
               !currentAnswer || loading
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
             }`}
           >
             {currentStep === questions.length - 1 
@@ -277,7 +274,6 @@ export default function CheckIn() {
           </button>
         </div>
 
-        {/* Message */}
         <p className="text-center text-sm text-gray-500 mt-6">
           Baseado nos princípios da Escola de Guerreiros
         </p>
