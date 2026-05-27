@@ -167,7 +167,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-sm text-gray-500">Check-in</p>
                 <p className="font-medium text-gray-900">
-                  {checkinCompleted ? 'Diagnóstico realizado ✅' : 'Aguardando avaliação ⏳'}
+                  {checkinCompleted ? 'Diagnóstico realizado ✅' : 'Faça seu diagnóstico agora!'}
                 </p>
               </div>
             </div>

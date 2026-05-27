@@ -9,6 +9,7 @@ import Link from 'next/link'
 function ResultadoContent() {
   const [user, setUser] = useState<any>(null)
   const [mochilaTipo, setMochilaTipo] = useState('BOB')
+  const [checkinCompleted, setCheckinCompleted] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -24,6 +25,7 @@ function ResultadoContent() {
       } else {
         setUser(user)
         await loadProfile(user.id)
+        await checkCheckinStatus(user.id)
       }
     }
     getUser()
@@ -41,10 +43,21 @@ function ResultadoContent() {
     }
   }
 
+  const checkCheckinStatus = async (userId: string) => {
+    const { data } = await supabase
+      .from('checkin_answers')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1)
+    
+    const hasCheckin = data !== null && data.length > 0
+    setCheckinCompleted(hasCheckin)
+  }
+
   const getClassification = () => {
-    if (percentage >= 80) return { text: 'PREPARADO! 🏆', color: 'text-green-700' }
-    if (percentage >= 50) return { text: 'PREPARANDO... 📈', color: 'text-yellow-600' }
-    return { text: 'INICIANTE 🎒', color: 'text-orange-600' }
+    if (percentage >= 80) return { text: 'PREPARADO', color: 'text-black' }
+    if (percentage >= 50) return { text: 'PREPARANDO', color: 'text-black' }
+    return { text: 'INICIANTE', color: 'text-black' }
   }
 
   const getRecommendation = () => {
@@ -54,6 +67,7 @@ function ResultadoContent() {
   }
 
   const classification = getClassification()
+  const isPreparado = percentage >= 80
 
   if (!user) {
     return <div className="min-h-screen flex items-center justify-center">Carregando...</div>
@@ -63,33 +77,63 @@ function ResultadoContent() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-green-700 mb-2">🎯 SEU RESULTADO</h1>
+          <h1 className="text-3xl font-bold text-black mb-2">SEU RESULTADO</h1>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-6 text-center">
-          <div className="text-6xl mb-4">
-            {percentage >= 80 ? '🛡️' : percentage >= 50 ? '📦' : '🎒'}
-          </div>
-          
-          <h2 className={`text-2xl font-bold mb-4 ${classification.color}`}>
-            {classification.text}
-          </h2>
-          
-          <div className="mb-4">
-            <div className="w-full bg-gray-200 rounded-full h-4">
-              <div
-                className="bg-green-600 h-4 rounded-full transition-all duration-500"
-                style={{ width: `${percentage}%` }}
+          {isPreparado ? (
+            <>
+              <img 
+                src="/logoprep.png" 
+                alt="Preparado" 
+                className="w-24 h-24 mx-auto mb-4 object-contain"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
               />
-            </div>
-            <p className="text-sm text-gray-600 mt-2">
-              Pontuação: {score} de {maxScore} ({percentage}%)
-            </p>
-          </div>
-
-          <p className="text-gray-700 mb-6">
-            {getRecommendation()}
-          </p>
+              <h2 className="text-2xl font-bold text-black mb-4">
+                PARABÉNS! CONTINUE EVOLUINDO
+              </h2>
+              <div className="mb-4">
+                <div className="w-full bg-gray-200 rounded-full h-4">
+                  <div
+                    className="bg-[#FFB800] h-4 rounded-full transition-all duration-500"
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  Pontuação: {score} de {maxScore} ({percentage}%)
+                </p>
+              </div>
+              <p className="text-gray-700 mb-6">
+                {getRecommendation()}
+              </p>
+            </>
+          ) : (
+            <>
+              <img 
+                src="/images/mochila-icon.png" 
+                alt="Complete sua mochila" 
+                className="w-24 h-24 mx-auto mb-4 object-contain"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
+              />
+              <h2 className="text-2xl font-bold text-red-600 mb-4">
+                COMPLETE SUA MOCHILA
+              </h2>
+              <div className="mb-4">
+                <div className="w-full bg-gray-200 rounded-full h-4">
+                  <div
+                    className="bg-[#FFB800] h-4 rounded-full transition-all duration-500"
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  Pontuação: {score} de {maxScore} ({percentage}%)
+                </p>
+              </div>
+              <p className="text-gray-700 mb-6">
+                {getRecommendation()}
+              </p>
+            </>
+          )}
 
           <div className="border-t border-gray-100 pt-6">
             <p className="text-sm text-gray-500 mb-4">
@@ -103,13 +147,13 @@ function ResultadoContent() {
         <div className="flex gap-4">
           <Link
             href="/checklist"
-            className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg font-semibold text-center hover:bg-green-700 transition"
+            className="flex-1 bg-[#FFB800] text-black py-3 px-4 rounded-lg font-semibold text-center hover:bg-[#E5A600] transition"
           >
             Ver Checklist
           </Link>
           <Link
             href="/dashboard"
-            className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold text-center hover:bg-gray-50 transition"
+            className="flex-1 bg-black text-white py-3 px-4 rounded-lg font-semibold text-center hover:bg-gray-800 transition"
           >
             Voltar
           </Link>
