@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 
 interface BotaoCarrossel {
   id: number
@@ -12,26 +11,29 @@ interface BotaoCarrossel {
   href: string
   type: 'link' | 'external'
   cor: string
+  iconeImg: string
 }
 
 const botoes: BotaoCarrossel[] = [
   { 
     id: 1, 
     nome: 'Loja', 
-    icone: '📦', 
+    icone: '🛒', 
     descricao: 'Equipamentos essenciais para sua mochila',
     href: '/loja', 
     type: 'link',
-    cor: 'from-preparados-blue to-blue-800'
+    cor: 'from-black to-gray-800',
+    iconeImg: '/images/preparadofundopreto-icon.png'
   },
   { 
     id: 2, 
-    nome: 'Comunicador Via Whatsapp', 
-    icone: '💬', 
-    descricao: 'Canal de emergência e comunicação',
-    href: 'https://wa.me/?text=🚨 *PREPARADOS - COMUNICADO DE EMERGÊNCIA* 🚨%0A%0AAcionei o comunicador do aplicativo PREPARADOS.%0A%0APreciso de informações e orientações.%0A%0A*Favor retornar o contato.*', 
-    type: 'external',
-    cor: 'from-preparados-yellow to-yellow-600'
+    nome: 'Comunicador Via Rádio', 
+    icone: '🎙️', 
+    descricao: 'PTT - Pressione para falar',
+    href: '/comunicador/canal/8bfb8c3e-9fb0-4a43-a781-dc96b0a09baf', 
+    type: 'link',
+    cor: 'from-[#FFB800] to-[#E5A600]',
+    iconeImg: '/images/preparadofundoamarelo-icon.png'
   },
 ]
 
@@ -49,27 +51,25 @@ export default function CarouselFooter() {
   const botaoAtivo = botoes[indiceAtivo]
 
   const renderBotao = () => {
-    const className = `flex items-center justify-between w-full p-3 bg-gradient-to-r ${botaoAtivo.cor} text-white rounded-xl shadow-lg transition-all duration-500 transform hover:scale-105`
+    const className = `flex items-center justify-between w-full p-4 bg-gradient-to-r ${botaoAtivo.cor} text-white rounded-xl shadow-lg transition-all duration-500 transform hover:scale-105`
 
     const conteudo = (
       <>
         <div className="flex flex-col items-start gap-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <img 
-              src="/logo.svg" 
-              alt="PREPARADOS" 
-              className="h-8 w-auto"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
+              src={botaoAtivo.iconeImg} 
+              alt={botaoAtivo.nome} 
+              className="h-10 w-auto"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
-            <span className="text-2xl font-bold">{botaoAtivo.nome}</span>
+            <span className="text-xl font-bold">{botaoAtivo.nome}</span>
           </div>
-          <span className="text-sm opacity-90 ml-10">{botaoAtivo.descricao}</span>
+          <span className="text-xs opacity-90 ml-12">{botaoAtivo.descricao}</span>
         </div>
         <div className="text-right">
-          <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-            <span className="text-2xl">→</span>
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+            <span className="text-xl">→</span>
           </div>
         </div>
       </>
@@ -91,19 +91,19 @@ export default function CarouselFooter() {
   }
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-black/20 to-transparent">
+    <footer className="fixed bottom-0 left-0 right-0 z-20 p-3 bg-gradient-to-t from-black/10 to-transparent">
       <div className="max-w-lg mx-auto">
         {renderBotao()}
         
-        <div className="flex justify-center gap-3 mt-4">
+        <div className="flex justify-center gap-2 mt-3">
           {botoes.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setIndiceAtivo(idx)}
               className={`transition-all duration-300 rounded-full ${
                 idx === indiceAtivo 
-                  ? 'bg-preparados-yellow w-8 h-2' 
-                  : 'bg-gray-400 w-2 h-2 hover:bg-gray-500'
+                  ? 'bg-[#FFB800] w-6 h-1.5' 
+                  : 'bg-gray-400 w-1.5 h-1.5 hover:bg-gray-500'
               }`}
               aria-label={`Ir para ${botoes[idx].nome}`}
             />
