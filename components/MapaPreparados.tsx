@@ -22,7 +22,7 @@ interface BaseApoio {
   endereco: string
 }
 
-// Importar Leaflet dinamicamente (evita erro de SSR)
+// Importar Leaflet dinamicamente
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
   { ssr: false }
@@ -41,11 +41,9 @@ const Popup = dynamic(
 )
 
 import 'leaflet/dist/leaflet.css'
-
-// Importar Leaflet para configuração
 import L from 'leaflet'
 
-// Configurar ícone padrão do Leaflet (apenas uma vez)
+// Configurar ícone padrão do Leaflet
 const DefaultIcon = L.icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
@@ -75,8 +73,8 @@ export default function MapaPreparados({ preparados, userLocation, bases = [] }:
     }
   }, [])
 
-  // Criar ícone personalizado com círculo colorido e emoji
-  const criarIconePersonalizado = (cor: string, emoji: string, tamanho: number = 32) => {
+  // Criar ícone personalizado com círculo colorido (sem emoji)
+  const criarIconePersonalizado = (cor: string, tamanho: number = 32) => {
     const html = `
       <div style="
         background-color: ${cor};
@@ -85,11 +83,7 @@ export default function MapaPreparados({ preparados, userLocation, bases = [] }:
         border-radius: 50%;
         border: 3px solid white;
         box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: ${tamanho * 0.6}px;
-      ">${emoji}</div>`
+      "></div>`
     
     return L.divIcon({
       html: html,
@@ -100,29 +94,29 @@ export default function MapaPreparados({ preparados, userLocation, bases = [] }:
     })
   }
 
-  // Ícones por tipo de mochila
+  // Ícones por tipo de mochila (apenas cor)
   const getIconePreparado = (tipo: string) => {
-    const config: Record<string, { cor: string; emoji: string }> = {
-      EDC: { cor: '#4CAF50', emoji: '🎒' },
-      BOB: { cor: '#FFB800', emoji: '🎒⚡' },
-      BOLT: { cor: '#2196F3', emoji: '⛰️' }
+    const cores: Record<string, string> = {
+      EDC: '#4CAF50',   // Verde
+      BOB: '#FFB800',    // Amarelo
+      BOLT: '#2196F3'    // Azul
     }
-    const { cor, emoji } = config[tipo] || { cor: '#9E9E9E', emoji: '📍' }
-    return criarIconePersonalizado(cor, emoji, 32)
+    const cor = cores[tipo] || '#9E9E9E'
+    return criarIconePersonalizado(cor, 32)
   }
 
-  // Ícone do usuário (destacado)
-  const iconeUsuario = criarIconePersonalizado('#FFB800', '📍', 40)
+  // Ícone do usuário (destaque amarelo maior)
+  const iconeUsuario = criarIconePersonalizado('#FFB800', 40)
 
   // Ícones para bases de apoio
   const getIconeBase = (tipo: string) => {
-    const config: Record<string, { cor: string; emoji: string }> = {
-      farmacia: { cor: '#E91E63', emoji: '💊' },
-      posto: { cor: '#FF5722', emoji: '⛽' },
-      abrigo: { cor: '#9C27B0', emoji: '🏠' }
+    const cores: Record<string, string> = {
+      farmacia: '#E91E63',  // Rosa
+      posto: '#FF5722',     // Laranja
+      abrigo: '#9C27B0'     // Roxo
     }
-    const { cor, emoji } = config[tipo] || { cor: '#9E9E9E', emoji: '📍' }
-    return criarIconePersonalizado(cor, emoji, 28)
+    const cor = cores[tipo] || '#9E9E9E'
+    return criarIconePersonalizado(cor, 28)
   }
 
   if (!mapaCarregado) {
