@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import MapaPreparados from '@/components/MapaPreparados'
+import dynamic from 'next/dynamic'
 import { getDistance } from 'geolib'
 
 interface PessoaProxima {
@@ -26,6 +26,17 @@ interface BaseApoio {
   longitude: number
   endereco: string
 }
+const MapaPreparados = dynamic(
+  () => import('@/components/MapaPreparados'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-[400px] bg-gray-200 rounded-xl animate-pulse flex items-center justify-center">
+        <span className="text-gray-400">Carregando mapa...</span>
+      </div>
+    )
+  }
+)
 
 // Dados mockados para teste
 const MOCK_PESSOAS: PessoaProxima[] = [
