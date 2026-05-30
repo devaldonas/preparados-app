@@ -159,7 +159,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div className="flex items-center gap-3 mb-2">
               <img 
-                src="/images/checkin.png" 
+                src="/images/checkin.jpeg" 
                 alt="Check-in" 
                 className="w-9 h-9 object-contain"
                 onError={(e) => { e.currentTarget.style.display = 'none' }}
