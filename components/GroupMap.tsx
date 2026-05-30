@@ -104,11 +104,17 @@ export default function GroupMap({ userLocations, onGroupSelect }: GroupMapProps
       })
 
       marker.addListener('click', () => {
-        infoWindow.open(map, marker)
-        if (location.groupId) {
-          onGroupSelect?.(location.groupId)
-        }
-      })
+  infoWindow.open(map, marker)
+  // Fechar o popup após 2 segundos
+  setTimeout(() => infoWindow.close(), 2000)
+  
+  // Chamar o callback com o groupId (ou 1 se não tiver)
+  if (location.groupId) {
+    onGroupSelect?.(location.groupId)
+  } else {
+    onGroupSelect?.(1) // Grupo padrão
+  }
+})
 
       markersRef.current.push(marker)
     })

@@ -23,6 +23,7 @@ export default function PessoasProximas() {
   const [totalPreparados, setTotalPreparados] = useState(0)
   const [userCep, setUserCep] = useState('')
   const router = useRouter()
+  const [redirecting, setRedirecting] = useState(false)
 
   useEffect(() => {
     const getUser = async () => {
@@ -131,16 +132,15 @@ export default function PessoasProximas() {
         </div>
 
         {/* Mapa */}
-        <div className="mb-6">
-          <GroupMap 
-            userLocations={userLocations}
-            onGroupSelect={(groupId) => {
-              if (groupId) {
-                router.push(`/grupo/${groupId}`)
-              }
-            }}
-          />
-        </div>
+<div className="mb-6">
+  <GroupMap 
+    userLocations={userLocations}
+    onGroupSelect={(groupId) => {
+      const targetGroup = groupId || 1
+      router.push(`/grupo/${targetGroup}`)
+    }}
+  />
+</div>
 
         {/* Controles */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
