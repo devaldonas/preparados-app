@@ -27,19 +27,28 @@ export default function GrupoChat() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
-      } else {
-        setUser(user)
-        await loadMessages()
-        subscribeToMessages()
-      }
-      setLoading(false)
+  let subscription: any = null
+
+  const init = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/auth/login')
+      return
     }
-    getUser()
-  }, [])
+    
+    setUser(user)
+    setLoading(true)
+    await loadMessages()
+    subscription = subscribeToMessages()
+    setLoading(false)
+  }
+
+  init()
+
+  return () => {
+    if (subscription) subscription.unsubscribe()
+  }
+}, [grupoId]) // ← dependência no grupoId
 
   const loadMessages = async () => {
     const { data } = await supabase
