@@ -17,6 +17,10 @@ export default function GrupoChat() {
   const params = useParams()
   const router = useRouter()
   const grupoId = params.id as string
+
+  console.log('Parâmetro id recebido:', grupoId) // ← ADICIONE ESTA LINHA
+  console.log('URL atual:', window.location.href) // ← ADICIONE ESTA LINHA
+
   const [user, setUser] = useState<any>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
