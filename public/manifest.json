@@ -1,11 +1,11 @@
 {
-  "name": "PREPARADOS",
-  "short_name": "PREPARADOS",
+  "name": "PREPARADO",
+  "short_name": "PREPARADO",
   "description": "Sua preparação para emergências",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#2E7D32",
+  "theme_color": "#000000",
   "icons": [
     {
       "src": "/logo-192.png",
