@@ -1,0 +1,85 @@
+CORES
+Verde = amarelo
+Começar agora = amarelo
+Já tenho conta = preto
+
+CARROSSEL (Tirar do login)
+Comunicador (tirar)
+Loja = amarelo
+
+LOGIN
+PREPARADO - arquivo Ed
+crie sua conta gratuitamente = preto
+Esqueceu sua senha? = preto
+
+Entrar = fundo amarelo
+
+DASHSBOARD
+Olá, Devaldo Gonçalves do Nascimento! 👋 = apenas primeiro nome, sem o emoj
+Aumentar logo
+
+🎒⚡ Bug Out Bag (72h) trocar icone sem funfo
+
+Icones = 63 px
+
+Rádio Diamante = jogar para baixo fundo preto
+
+
+Comunicador Via Rádio - fundo amarelo - trocar icone
+
+🧠
+Check-in
+Diagnóstico realizado ✅ (Faça seu diagnostico)
+
+Ecossistema Dakila
+Ciência e tecnologia = tirar e colocar o Comunicador via Rádio
+
+📨 Últimas mensagens: controles fundo amarelo
+
+Sair do Canal = fundo preto
+Voltar aos Canais = fundo amarelo
+
+CHEKIN
+TÍTULO PRETO
+
+Questão 1 de 9 = BARRA DE PROGRESSÃO AMARELO
+
+BOTÃO DE SELEÇÃO PRETO e fundo cinza 18%
+
+Próxima = fundo amarelo
+Voltar = Preto
+
+🎯 SEU RESULTADO = tirar icone (letra preta)
+🎯 SEU RESULTADO = preto
+Ver Checklist = amarelo
+Voltar = Preto
+
+
+PESSOAS PROXIMAS = colocar icone
+Compartilhe sua locolização = icone pessoas - fundo amarelo
+
+MOCHILA
+Tirar todos os icones
+
+🔄 Trocar Mochila = fundo amarelo icone preto
+
+Regra Defesa - Os 5 Pilares - fundo amarelo
+
+Qual tipo de mochila você está montando? = o selecionado com borda amarela
+
+Check list
+
+Progresso Total = verde
+
+Caixa de seleção preta, barra de progressão preta
+
+Salvar e continuar = preto
+Voltar = amarelo
+
+
+
+
+
+
+
+

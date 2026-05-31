@@ -37,16 +37,6 @@ export default function GroupMap({ userLocations, onGroupSelect }: GroupMapProps
     }
   }
 
-  // Limpar marcadores quando o componente desmontar ou userLocations mudar
-  useEffect(() => {
-    return () => {
-      markersRef.current.forEach((marker) => {
-        marker.setMap(null)
-      })
-      markersRef.current = []
-    }
-  }, [])
-
   useEffect(() => {
     if (!mapReady || !mapRef.current) return
 
@@ -72,23 +62,22 @@ export default function GroupMap({ userLocations, onGroupSelect }: GroupMapProps
 
       const markerColor = getMarkerColor(location.mochila_tipo)
 
-      // Usar o marcador padrão do Google Maps com ícone customizado
+      // Criar SVG para o marcador
+      const markerSvg = `
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="14" fill="${markerColor}" stroke="white" stroke-width="3"/>
+        </svg>
+      `
+      const markerUrl = `data:image/svg+xml;utf8,${encodeURIComponent(markerSvg)}`
+
       const marker = new google.maps.Marker({
         position,
         map,
         title: location.userName || 'Preparado',
         icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          fillColor: markerColor,
-          fillOpacity: 1,
-          strokeColor: 'white',
-          strokeWeight: 3,
-          scale: 14,
-        },
-        label: {
-          text: '📍',
-          color: 'white',
-          fontSize: '12px',
+          url: markerUrl,
+          scaledSize: new google.maps.Size(32, 32),
+          anchor: new google.maps.Point(16, 16),
         },
       })
 
@@ -103,18 +92,23 @@ export default function GroupMap({ userLocations, onGroupSelect }: GroupMapProps
         `,
       })
 
+      // Listener único com log
       marker.addListener('click', () => {
-  infoWindow.open(map, marker)
-  // Fechar o popup após 2 segundos
-  setTimeout(() => infoWindow.close(), 2000)
-  
-  // Chamar o callback com o groupId (ou 1 se não tiver)
-  if (location.groupId) {
-    onGroupSelect?.(location.groupId)
-  } else {
-    onGroupSelect?.(1) // Grupo padrão
-  }
-})
+        console.log('🔍 Marcador clicado:', {
+          nome: location.userName,
+          groupId: location.groupId,
+          userId: location.userId
+        })
+        infoWindow.open(map, marker)
+        setTimeout(() => infoWindow.close(), 2000)
+        
+        if (location.groupId) {
+          onGroupSelect?.(location.groupId)
+        } else {
+          console.warn('⚠️ Marcador sem groupId:', location.userName)
+          onGroupSelect?.(1)
+        }
+      })
 
       markersRef.current.push(marker)
     })
