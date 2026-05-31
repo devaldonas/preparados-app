@@ -182,7 +182,7 @@ export default function Dashboard() {
             className={`bg-white p-5 rounded-xl shadow-sm border hover:shadow-md transition text-center ${!checkinCompleted ? 'ring-2 ring-[#FFB800] ring-offset-2' : 'border-gray-100'}`}
           >
             <img 
-              src="/images/checkin-icon.png" 
+              src="/images/checkin.jpeg" 
               alt="Check-in" 
               className="w-16 h-16 mx-auto mb-2 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
