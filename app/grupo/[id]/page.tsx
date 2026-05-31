@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
 interface Message {
@@ -152,20 +151,23 @@ export default function GrupoChat() {
               className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFB800]"
             />
             <button
-              onClick={sendMessage}
-              className="bg-[#FFB800] text-black px-6 py-2 rounded-xl font-semibold hover:bg-[#E5A600] transition"
-            >
-              Enviar
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <Link href="/pessoas" className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition">
-            ← Voltar ao Mapa
-          </Link>
-        </div>
+  onClick={sendMessage}
+  className="bg-[#FFB800] text-black px-6 py-2 rounded-xl font-semibold hover:bg-[#E5A600] transition"
+>
+  Enviar
+</button>
       </div>
     </div>
+
+    <div className="mt-4">
+      <button
+        onClick={() => window.location.href = '/pessoas'}
+        className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition w-full"
+      >
+        ← Voltar ao Mapa
+      </button>
+    </div>
+  </div>
+</div>
   )
 }"// redeploy" 
