@@ -278,23 +278,30 @@ export default function SalaComunicador() {
 
         {/* Botão PTT com imagem personalizada */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8 text-center">
-          <button
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            onMouseLeave={stopRecording}
-            onTouchStart={startRecording}
-            onTouchEnd={stopRecording}
-            className="cursor-pointer focus:outline-none transition-transform active:scale-95"
-          >
-            <img 
-              src="/images/botaoptt.png" 
-              alt="Push to Talk" 
-              className="w-48 h-48 mx-auto object-contain"
-              onError={(e) => { 
-                e.currentTarget.src = 'https://placehold.co/200x200/333/white?text=PTT'
-              }}
-            />
-          </button>
+         <button
+  onMouseDown={startRecording}
+  onMouseUp={stopRecording}
+  onMouseLeave={stopRecording}
+  onTouchStart={startRecording}
+  onTouchEnd={stopRecording}
+  className="cursor-pointer focus:outline-none transition-transform active:scale-95 select-none"
+  style={{ 
+    WebkitTapHighlightColor: 'transparent',
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
+    touchAction: 'manipulation'
+  }}
+  draggable={false}
+  onDragStart={(e) => e.preventDefault()}
+>
+  <img 
+    src="/images/botaoptt.png" 
+    alt="Push to Talk" 
+    className="w-48 h-48 mx-auto object-contain pointer-events-none"
+    draggable={false}
+    onDragStart={(e) => e.preventDefault()}
+  />
+</button>
           
           <p className="text-sm text-gray-500 mt-6">
             Pressione e segure para gravar (máximo 15 segundos).<br/>
