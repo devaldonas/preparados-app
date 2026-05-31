@@ -42,9 +42,12 @@ export default function Checklist() {
     primeirosSocorros: false,
     higiene: false,
     tecnologia: false,
-    ferramentas: false,
     alimentacao: false,
     roupas: false,
+    limpeza: false,
+    pesca: false,
+    costura: false,
+    variavel: false,
   })
   const router = useRouter()
 
@@ -301,79 +304,89 @@ export default function Checklist() {
   const totalProgress = getTotalProgress()
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-black pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header com botão Trocar Mochila */}
         <div className="text-center mb-8">
           <div className="flex justify-between items-center mb-4">
             <div className="w-20"></div>
-            <h1 className="text-3xl font-bold text-green-700">🎒 MINHA MOCHILA</h1>
+            <div className="flex items-center gap-2">
+              <img 
+                src="/images/mochila-icon.png" 
+                alt="Minha Mochila" 
+                className="h-8 w-auto object-contain"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
+              />
+              <h1 className="text-3xl font-bold text-white">MINHA MOCHILA</h1>
+            </div>
             <button
               onClick={() => setShowModalTroca(true)}
               disabled={trocando}
-              className="bg-yellow-400 text-yellow-900 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-yellow-500 transition"
+              className="bg-[#FFB800] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition"
             >
               🔄 Trocar Mochila
             </button>
           </div>
-          <p className="text-gray-600 italic">
+          <p className="text-gray-400 italic">
             {mochilaTipo === 'EDC' && 'Every Day Carry - Itens para o dia a dia'}
             {mochilaTipo === 'BOB' && 'Bug Out Bag - 72 horas de emergência'}
             {mochilaTipo === 'BOLT' && 'Bug Out Long Term - Autossuficiência'}
           </p>
-          <div className="mt-4 p-4 bg-green-50 rounded-lg border-l-4 border-green-600">
-            <p className="text-green-800 text-sm italic">
-              "Não é possível treinar a técnica física para todas as situações da sua vida, 
-              mas é possível treinar o estado mental para todas as situações. 
-              A maior arma de todas é a mente humana."
-            </p>
-            <p className="text-green-600 text-xs mt-2">— Escola de Guerreiros</p>
-          </div>
         </div>
 
         {/* Modal de Troca de Mochila */}
         {showModalTroca && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Escolha seu tipo de mochila</h2>
-              <p className="text-sm text-gray-600 mb-6">
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-gray-800">
+              <h2 className="text-xl font-bold text-white mb-4">Escolha seu tipo de mochila</h2>
+              <p className="text-sm text-gray-400 mb-6">
                 Selecione o tipo de mochila que melhor se adapta à sua necessidade:
               </p>
               <div className="space-y-3">
                 <button
                   onClick={() => trocarMochila('EDC')}
-                  className="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 transition flex items-center gap-3"
+                  className="w-full text-left p-4 rounded-lg border-2 border-gray-700 hover:border-[#FFB800] transition flex items-center gap-3 bg-gray-800"
                 >
-                  <span className="text-2xl">🎒</span>
+                  <img 
+                    src="/images/mochila-icon.png" 
+                    alt="EDC" 
+                    className="w-6 h-6 object-contain"
+                    onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  />
                   <div>
-                    <p className="font-bold text-gray-900">EDC</p>
-                    <p className="text-xs text-gray-500">Every Day Carry - Itens para o dia a dia</p>
+                    <p className="font-bold text-white">EDC</p>
+                    <p className="text-xs text-gray-400">Every Day Carry - Itens para o dia a dia</p>
                   </div>
                 </button>
                 <button
                   onClick={() => trocarMochila('BOB')}
-                  className="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 transition flex items-center gap-3"
+                  className="w-full text-left p-4 rounded-lg border-2 border-gray-700 hover:border-[#FFB800] transition flex items-center gap-3 bg-gray-800"
                 >
-                  <span className="text-2xl">🎒⚡</span>
+                  <img 
+                    src="/images/mochila-icon.png" 
+                    alt="BOB" 
+                    className="w-6 h-6 object-contain"
+                    onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  />
                   <div>
-                    <p className="font-bold text-gray-900">BOB</p>
-                    <p className="text-xs text-gray-500">Bug Out Bag - 72 horas de emergência</p>
+                    <p className="font-bold text-white">BOB</p>
+                    <p className="text-xs text-gray-400">Bug Out Bag - 72 horas de emergência</p>
                   </div>
                 </button>
                 <button
                   onClick={() => trocarMochila('BOLT')}
-                  className="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 transition flex items-center gap-3"
+                  className="w-full text-left p-4 rounded-lg border-2 border-gray-700 hover:border-[#FFB800] transition flex items-center gap-3 bg-gray-800"
                 >
                   <span className="text-2xl">⛰️</span>
                   <div>
-                    <p className="font-bold text-gray-900">BOLT</p>
-                    <p className="text-xs text-gray-500">Bug Out Long Term - Autossuficiência</p>
+                    <p className="font-bold text-white">BOLT</p>
+                    <p className="text-xs text-gray-400">Bug Out Long Term - Autossuficiência</p>
                   </div>
                 </button>
               </div>
               <button
                 onClick={() => setShowModalTroca(false)}
-                className="w-full mt-6 bg-gray-100 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-200 transition"
+                className="w-full mt-6 bg-gray-700 text-white py-2 rounded-lg font-semibold hover:bg-gray-600 transition"
               >
                 Cancelar
               </button>
@@ -381,33 +394,32 @@ export default function Checklist() {
           </div>
         )}
 
-        {/* Guia de Preparação da Mochila - Slides 1-7 (COMPLETO) */}
-<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-    <span className="text-2xl">📖</span> Guia de Preparação da Mochila
-  </h2>
-  
-  <div className="space-y-6">
-    {/* Slide 1 - Escola de Guerreiros */}
-    <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-600">
-      <p className="text-green-800 text-sm italic font-medium">
-        "Não é possível treinar a técnica física para todas as situações da sua vida, 
-        mas é possível treinar o estado mental para todas as situações. 
-        A maior arma de todas é a mente humana."
-      </p>
-      <p className="text-green-600 text-xs mt-2">— Escola de Guerreiros</p>
-    </div>
+        {/* Guia de Preparação da Mochila - Slides 1-7 */}
+        <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-6 mb-8">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <span className="text-2xl">📖</span> Guia de Preparação da Mochila
+          </h2>
+          
+          <div className="space-y-6">
+            {/* Slide 1 - Escola de Guerreiros */}
+            <div className="bg-gray-800 rounded-lg p-4 border-l-4 border-[#FFB800]">
+              <p className="text-gray-300 text-sm italic font-medium">
+                "Não é possível treinar a técnica física para todas as situações da sua vida, 
+                mas é possível treinar o estado mental para todas as situações. 
+                A maior arma de todas é a mente humana."
+              </p>
+              <p className="text-gray-500 text-xs mt-2">— Escola de Guerreiros</p>
+            </div>
 
-    {/* Slide 2 - Como escolher sua mochila */}
-    <div className="border-b border-gray-100 pb-4">
-      <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
-        <span className="text-lg">🎒</span> Como escolher sua mochila
-      </h3>
-      <p className="text-sm text-gray-600">
-        Não existe mochila ideal que sirva para todo tipo de aventura, seja ela um trekking, 
-        bushcraft, trilha na montanha ou acampamento.
-      </p>
-    </div>
+            {/* Slide 2 - Como escolher sua mochila */}
+            <div className="border-b border-gray-800 pb-4">
+              <h3 className="font-bold text-white mb-2 flex items-center gap-2">
+                <span className="text-lg">🎒</span> Como escolher sua mochila
+              </h3>
+              <p className="text-sm text-gray-400">
+                Não existe mochila ideal que sirva para todo tipo de aventura...
+              </p>
+            </div>
 
     {/* Slide 3 - Características da mochila (COMPLETO) */}
     <div className="border-b border-gray-100 pb-4">
@@ -468,290 +480,291 @@ export default function Checklist() {
     </div>
 
     {/* Slide 7 - Organização dos bolsos (COMPLETO) */}
-    <div>
-      <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
-        <span className="text-lg">📦</span> Organização dos bolsos (fácil acesso)
-      </h3>
-      <p className="text-sm text-gray-600 leading-relaxed">
-        Na preparação da mochila, nos bolsos de fácil acesso deve se deixar tudo que poderá ou não 
-        ser usado frequentemente, como:
-      </p>
-      <div className="flex flex-wrap gap-2 mt-3">
-        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🩺 Kit primeiros socorros</span>
-        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">💧 Garrafa de água</span>
-        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🎣 Material de pesca</span>
-        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">📝 Bloco para anotação</span>
-        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">✍️ Caneta</span>
-        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🔪 Faca</span>
-        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🔥 Isqueiro</span>
-        <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">🔦 Lanterna</span>
-      </div>
-      <p className="text-xs text-gray-500 mt-3">
-        📌 Tudo aquilo que você poderá precisar ao longo da jornada.
-      </p>
+<div>
+  <h3 className="font-bold text-white mb-2 flex items-center gap-2">
+    <img src="/images/equipamentos.jpeg" alt="Organização" className="w-5 h-5 object-contain" />
+    Organização dos bolsos (fácil acesso)
+  </h3>
+  <p className="text-sm text-gray-400 leading-relaxed">
+    Na preparação da mochila, nos bolsos de fácil acesso deve se deixar tudo que poderá ou não 
+    ser usado frequentemente, como:
+  </p>
+  <div className="flex flex-wrap gap-2 mt-3">
+    <span className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full">Kit primeiros socorros</span>
+    <span className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full">Garrafa de água</span>
+    <span className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full">Material de pesca</span>
+    <span className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full">Bloco para anotação</span>
+    <span className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full">Caneta</span>
+    <span className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full">Faca</span>
+    <span className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full">Isqueiro</span>
+    <span className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded-full">Lanterna</span>
+  </div>
+  <p className="text-xs text-gray-500 mt-3">
+     Tudo aquilo que você poderá precisar ao longo da jornada.
+  </p>
     </div>
   </div>
 </div>
 
-        {/* Tipos de Mochila */}
-        <div className="bg-gradient-to-r from-green-50 via-yellow-50 to-blue-50 rounded-xl p-5 mb-8 border border-gray-100">
-          <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-            <span className="text-2xl">🎒</span> Qual tipo de mochila você está montando?
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className={`bg-white rounded-lg p-4 border-2 ${mochilaTipo === 'EDC' ? 'border-green-500 shadow-md' : 'border-gray-100'}`}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">🎒</span>
-                <h3 className="font-bold text-green-700">EDC</h3>
-                {mochilaTipo === 'EDC' && <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">Atual</span>}
-              </div>
-              <p className="text-xs text-gray-500 mb-1">Every Day Carry</p>
-              <p className="text-sm text-gray-600">Itens para o dia a dia</p>
-            </div>
-
-            <div className={`bg-white rounded-lg p-4 border-2 ${mochilaTipo === 'BOB' ? 'border-yellow-500 shadow-md' : 'border-gray-100'}`}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">🎒⚡</span>
-                <h3 className="font-bold text-yellow-700">BOB</h3>
-                {mochilaTipo === 'BOB' && <span className="text-xs bg-yellow-500 text-white px-2 py-0.5 rounded-full">Atual</span>}
-              </div>
-              <p className="text-xs text-gray-500 mb-1">Bug Out Bag</p>
-              <p className="text-sm text-gray-600">72 horas - emergência</p>
-            </div>
-
-            <div className={`bg-white rounded-lg p-4 border-2 ${mochilaTipo === 'BOLT' ? 'border-blue-500 shadow-md' : 'border-gray-100'}`}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-2xl">⛰️</span>
-                <h3 className="font-bold text-blue-700">BOLT</h3>
-                {mochilaTipo === 'BOLT' && <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">Atual</span>}
-              </div>
-              <p className="text-xs text-gray-500 mb-1">Bug Out Long Term</p>
-              <p className="text-sm text-gray-600">Autossuficiência</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Regra Defesa - Os 5 Pilares */}
-<div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-5 mb-8 border border-red-100">
-  <h2 className="text-lg font-bold text-red-800 mb-3 flex items-center gap-2">
-    <span className="text-2xl">🛡️</span> Regra Defesa - Os 5 Pilares
+       {/* Tipos de Mochila */}
+<div className="bg-gray-900 rounded-xl p-5 mb-8 border border-gray-800">
+  <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+    <img src="/images/mochila-icon.png" alt="Mochila" className="w-6 h-6 object-contain" />
+    Qual tipo de mochila você está montando?
   </h2>
-  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-    <div className="bg-white rounded-lg p-3 text-center">
-      <span className="text-2xl">🛡️</span>
-      <p className="font-bold text-purple-600 text-sm">Defesa</p>
-      <p className="text-xs text-gray-500">Atitude mental</p>
+  
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className={`bg-gray-800 rounded-lg p-4 border-2 ${mochilaTipo === 'EDC' ? 'border-[#FFB800] shadow-md' : 'border-gray-700'}`}>
+      <div className="flex items-center gap-2 mb-2">
+        <img src="/images/mochila-icon.png" alt="EDC" className="w-6 h-6 object-contain" />
+        <h3 className="font-bold text-white">EDC</h3>
+        {mochilaTipo === 'EDC' && <span className="text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full">Atual</span>}
+      </div>
+      <p className="text-xs text-gray-400 mb-1">Every Day Carry</p>
+      <p className="text-sm text-gray-400">Itens para o dia a dia</p>
     </div>
-    <div className="bg-white rounded-lg p-3 text-center">
-      <span className="text-2xl">💧</span>
-      <p className="font-bold text-blue-600 text-sm">Água</p>
-      <p className="text-xs text-gray-500">Hidratação</p>
+
+    <div className={`bg-gray-800 rounded-lg p-4 border-2 ${mochilaTipo === 'BOB' ? 'border-[#FFB800] shadow-md' : 'border-gray-700'}`}>
+      <div className="flex items-center gap-2 mb-2">
+        <img src="/images/mochila-icon.png" alt="BOB" className="w-6 h-6 object-contain" />
+        <h3 className="font-bold text-white">BOB</h3>
+        {mochilaTipo === 'BOB' && <span className="text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full">Atual</span>}
+      </div>
+      <p className="text-xs text-gray-400 mb-1">Bug Out Bag</p>
+      <p className="text-sm text-gray-400">72 horas - emergência</p>
     </div>
-    <div className="bg-white rounded-lg p-3 text-center">
-      <span className="text-2xl">🏠</span>
-      <p className="font-bold text-green-600 text-sm">Abrigo</p>
-      <p className="text-xs text-gray-500">Proteção</p>
-    </div>
-    <div className="bg-white rounded-lg p-3 text-center">
-      <span className="text-2xl">🍲</span>
-      <p className="font-bold text-yellow-600 text-sm">Alimento</p>
-      <p className="text-xs text-gray-500">Energia</p>
-    </div>
-    <div className="bg-white rounded-lg p-3 text-center">
-      <span className="text-2xl">🔥</span>
-      <p className="font-bold text-red-600 text-sm">Fogo</p>
-      <p className="text-xs text-gray-500">Calor e preparo</p>
+
+    <div className={`bg-gray-800 rounded-lg p-4 border-2 ${mochilaTipo === 'BOLT' ? 'border-[#FFB800] shadow-md' : 'border-gray-700'}`}>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-2xl">⛰️</span>
+        <h3 className="font-bold text-white">BOLT</h3>
+        {mochilaTipo === 'BOLT' && <span className="text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full">Atual</span>}
+      </div>
+      <p className="text-xs text-gray-400 mb-1">Bug Out Long Term</p>
+      <p className="text-sm text-gray-400">Autossuficiência</p>
     </div>
   </div>
-  <p className="text-xs text-center text-gray-600 mt-3">
+</div>
+
+{/* Regra Defesa - Os 5 Pilares (COM ÍCONES PERSONALIZADOS) */}
+<div className="bg-gray-900 rounded-xl p-5 mb-8 border border-gray-800">
+  <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+    <img src="/images/defesa.jpeg" alt="Defesa" className="w-6 h-6 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+    Regra Defesa - Os 5 Pilares
+  </h2>
+  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div className="bg-gray-800 rounded-lg p-3 text-center">
+      <img src="/images/defesa.jpeg" alt="Defesa" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+      <p className="font-bold text-white text-sm">Defesa</p>
+      <p className="text-xs text-gray-400">Atitude mental</p>
+    </div>
+    <div className="bg-gray-800 rounded-lg p-3 text-center">
+      <img src="/images/agua.jpeg" alt="Água" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+      <p className="font-bold text-white text-sm">Água</p>
+      <p className="text-xs text-gray-400">Hidratação</p>
+    </div>
+    <div className="bg-gray-800 rounded-lg p-3 text-center">
+      <img src="/images/abrigo.jpeg" alt="Abrigo" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+      <p className="font-bold text-white text-sm">Abrigo</p>
+      <p className="text-xs text-gray-400">Proteção</p>
+    </div>
+    <div className="bg-gray-800 rounded-lg p-3 text-center">
+      <img src="/images/alimento.jpeg" alt="Alimento" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+      <p className="font-bold text-white text-sm">Alimento</p>
+      <p className="text-xs text-gray-400">Energia</p>
+    </div>
+    <div className="bg-gray-800 rounded-lg p-3 text-center">
+      <img src="/images/fogo.jpeg" alt="Fogo" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+      <p className="font-bold text-white text-sm">Fogo</p>
+      <p className="text-xs text-gray-400">Calor e preparo</p>
+    </div>
+  </div>
+  <p className="text-xs text-center text-gray-500 mt-3">
     🛡️ A Defesa é o primeiro pilar: esteja mentalmente preparado para qualquer situação.
   </p>
 </div>
 
-        {/* Kits Detalhados */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">📦 Kits de Preparação</h2>
-          
-          <div className="space-y-3">
-            {[
-              { id: 'documentos', nome: 'Kit Documentos', icone: '📄', conteudo: [
-  'Saco à prova d água (prata)',
-  'Dinheiro físico (cédulas pequenas)',
-  'Mapa da sua região',
-  'Original ou cópia de todos os seus documentos',
-  'Documentos dos seus dependentes',
-  'Cópias em pendrive'
-] },
-              { id: 'agua', nome: 'Kit Água', icone: '💧', conteudo: [
-  'Garrafa de água ou cantil (inox ou alumínio)',
-  'Filtro de purificação',
-  'Clorin, água sanitária ou iodo'
-] },
-             { id: 'abrigo', nome: 'Kit Abrigo', icone: '🏠', conteudo: [
-  'Cobertor de alumínio',
-  'Capa de chuva ou poncho',
-  'Lona grossa',
-  'Barraca',
-  'Colchonete',
-  'Rede armadeira'
-] },
-             { id: 'fogo', nome: 'Kit Fogo', icone: '🔥', conteudo: [
-  'Fogareiro e gás',
-  'Pederneira',
-  'Isqueiro comum ou maçarico',
-  'Algodão na vaselina',
-  'Iniciador ou álcool',
-  'Iscas de fogo'
-] },
-             { id: 'primeirosSocorros', nome: 'Kit Primeiros Socorros', icone: '🩺', conteudo: [
-  'Remédios de uso contínuo',
-  'Par de luvas',
-  'Torniquete',
-  'Traqueia',
-  'Bandagem elástica',
-  'Termômetro',
-  'Toalhas de álcool',
-  'Pinça',
-  'Cortador',
-  'Chás para resfriado',
-  'Fio de sutura',
-  'Lâmina de bisturi',
-  'Colírio',
-  'Tesoura sem ponta',
-  'Repelente',
-  'Protetor solar',
-  'Esparadrapo',
-  'Bandagem',
-  'Gases',
-  'Band-aid',
-  'Algodão',
-  'Pomada antisséptica',
-  'Spray para dor muscular',
-  'Analgésico dor muscular',
-  'Cotonetes',
-  'Toalhas moeda',
-  'Absorventes',
-  'Analgésico',
-  'Dorflex',
-  'Paracetamol',
-  'Carvão ativado',
-  'Pastilhas para garganta',
-  'Hidraplex',
-  'Fenaflan adesivo',
-  'Hidratante labial',
-  'Benegrip',
-  'Spray anti-séptico',
-  'Álcool gel',
-  'Soro fisiológico',
-  'Pomada Minâncora',
-  'Iodo',
-  'Alivium'
-] },
-              { id: 'higiene', nome: 'Kit Higiene', icone: '🧼', conteudo: [
-  'Papel higiênico',
-  'Lenços umedecidos',
-  'Lenços de papel',
-  'Cortador de unha',
-  'Barbeador',
-  'Pinça',
-  'Alicate de cotícula',
-  'Sabonete bactericida',
-  'Creme dental (sem flúor)',
-  'Escova pequena',
-  'Cotonete',
-  'Talco',
-  'Pomada Minâncora',
-  'Protetor solar',
-  'Repelente'
-] },
-              { id: 'tecnologia', nome: 'Kit Tecnologia', icone: '📱', conteudo: [
-  'Celular com carregadores',
-  'Fones de ouvido',
-  'Rádio comunicador',
-  'Powerbank solar',
-  'Lanterna de cabeça',
-  'Lanterna a pilha',
-  'Pilhas extras'
-] },
-              
-              { id: 'alimentacao', nome: 'Kit Alimentação', icone: '🍲', conteudo: [
-  'Caneca, faca, colher, garfo',
-  'Água e comida (Tsampa)',
-  'Café, sal, mel',
-  'Enlatados'
-] },
-             { id: 'roupas', nome: 'Kit Roupas', icone: '👕', conteudo: [
-  'Três pares de mudas de roupa completo',
-  'Jaqueta à prova d água',
-  'Camisa térmica',
-  'Bota para trilha'
-] },
-{ id: 'limpeza', nome: 'Kit Limpeza de Equipamento', icone: '🧹', conteudo: [
-  'Flanela branca',
-  'Flanela escura',
-  'Escova',
-  'Cordão passador',
-  'Óleo'
-] },
-{ id: 'pesca', nome: 'Kit Pesca', icone: '🎣', conteudo: [
-  'Anzóis',
-  'Chumbada',
-  'Linha',
-  'Boia',
-  'Isca',
-  'Empate',
-  'Rede'
-] },
-{ id: 'costura', nome: 'Kit Costura', icone: '🪡', conteudo: [
-  '2 botões',
-  '2 agulhas',
-  '1 carretel de linha',
-  '2 joaninhas'
-] },
-{ id: 'variavel', nome: 'Kit Variável', icone: '🎒', conteudo: [
-  'Bússola',
-  'Faca lâmina integral',
-  'Canivete',
-  'Mosquetão',
-  'Paracord',
-  'Afiador de faca',
-  'Cintas plásticas',
-  'Fita isolante',
-  'Apito',
-  'Boné',
-  'Binóculo',
-  'Lanterna de cabeça',
-  'Lanterna a pilha',
-  'Pilhas extras',
-  'Sacos BGS impermeável',
-  'Caneta e bloco para anotações',
-  'Sinalizador laser',
-  'Velas'
-] },
-            ].map((kit) => (
-              <div key={kit.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                <button onClick={() => toggleKit(kit.id)} className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{kit.icone}</span>
-                    <span className="font-semibold">{kit.nome}</span>
-                  </div>
-                  <span className="text-gray-400">{kitsAbertos[kit.id] ? '▲' : '▼'}</span>
-                </button>
-                {kitsAbertos[kit.id] && (
-                  <div className="p-4 bg-white border-t border-gray-100">
-                    <ul className="space-y-1 text-sm text-gray-600 list-disc list-inside">
-                      {kit.conteudo.map((item, idx) => (
-                        <li key={idx}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            ))}
+{/* Kits Detalhados (COM ÍCONES PERSONALIZADOS) */}
+<div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-6 mb-8">
+  <h2 className="text-xl font-bold text-white mb-4">📦 Kits de Preparação</h2>
+  
+  <div className="space-y-3">
+    {[
+      { id: 'documentos', nome: 'Kit Documentos', icone: '/images/documentos.jpeg', conteudo: [
+        'Saco à prova d água (prata)',
+        'Dinheiro físico (cédulas pequenas)',
+        'Mapa da sua região',
+        'Original ou cópia de todos os seus documentos',
+        'Documentos dos seus dependentes',
+        'Cópias em pendrive'
+      ] },
+      { id: 'agua', nome: 'Kit Água', icone: '/images/agua.jpeg', conteudo: [
+        'Garrafa de água ou cantil (inox ou alumínio)',
+        'Filtro de purificação',
+        'Clorin, água sanitária ou iodo'
+      ] },
+      { id: 'abrigo', nome: 'Kit Abrigo', icone: '/images/abrigo.jpeg', conteudo: [
+        'Cobertor de alumínio',
+        'Capa de chuva ou poncho',
+        'Lona grossa',
+        'Barraca',
+        'Colchonete',
+        'Rede armadeira'
+      ] },
+      { id: 'fogo', nome: 'Kit Fogo', icone: '/images/fogo.jpeg', conteudo: [
+        'Fogareiro e gás',
+        'Pederneira',
+        'Isqueiro comum ou maçarico',
+        'Algodão na vaselina',
+        'Iniciador ou álcool',
+        'Iscas de fogo'
+      ] },
+      { id: 'primeirosSocorros', nome: 'Kit Primeiros Socorros', icone: '/images/socorro.jpeg', conteudo: [
+        'Remédios de uso contínuo',
+        'Par de luvas',
+        'Torniquete',
+        'Traqueia',
+        'Bandagem elástica',
+        'Termômetro',
+        'Toalhas de álcool',
+        'Pinça',
+        'Cortador',
+        'Chás para resfriado',
+        'Fio de sutura',
+        'Lâmina de bisturi',
+        'Colírio',
+        'Tesoura sem ponta',
+        'Repelente',
+        'Protetor solar',
+        'Esparadrapo',
+        'Bandagem',
+        'Gases',
+        'Band-aid',
+        'Algodão',
+        'Pomada antisséptica',
+        'Spray para dor muscular',
+        'Analgésico dor muscular',
+        'Cotonetes',
+        'Toalhas moeda',
+        'Absorventes',
+        'Analgésico',
+        'Dorflex',
+        'Paracetamol',
+        'Carvão ativado',
+        'Pastilhas para garganta',
+        'Hidraplex',
+        'Fenaflan adesivo',
+        'Hidratante labial',
+        'Benegrip',
+        'Spray anti-séptico',
+        'Álcool gel',
+        'Soro fisiológico',
+        'Pomada Minâncora',
+        'Iodo',
+        'Alivium'
+      ] },
+      { id: 'higiene', nome: 'Kit Higiene', icone: '/images/higiene.jpeg', conteudo: [
+        'Papel higiênico',
+        'Lenços umedecidos',
+        'Lenços de papel',
+        'Cortador de unha',
+        'Barbeador',
+        'Pinça',
+        'Alicate de cotícula',
+        'Sabonete bactericida',
+        'Creme dental (sem flúor)',
+        'Escova pequena',
+        'Cotonete',
+        'Talco',
+        'Pomada Minâncora',
+        'Protetor solar',
+        'Repelente'
+      ] },
+      { id: 'tecnologia', nome: 'Kit Tecnologia', icone: '/images/tecnologia.jpeg', conteudo: [
+        'Celular com carregadores',
+        'Fones de ouvido',
+        'Rádio comunicador',
+        'Powerbank solar',
+        'Lanterna de cabeça',
+        'Lanterna a pilha',
+        'Pilhas extras'
+      ] },
+      { id: 'alimentacao', nome: 'Kit Alimentação', icone: '/images/alimento.jpeg', conteudo: [
+        'Caneca, faca, colher, garfo',
+        'Água e comida (Tsampa)',
+        'Café, sal, mel',
+        'Enlatados'
+      ] },
+      { id: 'roupas', nome: 'Kit Roupas', icone: '/images/roupas.jpeg', conteudo: [
+        'Três pares de mudas de roupa completo',
+        'Jaqueta à prova d água',
+        'Camisa térmica',
+        'Bota para trilha'
+      ] },
+      { id: 'limpeza', nome: 'Kit Limpeza', icone: '/images/equipamentos.jpeg', conteudo: [
+        'Flanela branca',
+        'Flanela escura',
+        'Escova',
+        'Cordão passador',
+        'Óleo'
+      ] },
+      { id: 'pesca', nome: 'Kit Pesca', icone: '/images/equipamentos.jpeg', conteudo: [
+        'Anzóis',
+        'Chumbada',
+        'Linha',
+        'Boia',
+        'Isca',
+        'Empate',
+        'Rede'
+      ] },
+      { id: 'costura', nome: 'Kit Costura', icone: '/images/equipamentos.jpeg', conteudo: [
+        '2 botões',
+        '2 agulhas',
+        '1 carretel de linha',
+        '2 joaninhas'
+      ] },
+      { id: 'variavel', nome: 'Kit Variável', icone: '/images/equipamentos.jpeg', conteudo: [
+        'Bússola',
+        'Faca lâmina integral',
+        'Canivete',
+        'Mosquetão',
+        'Paracord',
+        'Afiador de faca',
+        'Cintas plásticas',
+        'Fita isolante',
+        'Apito',
+        'Boné',
+        'Binóculo',
+        'Lanterna de cabeça',
+        'Lanterna a pilha',
+        'Pilhas extras',
+        'Sacos BGS impermeável',
+        'Caneta e bloco para anotações',
+        'Sinalizador laser',
+        'Velas'
+      ] },
+    ].map((kit) => (
+      <div key={kit.id} className="border border-gray-800 rounded-lg overflow-hidden">
+        <button onClick={() => toggleKit(kit.id)} className="w-full flex items-center justify-between p-3 bg-gray-800 hover:bg-gray-700 transition">
+          <div className="flex items-center gap-2">
+            <img src={kit.icone} alt={kit.nome} className="w-6 h-6 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+            <span className="font-semibold text-white">{kit.nome}</span>
           </div>
-        </div>
-
+          <span className="text-gray-400">{kitsAbertos[kit.id] ? '▲' : '▼'}</span>
+        </button>
+        {kitsAbertos[kit.id] && (
+          <div className="p-4 bg-gray-800 border-t border-gray-700">
+            <ul className="space-y-1 text-sm text-gray-300 list-disc list-inside">
+              {kit.conteudo.map((item, idx) => (
+                <li key={idx}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+</div>
         {/* Mensagem de salvamento */}
         {saveMessage && (
           <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-pulse">
