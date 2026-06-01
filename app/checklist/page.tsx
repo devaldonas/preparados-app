@@ -547,15 +547,15 @@ export default function Checklist() {
   </div>
 </div>
 
-{/* Regra Defesa - Os 5 Pilares */}
+{/* Regra Defesa - Pilares da Preparação */}
 <div className="bg-white rounded-xl p-5 mb-8 border border-gray-100">
   <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
     <img src="/images/defesa.jpeg" alt="Defesa" className="w-6 h-6 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-    Regra Defesa - Os 5 Pilares
+    Pilares da Preparação
   </h2>
   <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
     <div className="bg-gray-50 rounded-lg p-3 text-center">
-      <img src="/images/defesa.jpeg" alt="Defesa" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+      <img src="/images/logo.jpeg" alt="Defesa" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
       <p className="font-bold text-gray-900 text-sm">Defesa</p>
       <p className="text-xs text-gray-500">Atitude mental</p>
     </div>
