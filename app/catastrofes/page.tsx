@@ -11,64 +11,69 @@ export default function Catastrofes() {
     { id: 'terremoto', nome: 'Terremoto', icone: '🌍' },
     { id: 'tsunami', nome: 'Tsunami', icone: '🌊' },
     { id: 'rotas', nome: 'Rotas de Fuga', icone: '🗺️' },
-    { id: 'defesa', nome: 'Defesa e Preparação', icone: '❄️' },
+    { id: 'defesa', nome: 'Preparação para Frio Extremo', icone: '❄️' },
   ]
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
-        {/* 📌 SIDEBAR - Menu Lateral */}
-        <aside
-          className={`${
-            menuAberto ? 'w-64' : 'w-20'
-          } bg-white shadow-lg min-h-screen transition-all duration-300 border-r border-gray-200`}
-        >
-          {/* Header da Sidebar */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              {menuAberto && (
-                <h1 className="text-lg font-bold text-green-700 truncate">🌊 CATÁSTROFES</h1>
-              )}
-              <button
-                onClick={() => setMenuAberto(!menuAberto)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-600"
-                title={menuAberto ? 'Recolher menu' : 'Expandir menu'}
-              >
-                {menuAberto ? '❮' : '❯'}
-              </button>
-            </div>
-          </div>
+       {/* 📌 SIDEBAR - Menu Lateral (para desktop) */}
+<aside
+  className={`hidden lg:block ${
+    menuAberto ? 'w-64' : 'w-20'
+  } bg-white shadow-lg min-h-screen transition-all duration-300 border-r border-gray-200 fixed left-0 top-0 z-10`}
+>
+  <div className="p-4 border-b border-gray-200">
+    <div className="flex items-center justify-between">
+      {menuAberto && (
+        <h1 className="text-lg font-bold text-green-700 truncate">🌊 CATÁSTROFES</h1>
+      )}
+      <button
+        onClick={() => setMenuAberto(!menuAberto)}
+        className="p-2 rounded-lg hover:bg-gray-100 transition text-gray-600"
+        title={menuAberto ? 'Recolher menu' : 'Expandir menu'}
+      >
+        {menuAberto ? '❮' : '❯'}
+      </button>
+    </div>
+  </div>
 
-          {/* Itens do Menu */}
-          <nav className="p-4">
-            <ul className="space-y-2">
-              {abas.map((aba) => (
-                <li key={aba.id}>
-                  <button
-                    onClick={() => setAbaAtiva(aba.id)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-lg transition ${
-                      abaAtiva === aba.id
-                        ? 'bg-green-100 text-green-700 font-semibold border-l-4 border-green-700'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-green-700'
-                    }`}
-                  >
-                    <span className="text-xl">{aba.icone}</span>
-                    {menuAberto && <span className="truncate">{aba.nome}</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </nav>
+  <nav className="p-4">
+    <ul className="space-y-2">
+      {abas.map((aba) => (
+        <li key={aba.id}>
+          <button
+            onClick={() => setAbaAtiva(aba.id)}
+            className={`w-full flex items-center gap-3 p-3 rounded-lg transition ${
+              abaAtiva === aba.id
+                ? 'bg-green-100 text-green-700 font-semibold border-l-4 border-green-700'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-green-700'
+            }`}
+          >
+            <img 
+              src={
+                aba.id === 'terremoto' ? '/images/catastrofes/terremoto.jpeg' :
+                aba.id === 'tsunami' ? '/images/catastrofes/tsunami.jpeg' :
+                aba.id === 'rotas' ? '/images/catastrofes/rotadefuga.png' :
+                '/images/catastrofes/frioextremo.jpeg'
+              }
+              alt={aba.nome}
+              className="w-6 h-6 object-contain"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
+            {menuAberto && <span className="truncate">{aba.nome}</span>}
+          </button>
+        </li>
+      ))}
+    </ul>
+  </nav>
 
-          {/* Rodapé da Sidebar */}
-          {menuAberto && (
-            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
-              <p className="text-xs text-gray-500 text-center">
-                Preparação salva vidas
-              </p>
-            </div>
-          )}
-        </aside>
+  {menuAberto && (
+    <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
+      <p className="text-xs text-gray-500 text-center">Preparação salva vidas</p>
+    </div>
+  )}
+</aside>
 
         {/* 📄 CONTEÚDO PRINCIPAL */}
         <main className="flex-1 p-6 md:p-8 overflow-y-auto">
