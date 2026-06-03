@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import ClientLayout from '@/components/ClientLayout'
 
@@ -10,7 +10,10 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   },
   manifest: '/manifest.json',
-  themeColor: '#000000',
+}
+
+export const viewport: Viewport = {
+  themeColor: '#FFB800', // Amarelo da marca
 }
 
 export default function RootLayout({

@@ -301,38 +301,79 @@ export default function Checklist() {
     )
   }
 
-  const totalProgress = getTotalProgress()
+const totalProgress = getTotalProgress()
 
- return (
+return (
   <div className="min-h-screen bg-gray-50 pb-20">
     <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Header com botão Trocar Mochila */}
-      <div className="text-center mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <div className="w-20"></div>
-          <div className="flex items-center gap-3">
-            <img 
-              src="/images/mochila-icon.png" 
-              alt="Minha Mochila" 
-              className="h-16 w-auto object-contain"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
-            <h1 className="text-3xl font-bold text-black">MINHA MOCHILA</h1>
-          </div>
-            <button
-              onClick={() => setShowModalTroca(true)}
-              disabled={trocando}
-              className="bg-[#FFB800] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition"
-            >
-              🔄 Trocar Mochila
-            </button>
-          </div>
-          <p className="text-gray-400 italic">
-            {mochilaTipo === 'EDC' && 'Every Day Carry - Itens para o dia a dia'}
-            {mochilaTipo === 'BOB' && 'Bug Out Bag - 72 horas de emergência'}
-            {mochilaTipo === 'BOLT' && 'Bug Out Long Term - Autossuficiência'}
-          </p>
+      {/* Header - apenas título e ícone */}
+      <div className="text-center mb-6">
+        <div className="flex justify-center items-center gap-3 mb-2">
+          <img 
+            src="/images/mochila-icon.png" 
+            alt="Minha Mochila" 
+            className="h-16 w-auto object-contain"
+            onError={(e) => { e.currentTarget.style.display = 'none' }}
+          />
+          <h1 className="text-3xl font-bold text-black">MINHA MOCHILA</h1>
         </div>
+        <p className="text-gray-400 italic">
+          {mochilaTipo === 'EDC' && 'Every Day Carry - Itens para o dia a dia'}
+          {mochilaTipo === 'BOB' && 'Bug Out Bag - 72 horas de emergência'}
+          {mochilaTipo === 'BOLT' && 'Bug Out Long Term - Autossuficiência'}
+        </p>
+      </div>
+
+      {/* Card do tipo de mochila com botão */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <span className="text-xs text-gray-500 uppercase tracking-wide">Tipo de mochila atual</span>
+            <h2 className="text-xl font-bold text-[#FFB800] mt-1">
+              {mochilaTipo === 'EDC' && 'EDC - Dia a Dia'}
+              {mochilaTipo === 'BOB' && 'BOB - 72 horas'}
+              {mochilaTipo === 'BOLT' && 'BOLT - Autossuficiência'}
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {mochilaTipo === 'EDC' && 'Itens essenciais para o dia a dia, que você já carrega na bolsa ou mochila comum.'}
+              {mochilaTipo === 'BOB' && 'Mochila preparada para 72 horas de emergência, com itens de sobrevivência básica.'}
+              {mochilaTipo === 'BOLT' && 'Kit completo para situações prolongadas, com equipamentos mais robustos.'}
+            </p>
+          </div>
+          <button
+  onClick={() => setShowModalTroca(true)}
+  disabled={trocando}
+  className="bg-[#FFB800] text-black px-5 py-2 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition flex items-center gap-2 whitespace-nowrap"
+>
+  <img 
+    src="/images/botaoatualizar.png" 
+    alt="Atualizar" 
+    className="w-4 h-4 object-contain"
+    onError={(e) => {
+      e.currentTarget.style.display = 'none'
+    }}
+  />
+  Trocar Mochila
+</button>
+        </div>
+      </div>
+
+      {/* Progresso Total */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+        <div className="flex justify-between text-sm text-gray-600 mb-2">
+          <span>Progresso Total</span>
+          <span>{totalProgress}%</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-4">
+          <div
+            className="bg-[#FFB800] h-4 rounded-full transition-all duration-500"
+            style={{ width: `${totalProgress}%` }}
+          />
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          {items.filter(i => userProgress[i.id]).length} de {items.length} itens marcados
+        </p>
+      </div>
 
         {/* Modal de Troca de Mochila */}
 {showModalTroca && (
@@ -842,27 +883,27 @@ export default function Checklist() {
         </div>
 
         <div className="divide-y divide-gray-100">
-          {categoryItems.map((item) => (
-            <div key={item.id} className="flex items-start p-4 hover:bg-gray-50 transition">
-              <button
-                onClick={() => toggleItem(item.id, userProgress[item.id] || false)}
-                disabled={saving === item.id}
-                className="flex-shrink-0 mt-0.5"
-              >
-                <div
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
-                    userProgress[item.id]
-                      ? 'bg-green-600 border-green-600'
-                      : 'border-gray-300 hover:border-green-400'
-                  }`}
-                >
-                  {userProgress[item.id] && (
-                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </div>
-              </button>
+  {categoryItems.map((item) => (
+    <div key={item.id} className="flex items-start p-4 hover:bg-gray-50 transition">
+      <button
+        onClick={() => toggleItem(item.id, userProgress[item.id] || false)}
+        disabled={saving === item.id}
+        className="flex-shrink-0 mt-0.5"
+      >
+        <div
+          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
+            userProgress[item.id]
+              ? 'bg-[#FFB800] border-[#FFB800]'
+              : 'border-gray-300 hover:border-[#FFB800]'
+          }`}
+        >
+          {userProgress[item.id] && (
+            <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </div>
+      </button>
               <div className="ml-3 flex-1">
                 <p className={`text-sm ${userProgress[item.id] ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
                   {item.name}
@@ -884,9 +925,9 @@ export default function Checklist() {
   <button
     onClick={handleSaveAndContinue}
     disabled={savingAll}
-    className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50"
+    className="w-full bg-[#1A1A1A] text-white py-3 px-4 rounded-lg font-semibold hover:bg-black transition disabled:opacity-50"
   >
-    {savingAll ? 'Salvando...' : '✅ Salvar e Continuar'}
+    {savingAll ? 'Salvando...' : 'Salvar e Continuar'}
   </button>
   
   <Link
