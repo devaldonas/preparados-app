@@ -303,22 +303,22 @@ export default function Checklist() {
 
   const totalProgress = getTotalProgress()
 
-  return (
-     <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header com botão Trocar Mochila */}
-        <div className="text-center mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <div className="w-20"></div>
-            <div className="flex items-center gap-2">
-              <img 
-                src="/images/mochila-icon.png" 
-                alt="Minha Mochila" 
-                className="h-8 w-auto object-contain"
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
-              />
-              <h1 className="text-3xl font-bold text-black">MINHA MOCHILA</h1>
-            </div>
+ return (
+  <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Header com botão Trocar Mochila */}
+      <div className="text-center mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <div className="w-20"></div>
+          <div className="flex items-center gap-3">
+            <img 
+              src="/images/mochila-icon.png" 
+              alt="Minha Mochila" 
+              className="h-16 w-auto object-contain"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
+            <h1 className="text-3xl font-bold text-black">MINHA MOCHILA</h1>
+          </div>
             <button
               onClick={() => setShowModalTroca(true)}
               disabled={trocando}
@@ -782,7 +782,7 @@ export default function Checklist() {
   </div>
   <div className="w-full bg-gray-200 rounded-full h-4">
     <div
-      className="bg-green-600 h-4 rounded-full transition-all duration-500"
+      className="bg-[#FFB800] h-4 rounded-full transition-all duration-500"
       style={{ width: `${totalProgress}%` }}
     />
   </div>
@@ -801,10 +801,27 @@ export default function Checklist() {
 
     return (
       <div key={category.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="bg-gradient-to-r from-green-50 to-white p-4 border-b border-gray-100">
+        <div className="bg-gradient-to-r from-gray-50 to-white p-4 border-b border-gray-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">{category.icon}</span>
+              {/* Ícone da categoria - substituído o emoji */}
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                <img 
+                  src={category.icon}
+                  alt={category.name}
+                  className="w-6 h-6 object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                    const parent = e.currentTarget.parentElement
+                    if (parent) {
+                      const fallback = document.createElement('span')
+                      fallback.className = 'text-[#FFB800] font-bold text-lg'
+                      fallback.textContent = category.name.charAt(0)
+                      parent.appendChild(fallback)
+                    }
+                  }}
+                />
+              </div>
               <div>
                 <h2 className="font-semibold text-gray-900">{category.name}</h2>
                 <p className="text-xs text-gray-500">
@@ -813,10 +830,10 @@ export default function Checklist() {
               </div>
             </div>
             <div className="text-right">
-              <span className="text-sm font-medium text-green-700">{progress}%</span>
+              <span className="text-sm font-medium text-[#FFB800]">{progress}%</span>
               <div className="w-16 bg-gray-200 rounded-full h-1.5 mt-1">
                 <div
-                  className="bg-green-600 h-1.5 rounded-full"
+                  className="bg-[#FFB800] h-1.5 rounded-full"
                   style={{ width: `${progress}%` }}
                 />
               </div>

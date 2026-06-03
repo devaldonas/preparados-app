@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 
 interface Message {
@@ -17,20 +18,17 @@ export default function GrupoChat() {
   const router = useRouter()
   const grupoId = params.id as string
 
-  console.log('Parâmetro id recebido:', grupoId)
-  console.log('URL atual:', window.location.href)
-
   const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
-  const [groupName, setGroupName] = useState('Chat do Grupo')
+  const [groupName, setGroupName] = useState('Carregando...')
+  const [groupInfo, setGroupInfo] = useState<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    let subscription: any = null
-
-    const init = async () => {
+    const carregarDados = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/auth/login')
@@ -38,127 +36,175 @@ export default function GrupoChat() {
       }
       
       setUser(user)
-      setLoading(true)
-      await loadGroupInfo()
-      await loadMessages()
-      subscription = subscribeToMessages()
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('group_id, full_name')
+        .eq('id', user.id)
+        .single()
+
+      setProfile(profileData)
+
+      const { data: groupData } = await supabase
+        .from('groups')
+        .select('*')
+        .eq('id', grupoId)
+        .single()
+
+      if (groupData) {
+        setGroupInfo(groupData)
+        setGroupName(groupData.name)
+      } else {
+        setGroupName('Chat do Grupo')
+      }
+
       setLoading(false)
     }
 
-    init()
-
-    return () => {
-      if (subscription) subscription.unsubscribe()
-    }
-  }, [grupoId])
+    carregarDados()
+  }, [grupoId, router])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    if (!user || !grupoId) return
 
-  const loadGroupInfo = async () => {
-    const { data } = await supabase
-      .from('groups')
-      .select('name')
-      .eq('id', grupoId)
-      .single()
-    
-    if (data) {
-      setGroupName(data.name)
+    const carregarMensagens = async () => {
+      const { data, error } = await supabase
+        .from('group_messages')
+        .select('*')
+        .eq('group_id', grupoId)
+        .order('created_at', { ascending: true })
+        .limit(100)
+
+      if (error) {
+        console.error('Erro ao carregar mensagens:', error)
+        return
+      }
+
+      if (data) {
+        setMessages(data.map(m => ({
+          id: m.id,
+          content: m.content,
+          created_at: m.created_at,
+          user_id: m.user_id,
+          user_name: m.user_name || 'Preparado'
+        })))
+      }
     }
-  }
 
-  const loadMessages = async () => {
-    const { data } = await supabase
-      .from('group_messages')
-      .select('*, user:profiles(full_name)')
-      .eq('group_id', grupoId)
-      .order('created_at', { ascending: true })
-      .limit(100)
+    carregarMensagens()
 
-    if (data) {
-      setMessages(data.map(m => ({
-        id: m.id,
-        content: m.content,
-        created_at: m.created_at,
-        user_id: m.user_id,
-        user_name: m.user?.full_name || 'Preparado'
-      })))
-    }
-  }
-
-  const subscribeToMessages = () => {
     const subscription = supabase
       .channel(`group:${grupoId}`)
       .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'group_messages', filter: `group_id=eq.${grupoId}` },
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'group_messages', 
+          filter: `group_id=eq.${grupoId}` 
+        },
         (payload) => {
+          const newMsg = payload.new as Message
           setMessages(prev => [...prev, {
-            id: payload.new.id,
-            content: payload.new.content,
-            created_at: payload.new.created_at,
-            user_id: payload.new.user_id,
-            user_name: payload.new.user_name || 'Preparado'
+            id: newMsg.id,
+            content: newMsg.content,
+            created_at: newMsg.created_at,
+            user_id: newMsg.user_id,
+            user_name: newMsg.user_name || 'Preparado'
           }])
         }
       )
       .subscribe()
 
-    return () => subscription.unsubscribe()
-  }
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [grupoId, user])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !user) return
+
+    const userName = profile?.full_name || user.email?.split('@')[0] || 'Preparado'
 
     const { error } = await supabase
       .from('group_messages')
       .insert({
         group_id: parseInt(grupoId),
         user_id: user.id,
-        user_name: user.user_metadata?.full_name || 'Preparado',
+        user_name: userName,
         content: newMessage.trim()
       })
 
-    if (!error) {
+    if (error) {
+      console.error('Erro ao enviar mensagem:', error)
+      alert('Erro ao enviar mensagem. Tente novamente.')
+    } else {
       setNewMessage('')
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Carregando chat...</p>
+        </div>
       </div>
     )
   }
 
+  const isVisitor = profile?.group_id !== parseInt(grupoId)
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Cabeçalho fixo */}
       <div className="bg-[#FFB800] text-black p-4 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center justify-between max-w-3xl mx-auto">
           <div>
             <h1 className="text-xl font-bold">{groupName}</h1>
-            <p className="text-sm opacity-80">Converse com Preparados próximos</p>
+            <p className="text-sm opacity-80">
+              {groupInfo?.member_count || 0} membros • 
+              {groupInfo?.center_latitude ? 'Grupo por localizacao' : 'Grupo geral'}
+            </p>
           </div>
-          <button
-            onClick={() => window.location.href = '/pessoas'}
+          <Link 
+            href="/pessoas"
             className="text-black hover:opacity-70 transition text-xl"
           >
-            ✕
-          </button>
+            ×
+          </Link>
         </div>
       </div>
 
-      {/* Área de mensagens - flexível e rolável */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+        {isVisitor && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-center">
+            <p className="text-sm text-blue-700">
+              Voce esta visitando o chat de outro grupo.
+              Sinta-se a vontade para participar e aprender!
+            </p>
+          </div>
+        )}
+
         {messages.length === 0 && (
           <div className="text-center text-gray-400 py-8">
             Nenhuma mensagem ainda. Seja o primeiro a falar!
           </div>
         )}
+        
         {messages.map((msg) => {
           const isOwn = msg.user_id === user?.id
+          
           return (
             <div
               key={msg.id}
@@ -168,15 +214,23 @@ export default function GrupoChat() {
                 className={`max-w-[80%] p-3 rounded-lg ${
                   isOwn
                     ? 'bg-[#FFB800] text-black'
-                    : 'bg-white text-gray-800 shadow-sm'
+                    : isVisitor && !isOwn
+                    ? 'bg-purple-50 text-gray-800 shadow-sm border border-purple-200'
+                    : 'bg-white text-gray-800 shadow-sm border border-gray-100'
                 }`}
               >
-                {!isOwn && (
-                  <p className="text-xs font-semibold mb-1 text-gray-500">{msg.user_name}</p>
-                )}
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-xs font-semibold text-gray-500">{msg.user_name}</p>
+                  {isVisitor && !isOwn && (
+                    <span className="text-xs bg-purple-200 text-purple-700 px-1 rounded">visitante</span>
+                  )}
+                </div>
                 <p className="text-sm break-words">{msg.content}</p>
                 <p className={`text-xs mt-1 ${isOwn ? 'opacity-70' : 'text-gray-400'}`}>
-                  {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(msg.created_at).toLocaleTimeString('pt-BR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
                 </p>
               </div>
             </div>
@@ -185,34 +239,31 @@ export default function GrupoChat() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input fixo na parte inferior */}
       <div className="bg-white border-t border-gray-200 p-4 sticky bottom-0 shadow-md">
-        <div className="max-w-3xl mx-auto flex gap-2">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Digite sua mensagem..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent text-base"
-          />
-          <button
-            onClick={sendMessage}
-            className="bg-[#FFB800] text-black px-5 py-2 rounded-xl font-semibold hover:bg-[#E5A600] transition whitespace-nowrap"
-          >
-            Enviar
-          </button>
+        <div className="max-w-3xl mx-auto">
+          {isVisitor && (
+            <p className="text-xs text-center text-gray-500 mb-2">
+              Voce esta contribuindo com o grupo de outra regiao
+            </p>
+          )}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Digite sua mensagem..."
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent text-base"
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!newMessage.trim()}
+              className="bg-[#FFB800] text-black px-5 py-2 rounded-xl font-semibold hover:bg-[#E5A600] transition disabled:opacity-50 whitespace-nowrap"
+            >
+              Enviar
+            </button>
+          </div>
         </div>
-      </div>
-
-      {/* Botão Voltar ao Mapa (fora do fluxo do chat) */}
-      <div className="p-4 bg-gray-50 border-t border-gray-200">
-        <button
-          onClick={() => window.location.href = '/pessoas'}
-          className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition w-full"
-        >
-          ← Voltar ao Mapa
-        </button>
       </div>
     </div>
   )
