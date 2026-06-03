@@ -22,7 +22,7 @@ export default function Catastrofes() {
         
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-green-700 mb-2">🌊 PREPARAÇÃO PARA CATÁSTROFES</h1>
+          <h1 className="text-3xl font-bold text-black-700 mb-2"> PREPARAÇÃO PARA CATÁSTROFES</h1>
           <p className="text-gray-600">
             Conhecimento salva vidas. Esteja preparado para qualquer situação.
           </p>
@@ -54,7 +54,7 @@ export default function Catastrofes() {
                     key={aba.id}
                     onClick={() => { setAbaAtiva(aba.id); setMenuAberto(false); }}
                     className={`w-full text-left p-3 flex items-center gap-3 transition ${
-                      abaAtiva === aba.id ? 'bg-green-50 text-green-700' : 'hover:bg-gray-50'
+                      abaAtiva === aba.id ? 'bg-black-50 text-black-700' : 'hover:bg-gray-50'
                     }`}
                   >
                     <img 
@@ -77,7 +77,7 @@ export default function Catastrofes() {
         {abaAtiva === 'terremoto' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-3">🔍 O que é um Terremoto?</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-3">O que é um Terremoto?</h2>
               <p className="text-gray-700 leading-relaxed">
                 Terremotos, também conhecidos como abalos sísmicos, são vibrações repentinas e intensas na crosta terrestre.
                 Podem ser causados pelo movimento de placas tectônicas, atividades vulcânicas ou falhas geológicas.
@@ -89,7 +89,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-3">📊 Escala Richter</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-3">Escala Richter</h2>
               <p className="text-gray-700 mb-4">
                 Criada por Charles Richter há cerca de 70 anos, mede a potência de um tremor em uma escala de 1 a 9.
               </p>
@@ -116,7 +116,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-3">📍 Onde os terremotos são mais comuns?</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-3">Onde os terremotos são mais comuns?</h2>
               <p className="text-gray-700 mb-3">São mais frequentes em regiões próximas aos limites das placas tectônicas.</p>
               <ul className="list-disc list-inside text-gray-700 space-y-1">
                 <li><strong>Círculo de Fogo do Pacífico:</strong> região ao redor do Oceano Pacífico com intensa atividade vulcânica e sísmica</li>
@@ -129,14 +129,14 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-green-700 mb-3">🚨 O que fazer DURANTE um terremoto</h2>
+              <h2 className="text-xl font-bold text-black-700 mb-3"> O que fazer DURANTE um terremoto</h2>
               <div className="space-y-4">
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <h3 className="font-bold text-gray-900">📌 Mantenha a calma</h3>
+                <div className="bg-black-50 p-4 rounded-lg">
+                  <h3 className="font-bold text-gray-900"> Mantenha a calma</h3>
                   <p className="text-gray-700 mt-1">É importante manter a calma para tomar decisões racionais.</p>
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 mb-2">🏠 Se estiver em local fechado:</h3>
+                  <h3 className="font-bold text-gray-900 mb-2"> Se estiver em local fechado:</h3>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
                     <li>Procure abrigo sob um móvel sólido (mesa ou escrivaninha)</li>
                     <li>Afaste-se de janelas, espelhos, quadros e prateleiras</li>
@@ -145,14 +145,14 @@ export default function Catastrofes() {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 mb-2">🌳 Se estiver em local aberto:</h3>
+                  <h3 className="font-bold text-gray-900 mb-2"> Se estiver em local aberto:</h3>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
                     <li>Afaste-se de edifícios, postes, árvores, letreiros e telhas</li>
                     <li>Procure um local aberto e abaixo-se no chão</li>
                   </ul>
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 mb-2">🚗 Se estiver em um veículo:</h3>
+                  <h3 className="font-bold text-gray-900 mb-2"> Se estiver em um veículo:</h3>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 ml-4">
                     <li>Pare o carro em local seguro, longe de pontes e edifícios</li>
                     <li>Permaneça dentro do veículo até o tremor cessar</li>
@@ -180,7 +180,7 @@ export default function Catastrofes() {
         {abaAtiva === 'tsunami' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-3">🌊 O que é um Tsunami?</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-3"> O que é um Tsunami?</h2>
               <p className="text-gray-700 leading-relaxed">
                 Tsunamis são ondas gigantescas e perigosas que avançam para terra adentro depois de um terremoto.
                 Se o terremoto ocorrer perto do mar, poderá ocorrer um tsunami, mesmo que o tremor seja fraco.
@@ -188,7 +188,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-3">🔍 Causas Principais dos Tsunamis</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-3"> Causas Principais dos Tsunamis</h2>
               <ul className="list-disc list-inside text-gray-700 space-y-2">
                 <li><strong>Terremotos submarinos:</strong> A causa mais comum de tsunamis</li>
                 <li><strong>Erupções vulcânicas:</strong> Erupções submarinas explosivas ou colapso de vulcão</li>
@@ -198,7 +198,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-red-600 mb-3">🚨 Sinais de Alerta ANTES de um Tsunami</h2>
+              <h2 className="text-xl font-bold text-red-600 mb-3"> Sinais de Alerta ANTES de um Tsunami</h2>
               <div className="space-y-4">
                 <div className="border-l-4 border-red-500 pl-4">
                   <h3 className="font-bold text-gray-900">1. Tremores intensos</h3>
@@ -220,7 +220,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-3">📏 Características dos Tsunamis</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-3"> Características dos Tsunamis</h2>
               <ul className="list-disc list-inside text-gray-700 space-y-2">
                 <li><strong>Comprimento de onda:</strong> Extremamente longos (centenas de quilômetros)</li>
                 <li><strong>Velocidade:</strong> Até 800 km/h (comparável a um avião a jato)</li>
@@ -231,7 +231,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-green-700 mb-3">✅ O que fazer ao perceber os sinais</h2>
+              <h2 className="text-xl font-bold text-black-700 mb-3"> O que fazer ao perceber os sinais</h2>
               <div className="space-y-3">
                 <p className="text-gray-700 bg-red-50 p-3 rounded-lg font-medium">
                   ⚠️ Não espere os avisos oficiais para agir!
@@ -246,7 +246,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-blue-700 mb-3">⛵ Se você estiver no mar</h2>
+              <h2 className="text-xl font-bold text-black-700 mb-3"> Se você estiver no mar</h2>
               <p className="text-gray-700">
                 Vá para o mar aberto! Virar o barco em direção às ondas e se afastar o máximo possível do litoral
                 é a melhor opção em caso de tsunami.
@@ -259,7 +259,7 @@ export default function Catastrofes() {
         {abaAtiva === 'rotas' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-3">🗺️ Planejamento de Rotas de Fuga</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-3"> Planejamento de Rotas de Fuga</h2>
               <p className="text-gray-700 leading-relaxed">
                 Em situações de emergência, ter uma rota de fuga bem planejada pode ser crucial para sua segurança
                 e a segurança dos seus entes queridos.
@@ -267,7 +267,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-blue-600 mb-3">💧 Pontos de Alagamento</h3>
+              <h3 className="text-lg font-bold text-blue-600 mb-3"> Pontos de Alagamento</h3>
               <p className="text-gray-700 mb-3">Identifique possíveis pontos de alagamento na sua cidade/rota, como baixadas e laterais de córregos ou rios.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                 <img src="/images/catastrofes/alagamento-slide1.png" alt="Alagamento 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
@@ -277,7 +277,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-green-600 mb-3">🌳 Árvores Grandes</h3>
+              <h3 className="text-lg font-bold text-black-600 mb-3"> Árvores Grandes</h3>
               <p className="text-gray-700 mb-3">Identifique árvores grandes que possam cair e obstruir a via.</p>
               <div className="grid grid-cols-2 gap-3 mt-4">
                 <img src="/images/catastrofes/arvores-slide1.png" alt="Árvores 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
@@ -286,7 +286,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-orange-600 mb-3">⛰️ Desmoronamento de Terra</h3>
+              <h3 className="text-lg font-bold text-orange-600 mb-3"> Desmoronamento de Terra</h3>
               <p className="text-gray-700 mb-3">Cuidado com estradas em morros altos onde pode haver desmoronamento de terra.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                 <img src="/images/catastrofes/desmoronamento-slide1.png" alt="Desmoronamento 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
@@ -296,7 +296,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-red-600 mb-3">🌉 Pontes e Viadutos</h3>
+              <h3 className="text-lg font-bold text-red-600 mb-3"> Pontes e Viadutos</h3>
               <p className="text-gray-700 mb-3">Evite pontes suspensas e viadutos durante a fuga.</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                 <img src="/images/catastrofes/pontes-slide1.png" alt="Pontes 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
@@ -307,7 +307,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-purple-600 mb-3">🏢 Prédios Altos e Antenas</h3>
+              <h3 className="text-lg font-bold text-purple-600 mb-3"> Prédios Altos e Antenas</h3>
               <p className="text-gray-700 mb-3">Prédios altos e antenas também podem obstruir sua passagem ou cair.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                 <img src="/images/catastrofes/predios-slide1.png" alt="Prédios 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
@@ -317,7 +317,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-green-700 mb-3">🗺️ Exemplos de Rotas de Fuga</h3>
+              <h3 className="text-lg font-bold text-black-700 mb-3"> Exemplos de Rotas de Fuga</h3>
               <p className="text-gray-700 mb-3">Trace sua rota com antecedência e evite os pontos de risco.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                 <img src="/images/catastrofes/rotas-slide1.png" alt="Rotas 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" />
@@ -327,7 +327,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-purple-600 mb-3">🏪 Recursos Valiosos na Rota</h3>
+              <h3 className="text-lg font-bold text-purple-600 mb-3"> Recursos Valiosos na Rota</h3>
               <p className="text-gray-700 mb-3">
                 Mesmo em deslocamento na rota de fuga, você ainda pode adquirir recursos valiosos.
               </p>
@@ -344,7 +344,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-orange-600 mb-3">🛣️ Guard Rails e Rotas Alternativas</h3>
+              <h3 className="text-lg font-bold text-orange-600 mb-3"> Guard Rails e Rotas Alternativas</h3>
               <p className="text-gray-700 mb-3">
                 Trace sua rota em estradas com poucos ou nenhum guard rail. Tenha sempre uma chave para retirá-los em caso de engarrafamento.
               </p>
@@ -355,7 +355,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 p-6">
-              <h3 className="text-lg font-bold text-yellow-800 mb-3">💡 Dicas Estratégicas</h3>
+              <h3 className="text-lg font-bold text-yellow-800 mb-3"> Dicas Estratégicas</h3>
               <ul className="list-disc list-inside text-yellow-800 space-y-2">
                 <li>Se possível, trace rotas em estradas com poucos ou nenhum guard rail</li>
                 <li>Tenha uma chave para retirar guard rails em caso de engarrafamento</li>
@@ -364,7 +364,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-blue-600 mb-3">💧 Mapear Fontes de Água</h3>
+              <h3 className="text-lg font-bold text-blue-600 mb-3"> Mapear Fontes de Água</h3>
               <p className="text-gray-700 mb-3">
                 Mapear fontes de água na sua região também é uma estratégia inteligente, pois é um recurso indispensável que pouca gente armazena.
               </p>
@@ -376,24 +376,24 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-3">👨‍👩‍👧‍👦 Plano de Ação em Situações de Emergência</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-3"> Plano de Ação em Situações de Emergência</h3>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="font-bold text-green-700 mb-2">📌 Organização Familiar</h4>
+                  <h4 className="font-bold text-black-700 mb-2"> Organização Familiar</h4>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                     <li>Definir previamente um ponto de encontro com a família</li>
                     <li>Manter cópia dos documentos pessoais (físico ou digital) em embalagem à prova d'água</li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold text-blue-700 mb-2">🚨 Passos Subsequentes</h4>
+                  <h4 className="font-bold text-blue-700 mb-2"> Passos Subsequentes</h4>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                     <li>Informar-se sobre rotas de evacuação e abrigos disponíveis</li>
                     <li>Seguir orientações da Defesa Civil, Corpo de Bombeiros</li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold text-orange-700 mb-2">🎒 Kit de Emergência</h4>
+                  <h4 className="font-bold text-orange-700 mb-2"> Kit de Emergência</h4>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                     <li>Água potável e alimentos não perecíveis</li>
                     <li>Lanterna, pilhas, rádio portátil</li>
@@ -402,21 +402,21 @@ export default function Catastrofes() {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold text-purple-700 mb-2">📞 Comunicação Alternativa</h4>
+                  <h4 className="font-bold text-purple-700 mb-2"> Comunicação Alternativa</h4>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                     <li>Mensagens de texto, aplicativos de emergência, rádio comunitário</li>
                     <li>Anotar contatos de emergência em papel (não só no celular)</li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold text-red-700 mb-2">🏥 Cuidados com a Saúde</h4>
+                  <h4 className="font-bold text-red-700 mb-2"> Cuidados com a Saúde</h4>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                     <li>Levar medicamentos de uso contínuo</li>
                     <li>Manter itens de higiene pessoal</li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold text-yellow-700 mb-2">🏠 Retorno à Residência</h4>
+                  <h4 className="font-bold text-yellow-700 mb-2"> Retorno à Residência</h4>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                     <li>Somente retornar após liberação oficial das autoridades</li>
                     <li>Verificar integridade da estrutura do imóvel</li>
@@ -426,16 +426,16 @@ export default function Catastrofes() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 text-center">
-              <p className="text-green-800 font-semibold text-lg">
-                🎯 "Seja mestre de si mesmo e busquem conhecimentos."
+            <div className="bg-gradient-to-r from-black-50 to-emerald-50 rounded-xl p-6 border border-black-100 text-center">
+              <p className="text-black-800 font-semibold text-lg">
+                 "Seja mestre de si mesmo e busquem conhecimentos."
               </p>
-              <p className="text-green-600 text-sm mt-2">Escola de Guerreiros</p>
+              <p className="text-black-600 text-sm mt-2">Escola de Guerreiros</p>
             </div>
 
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 text-center">
-              <p className="text-green-800 font-semibold">
-                🎯 Revise periodicamente seu plano de emergência familiar.<br/>
+            <div className="bg-gradient-to-r from-black-50 to-emerald-50 rounded-xl p-6 border border-black-100 text-center">
+              <p className="text-black-800 font-semibold">
+                 Revise periodicamente seu plano de emergência familiar.<br/>
                 Participe de treinamentos e simulações. Faça APH básico.
               </p>
             </div>
@@ -446,23 +446,23 @@ export default function Catastrofes() {
         {abaAtiva === 'defesa' && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-blue-700 mb-3">🥶 Sistema de Camadas</h2>
+              <h2 className="text-xl font-bold text-blue-700 mb-3"> Sistema de Camadas</h2>
               <img src="/images/catastrofes/camadas-slide1.png" alt="Sistema de Camadas" className="rounded-lg w-full h-auto mb-4 border" />
               <p className="text-gray-700">É o sistema usado por moradores de regiões frias, alpinistas e pessoas em expedições em locais de frio extremo.</p>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-blue-700 mb-2">🧥 Primeira Camada (Roupa Térmica)</h3>
+              <h3 className="text-lg font-bold text-blue-700 mb-2"> Primeira Camada (Roupa Térmica)</h3>
               <p className="text-gray-700">Gerenciamento de umidade, absorção e dissipação de suor. Minimiza a perda de calor por indução. A maioria das roupas térmicas é sintática, extremamente leve. Sua principal função é manter o corpo aquecido e seco. Sua malha possui microporos para facilitar a respiração da pele, fica colada ao corpo (segunda pele), eliminando rapidamente o suor e não retendo umidade, mantendo assim o corpo sempre aquecido e seco.</p>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-blue-700 mb-2">🧥 Segunda Camada (Gerenciamento Térmico)</h3>
+              <h3 className="text-lg font-bold text-blue-700 mb-2"> Segunda Camada (Gerenciamento Térmico)</h3>
               <p className="text-gray-700">Deve se vestir por cima das roupas térmicas, fortalecendo a primeira camada, isolando mais a temperatura do corpo. Função: reter o calor do corpo. Pode ser de fibras naturais (lã grossa) ou artificiais (fleece - poliéster de fibra sintética).</p>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-blue-700 mb-2">🧥 Terceira Camada (Camada Exterior)</h3>
+              <h3 className="text-lg font-bold text-blue-700 mb-2"> Terceira Camada (Camada Exterior)</h3>
               <p className="text-gray-700">Jaqueta e calça. Age como isolante. Deve ser totalmente impermeável, respirável, à prova de vento, neve e chuva, mantendo as demais camadas secas.</p>
               <img src="/images/catastrofes/preparadoparaofrio-slide1.png" alt="Preparação para o Frio" className="rounded-lg w-full h-auto mt-4 border" />
             </div>
@@ -481,12 +481,12 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 p-6">
-              <h3 className="text-lg font-bold text-yellow-800 mb-2">🔥 Controle Térmico</h3>
+              <h3 className="text-lg font-bold text-yellow-800 mb-2"> Controle Térmico</h3>
               <p className="text-yellow-800">Atenção ao gerenciamento do controle térmico. Suor em excesso resfria o corpo rapidamente. Na neve, se você suar muito, você morre. Ex: num deslocamento, devido ao esforço o corpo aquece; se aquece demais, produz suor; se suar, depois é difícil se aquecer.</p>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-blue-700 mb-2">🥶 Hipotermia</h3>
+              <h3 className="text-lg font-bold text-blue-700 mb-2"> Hipotermia</h3>
               <p className="text-gray-700 mb-3"><strong>O que é:</strong> Quando a temperatura do corpo cai abaixo de 35°C. O organismo precisa estar entre 36°C e 37,5°C para realizar suas funções metabólicas.</p>
               <p className="text-gray-700 mb-3"><strong>Causas:</strong> Longo período exposto ao frio intenso. O corpo humano libera mais calor do que consegue reter. Corpo molhado ou exposto ao vento perde calor 25 vezes mais rápido.</p>
               <p className="text-gray-700 mb-3"><strong>Sintomas:</strong> Tremores (fricção para aquecer o corpo), mãos e pés dormentes, cansaço, lentidão, dificuldade no falar, frequência cardíaca diminuída, dificuldade em respirar, perda de controle dos membros, perda de consciência, parada cardíaca.</p>
@@ -494,7 +494,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-blue-700 mb-2">🏠 Isolantes Térmicos - Use sua criatividade</h3>
+              <h3 className="text-lg font-bold text-blue-700 mb-2"> Isolantes Térmicos - Use sua criatividade</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                 <img src="/images/catastrofes/isolantes-slide1.png" alt="Isolante 1" className="rounded-lg border" />
                 <img src="/images/catastrofes/isolantes-slide2.png" alt="Isolante 2" className="rounded-lg border" />
@@ -514,10 +514,10 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-blue-700 mb-2">🏠 Casa vs Apartamento - Preparação para Frio Extremo</h3>
+              <h3 className="text-lg font-bold text-blue-700 mb-2"> Casa vs Apartamento - Preparação para Frio Extremo</h3>
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-green-50 rounded-lg p-4">
-                  <h4 className="font-bold text-green-800 text-lg mb-3">🏡 Quem mora em CASA</h4>
+                <div className="bg-black-50 rounded-lg p-4">
+                  <h4 className="font-bold text-black-800 text-lg mb-3"> Quem mora em CASA</h4>
                   <img src="/images/catastrofes/fogaovslareira-slide1.png" alt="Fogão a lenha" className="rounded-lg w-full mb-2 border" />
                   <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                     <li>Reforçar portas e grades nas janelas</li>
@@ -530,7 +530,7 @@ export default function Catastrofes() {
                   </ul>
                 </div>
                 <div className="bg-blue-50 rounded-lg p-4">
-                  <h4 className="font-bold text-blue-800 text-lg mb-3">🏢 Quem mora em APARTAMENTO</h4>
+                  <h4 className="font-bold text-blue-800 text-lg mb-3"> Quem mora em APARTAMENTO</h4>
                   <img src="/images/catastrofes/fogaovslareira-slide2.png" alt="Apartamento" className="rounded-lg w-full mb-2 border" />
                   <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                     <li>Apartamento tem um pouco mais de segurança</li>
@@ -546,7 +546,7 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-green-700 mb-2">🍲 Alimentos e Hidratação</h3>
+              <h3 className="text-lg font-bold text-black-700 mb-2"> Alimentos e Hidratação</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                 <img src="/images/catastrofes/alimentos-slide1.png" alt="Alimento" className="rounded-lg border" />
                 <img src="/images/catastrofes/alimentos-slide2.png" alt="Alimento" className="rounded-lg border" />
@@ -558,7 +558,7 @@ export default function Catastrofes() {
                 <li>Sopas e caldos (além de aquecer, tem valor psicológico)</li>
                 <li>Temperos secos: cebola, salsa, alho</li>
                 <li>Chocolate quente, chás, café, canela, vitamina D</li>
-                <li>⚠️ Evitar bebidas alcoólicas (inibem a termorregulação)</li>
+                <li> Evitar bebidas alcoólicas (inibem a termorregulação)</li>
                 <li>Cuidado com desidratação (frio atenua a sede)</li>
               </ul>
             </div>
@@ -575,13 +575,13 @@ export default function Catastrofes() {
               <h3 className="text-lg font-bold text-red-600 mb-2">⚠️ Infraestrutura no Frio Extremo</h3>
               <p className="text-gray-700 mb-3">Nossas casas e carros não foram feitos para frios extremos. O sistema hidráulico não funciona, canos dilatam e quebram com a formação de gelo. Vasos sanitários congelam. Carros não ligam (fluidos congelam).</p>
               <div className="grid md:grid-cols-2 gap-4 mt-4">
-                <div><h4 className="font-bold text-blue-700">💧 Armazenamento de Água</h4><img src="/images/catastrofes/agua-slide1.png" alt="Água" className="rounded-lg w-full border mb-2" /><img src="/images/catastrofes/agua-slide2.png" alt="Água" className="rounded-lg w-full border" /></div>
-                <div><h4 className="font-bold text-orange-700">🔥 Cuidados com Gás</h4><img src="/images/catastrofes/gas-slide1.png" alt="Gás" className="rounded-lg w-full border mb-2" /><img src="/images/catastrofes/gas-slide2.png" alt="Gás" className="rounded-lg w-full border" /></div>
+                <div><h4 className="font-bold text-blue-700"> Armazenamento de Água</h4><img src="/images/catastrofes/agua-slide1.png" alt="Água" className="rounded-lg w-full border mb-2" /><img src="/images/catastrofes/agua-slide2.png" alt="Água" className="rounded-lg w-full border" /></div>
+                <div><h4 className="font-bold text-orange-700"> Cuidados com Gás</h4><img src="/images/catastrofes/gas-slide1.png" alt="Gás" className="rounded-lg w-full border mb-2" /><img src="/images/catastrofes/gas-slide2.png" alt="Gás" className="rounded-lg w-full border" /></div>
               </div>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-orange-700 mb-2">🍳 Como Cozinhar sem Gás</h3>
+              <h3 className="text-lg font-bold text-orange-700 mb-2"> Como Cozinhar sem Gás</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                 <img src="/images/catastrofes/cozinhar-slide1.png" alt="Cozinhar" className="rounded-lg border" />
                 <img src="/images/catastrofes/cozinhar-slide2.png" alt="Cozinhar" className="rounded-lg border" />
@@ -591,13 +591,13 @@ export default function Catastrofes() {
             </div>
 
             <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-5 border border-blue-100">
-              <h3 className="text-lg font-bold text-blue-700 mb-2">📊 Planejamento de Reservas</h3>
+              <h3 className="text-lg font-bold text-blue-700 mb-2"> Planejamento de Reservas</h3>
               <p className="text-gray-700">Família de 3 pessoas: aproximadamente 30 litros de água/dia. Para 6 meses: cerca de 5.400 litros.</p>
               <p className="text-gray-700 mt-2">Gás: se gasta 13kg por mês, 6 botijões são suficientes para 6 meses.</p>
             </div>
 
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100 text-center">
-              <p className="text-green-800 font-semibold">🔍 Busquem conhecimento!<br />www.dakilapesquisas.com.br</p>
+            <div className="bg-gradient-to-r from-black-50 to-emerald-50 rounded-xl p-6 border border-black-100 text-center">
+              <p className="text-black-800 font-semibold"> Busquem conhecimento!<br />www.dakilapesquisas.com.br</p>
             </div>
           </div>
         )}

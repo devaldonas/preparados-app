@@ -110,26 +110,26 @@ export default function Checklist() {
   }
 
   const createDefaultCategories = async () => {
-    setInitializing(true)
-    const defaultCategories = [
-      { name: 'Documentos', icon: '📄', order: 1 },
-      { name: 'Água', icon: '💧', order: 2 },
-      { name: 'Abrigo', icon: '🏠', order: 3 },
-      { name: 'Fogo', icon: '🔥', order: 4 },
-      { name: 'Primeiros Socorros', icon: '🩺', order: 5 },
-      { name: 'Higiene', icon: '🧼', order: 6 },
-      { name: 'Tecnologia', icon: '📱', order: 7 },
-      { name: 'Ferramentas', icon: '🔧', order: 8 },
-      { name: 'Alimentação', icon: '🍲', order: 9 },
-      { name: 'Roupas', icon: '👕', order: 10 },
-    ]
+  setInitializing(true)
+  const defaultCategories = [
+    { name: 'Documentos', icon: '/images/documentos.jpeg', order: 1 },
+    { name: 'Água', icon: '/images/agua.jpeg', order: 2 },
+    { name: 'Abrigo', icon: '/images/abrigo.jpeg', order: 3 },
+    { name: 'Fogo', icon: '/images/fogo.jpeg', order: 4 },
+    { name: 'Primeiros Socorros', icon: '/images/socorro.jpeg', order: 5 },
+    { name: 'Higiene', icon: '/images/higiene.jpeg', order: 6 },
+    { name: 'Tecnologia', icon: '/images/tecnologia.jpeg', order: 7 },
+    { name: 'Ferramentas', icon: '/images/equipamentos.jpeg', order: 8 },
+    { name: 'Alimentação', icon: '/images/alimento.jpeg', order: 9 },
+    { name: 'Roupas', icon: '/images/roupas.jpeg', order: 10 },
+  ]
 
-    for (const cat of defaultCategories) {
-      await supabase.from('categories').insert(cat)
-    }
-    await loadCategories()
-    setInitializing(false)
+  for (const cat of defaultCategories) {
+    await supabase.from('categories').insert(cat)
   }
+  await loadCategories()
+  setInitializing(false)
+}
 
   const createDefaultItems = async () => {
     setInitializing(true)
@@ -592,8 +592,8 @@ export default function Checklist() {
   <div className="space-y-3">
     {[
       { id: 'documentos', nome: 'Kit Documentos', icone: '/images/documentos.jpeg', conteudo: [
-        'Saco à prova d água (prata)',
-        'Dinheiro físico (cédulas pequenas)',
+        'Saco à prova d água ',
+        'Dinheiro físico (cédulas pequenas, prata)',
         'Mapa da sua região',
         'Original ou cópia de todos os seus documentos',
         'Documentos dos seus dependentes',
