@@ -160,7 +160,7 @@ export default function PessoasProximas() {
 
         <div className="mt-8">
           <Link href="/dashboard" className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition">
-            Voltar ao Dashboard
+            Voltar à Home
           </Link>
         </div>
       </div>

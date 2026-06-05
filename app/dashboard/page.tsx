@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import RadioPlayer from '@/components/RadioPlayer'
 import MapaMonitoramentoCompleto from '@/components/MapaMonitoramentoCompleto'
+import GuiaPreparacaoCard from '@/components/GuiaPreparacaoCard'
+import NavBar from '@/components/NavBar'
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
@@ -105,7 +107,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+           <div className="max-w-4xl mx-auto px-4 py-8">
         
         {/* Header com saudação e logo */}
         <div className="mb-8">
@@ -122,7 +124,7 @@ export default function Dashboard() {
                   Olá, {getFirstName(user.user_metadata?.full_name || 'Preparado')}!
                 </h1>
                 <p className="text-gray-500 text-sm mt-0.5">
-                  Continue sua jornada de preparação
+                  Bem-vindo à sua Home de preparação
                 </p>
               </div>
             </div>
@@ -193,7 +195,7 @@ export default function Dashboard() {
             </p>
           </Link>
 
-          <Link href="/checklist" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+          <Link href="/mochilas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
             <img 
               src="/images/mochila-icon.png" 
               alt="Mochila" 
@@ -203,6 +205,17 @@ export default function Dashboard() {
             <h3 className="font-bold text-gray-900 text-base">Mochila</h3>
             <p className="text-sm text-gray-500 mt-1">Itens essenciais</p>
           </Link>
+
+          <Link href="/guia" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+  <img 
+    src="/images/mochila-icon.png" 
+    alt="Guia" 
+    className="w-16 h-16 mx-auto mb-2 object-contain"
+    onError={(e) => { e.currentTarget.style.display = 'none' }}
+  />
+  <h3 className="font-bold text-gray-900 text-base">Guia de Preparação da Mochila</h3>
+  <p className="text-sm text-gray-500 mt-1">Dicas e orientações</p>
+</Link>
 
           <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
             <img 
@@ -233,7 +246,7 @@ export default function Dashboard() {
               className="w-16 h-16 mx-auto mb-2 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
-            <h3 className="font-bold text-gray-900 text-base">Catástrofes</h3>
+            <h3 className="font-bold text-gray-900 text-base">Calamidades</h3>
             <p className="text-sm text-gray-500 mt-1">Orientação e rotas</p>
           </Link>
 
@@ -253,6 +266,7 @@ export default function Dashboard() {
           </Link>
         </div>
 
+        
          {/* Rádio Diamante */}
         <div className="mb-8">
           <RadioPlayer 
