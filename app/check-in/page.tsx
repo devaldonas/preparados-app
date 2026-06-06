@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link' 
 
 export default function CheckIn() {
   const [user, setUser] = useState<any>(null)
@@ -274,10 +275,21 @@ export default function CheckIn() {
           </button>
         </div>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Baseado nos princípios da Escola de Guerreiros
-        </p>
-      </div>
+          {/* Botão Voltar à Home */}
+  <div className="mt-4">
+    <Link
+      href="/dashboard"
+      className="block w-full text-center py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition"
+    >
+      ← Voltar à Home
+    </Link>
+  </div>
+
+  <p className="text-center text-sm text-gray-500 mt-6">
+    Baseado nos princípios da Escola de Guerreiros
+  </p>
+</div>
     </div>
+    
   )
 }

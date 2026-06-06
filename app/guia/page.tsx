@@ -190,7 +190,7 @@ export default function GuiaPreparacao() {
             href="/dashboard"
             className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
           >
-            <span>←</span> Voltar ao Dashboard
+            <span>←</span> Voltar à Home
           </Link>
           <div className="flex items-center gap-3">
             <img 

@@ -230,7 +230,7 @@ export default function Dashboard() {
 
           <Link href="/loja" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
             <img 
-              src="/images/loja-icon.jpeg" 
+              src="/images/loja-icon.png" 
               alt="Loja" 
               className="w-16 h-16 mx-auto mb-2 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
@@ -256,7 +256,7 @@ export default function Dashboard() {
             className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center"
           >
             <img 
-              src="/images/comunicador-icon.png" 
+              src="/images/comunicador1-icon.png" 
               alt="Comunicador Via Rádio" 
               className="w-16 h-16 mx-auto mb-2 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
