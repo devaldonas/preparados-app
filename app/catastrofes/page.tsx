@@ -59,7 +59,7 @@ export default function Catastrofes() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
             >
               <span className="text-lg">←</span>
-              <span>Voltar para Catástrofes</span>
+              <span>Voltar para Calamidaes</span>
             </button>
 
             <div className="flex items-center gap-4 mb-6">
@@ -191,7 +191,7 @@ export default function Catastrofes() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
             >
               <span className="text-lg">←</span>
-              <span>Voltar para Catástrofes</span>
+              <span>Voltar para Calamidades</span>
             </button>
 
             <div className="flex items-center gap-4 mb-6">
@@ -300,7 +300,7 @@ export default function Catastrofes() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
             >
               <span className="text-lg">←</span>
-              <span>Voltar para Catástrofes</span>
+              <span>Voltar para Calamidades</span>
             </button>
 
             <div className="flex items-center gap-4 mb-6">
@@ -494,7 +494,7 @@ export default function Catastrofes() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
             >
               <span className="text-lg">←</span>
-              <span>Voltar para Catástrofes</span>
+              <span>Voltar para Calamidades</span>
             </button>
 
             <div className="flex items-center gap-4 mb-6">
