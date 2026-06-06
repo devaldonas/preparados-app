@@ -227,7 +227,7 @@ export default function MinhasMochilas() {
                           : 'border-gray-200 hover:border-[#FFB800]'
                       }`}
                     >
-                      <span className="text-xl block">🎒</span>
+                      <span className="text-xl block"></span>
                       <span className="text-xs font-semibold">EDC</span>
                       <span className="text-xs text-gray-500 block">Dia a dia</span>
                     </button>
@@ -239,7 +239,7 @@ export default function MinhasMochilas() {
                           : 'border-gray-200 hover:border-[#FFB800]'
                       }`}
                     >
-                      <span className="text-xl block">🎒⚡</span>
+                      <span className="text-xl block"></span>
                       <span className="text-xs font-semibold">BOB</span>
                       <span className="text-xs text-gray-500 block">72 horas</span>
                     </button>
@@ -251,7 +251,7 @@ export default function MinhasMochilas() {
                           : 'border-gray-200 hover:border-[#FFB800]'
                       }`}
                     >
-                      <span className="text-xl block">⛰️</span>
+                      <span className="text-xl block"></span>
                       <span className="text-xs font-semibold">BOLT</span>
                       <span className="text-xs text-gray-500 block">Longo prazo</span>
                     </button>

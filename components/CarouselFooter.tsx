@@ -37,7 +37,7 @@ const botoes: BotaoCarrossel[] = [
   },
 ]
 
-export default function CarouselFooter() {
+export default function FooterCarousel() {
   const [indiceAtivo, setIndiceAtivo] = useState(0)
 
   useEffect(() => {
@@ -155,7 +155,6 @@ export default function CarouselFooter() {
             </div>
           </div>
 
-          {/* Botões de navegação */}
           {botoes.length > 1 && (
             <>
               <button
@@ -173,7 +172,6 @@ export default function CarouselFooter() {
             </>
           )}
 
-          {/* Indicadores */}
           <div className="flex justify-center gap-2 mt-3">
             {botoes.map((_, idx) => (
               <button
