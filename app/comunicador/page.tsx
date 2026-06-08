@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
 interface Canal {
   id: string
@@ -133,8 +134,14 @@ export default function Comunicador() {
             href="/dashboard"
             className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition"
           >
-            Voltar à Home
+            Voltar ao Início
           </Link>
+
+          {/* Botao Indicar Amigo */}
+          <div className="mb-6">
+          <BotaoIndicarAmigo />
+        </div>
+
         </div>
 
         <div className="mt-6 text-center">

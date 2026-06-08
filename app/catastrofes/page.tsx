@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import FooterCarousel from '@/components/CarouselFooter'
+import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
 interface CardCatastrofe {
   id: string
@@ -191,7 +192,7 @@ export default function Catastrofes() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
             >
               <span className="text-lg">←</span>
-              <span>Voltar para Calamidades</span>
+              <span>Voltar para Catástrofes</span>
             </button>
 
             <div className="flex items-center gap-4 mb-6">
@@ -300,7 +301,7 @@ export default function Catastrofes() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
             >
               <span className="text-lg">←</span>
-              <span>Voltar para Calamidades</span>
+              <span>Voltar para Catástrofes</span>
             </button>
 
             <div className="flex items-center gap-4 mb-6">
@@ -494,7 +495,7 @@ export default function Catastrofes() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
             >
               <span className="text-lg">←</span>
-              <span>Voltar para Calamidades</span>
+              <span>Voltar para Catástrofes</span>
             </button>
 
             <div className="flex items-center gap-4 mb-6">
@@ -683,7 +684,7 @@ export default function Catastrofes() {
         <div className="max-w-4xl mx-auto px-4 py-8">
           
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Preparação para Calamidades</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Preparação para Catástrofes</h1>
             <p className="text-gray-500">Conhecimento salva vidas. Esteja preparado para qualquer situação.</p>
           </div>
 
@@ -710,8 +711,13 @@ export default function Catastrofes() {
         </div>
          <div className="mt-8">
                   <Link href="/dashboard" className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition">
-                    Voltar à Home
+                    Voltar ao Início
                   </Link>
+
+                  <div className="mb-6">
+          <BotaoIndicarAmigo />
+        </div>
+
                 </div>
       </div>
       

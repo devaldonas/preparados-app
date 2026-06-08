@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
 export default function GuiaPreparacao() {
   const [kitsAbertos, setKitsAbertos] = useState<Record<string, boolean>>({
@@ -183,16 +184,8 @@ export default function GuiaPreparacao() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        
-        {/* Header com botão voltar */}
-        <div className="mb-8">
-          <Link 
-            href="/dashboard"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <span>←</span> Voltar à Home
-          </Link>
-          <div className="flex items-center gap-3">
+  
+                    <div className="flex items-center gap-3">
             <img 
               src="/images/mochila-icon.png" 
               alt="Guia" 
@@ -327,6 +320,32 @@ export default function GuiaPreparacao() {
                   )}
                 </div>
               ))}
+
+          {/* Botao Voltar para Minhas Mochilas */}
+          <div className="mb-6">
+            <Link
+              href="/mochilas"
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition"
+            >
+              <span className="text-lg">←</span>
+              <span>Voltar para Minhas Mochilas</span>
+            </Link>
+          </div>
+
+               {/* Header com botão voltar */}
+        <div className="mb-8">
+          <Link 
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          >
+            <span>←</span> Voltar ao Início
+          </Link>
+
+          {/* Botao Indicar Amigo */}
+                  <div className="mb-6">
+                    <BotaoIndicarAmigo />
+                  </div>
+
             </div>
           </div>
         </div>
