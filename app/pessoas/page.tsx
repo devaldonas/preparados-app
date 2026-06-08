@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import GroupMap from '@/components/GroupMap'
+import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
 interface UserLocation {
   userId: string
@@ -160,8 +161,13 @@ export default function PessoasProximas() {
 
         <div className="mt-8">
           <Link href="/dashboard" className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition">
-            Voltar à Home
+            Voltar ao Início
           </Link>
+           {/* Botao Indicar Amigo */}
+        <div className="mb-6">
+          <BotaoIndicarAmigo />
+        </div>
+
         </div>
       </div>
     </div>

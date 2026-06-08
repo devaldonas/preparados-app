@@ -124,19 +124,10 @@ export default function Dashboard() {
                   Olá, {getFirstName(user.user_metadata?.full_name || 'Preparado')}!
                 </h1>
                 <p className="text-gray-500 text-sm mt-0.5">
-                  Bem-vindo à sua Home de preparação
+                  Bem-vindo à sua página de preparação
                 </p>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <img 
-                src="/images/mochila-icon.png" 
-                alt="Mochila" 
-                className="w-9 h-9 object-contain"
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
-              />
-              <span className="text-sm font-medium text-gray-700">{getTipoLabel()}</span>
-            </div>
+            </div>            
           </div>
         </div>
 
@@ -163,11 +154,11 @@ export default function Dashboard() {
               <img 
                 src="/images/checkin.jpeg" 
                 alt="Check-in" 
-                className="w-9 h-9 object-contain"
+                className="w-10 h-10 object-contain"
                 onError={(e) => { e.currentTarget.style.display = 'none' }}
               />
               <div>
-                <p className="text-sm text-gray-500">Check-in</p>
+                <p className="text-sm text-gray-500"></p>
                 <p className="font-medium text-gray-900">
                   {checkinCompleted ? 'Diagnóstico realizado ✅' : 'Faça seu diagnóstico agora!'}
                 </p>
@@ -179,7 +170,56 @@ export default function Dashboard() {
         {/* Menu Principal - Cards de Acesso Rápido */}
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Acesso Rápido</h2>
         <div className="grid grid-cols-2 gap-4 mb-8">
-          <Link 
+
+          <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+            <img 
+              src="/images/pessoas-icon.png" 
+              alt="Pessoas Próximas" 
+              className="w-16 h-16 mx-auto mb-2 object-contain"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
+            <h3 className="font-bold text-gray-900 text-base">Pessoas Próximas</h3>
+            <p className="text-sm text-gray-500 mt-1">Comunidade preparada</p>
+          </Link>
+
+ <Link href="/mochilas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+            <img 
+              src="/images/mochila-icon.png" 
+              alt="Mochila" 
+              className="w-16 h-16 mx-auto mb-2 object-contain"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
+            <h3 className="font-bold text-gray-900 text-base">Mochila</h3>
+            <p className="text-sm text-gray-500 mt-1">Itens essenciais</p>
+          </Link>
+
+<Link href="/catastrofes" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+            <img 
+              src="/images/catastrofes-icon.jpeg" 
+              alt="Catástrofes" 
+              className="w-16 h-16 mx-auto mb-2 object-contain"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
+            <h3 className="font-bold text-gray-900 text-base">Catástrofes</h3>
+            <p className="text-sm text-gray-500 mt-1">Orientação e rotas</p>
+          </Link>
+
+  {/* Comunicador Via Rádio */}
+          <Link
+            href="/comunicador/canal/8bfb8c3e-9fb0-4a43-a781-dc96b0a09baf"
+            className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center"
+          >
+            <img 
+              src="/images/comunicador1-icon.png" 
+              alt="Comunicador Via Rádio" 
+              className="w-16 h-16 mx-auto mb-2 object-contain"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
+            <h3 className="font-bold text-gray-900 text-base">Comunicador Via Rádio</h3>
+            <p className="text-sm text-gray-500 mt-1">PTT - Pressione para falar</p>
+          </Link>
+          
+         <Link 
             href="/check-in" 
             className={`bg-white p-5 rounded-xl shadow-sm border hover:shadow-md transition text-center ${!checkinCompleted ? 'ring-2 ring-[#FFB800] ring-offset-2' : 'border-gray-100'}`}
           >
@@ -194,40 +234,7 @@ export default function Dashboard() {
               {checkinCompleted ? 'Atualizar diagnóstico' : 'Iniciar avaliação'}
             </p>
           </Link>
-
-          <Link href="/mochilas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-            <img 
-              src="/images/mochila-icon.png" 
-              alt="Mochila" 
-              className="w-16 h-16 mx-auto mb-2 object-contain"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
-            <h3 className="font-bold text-gray-900 text-base">Mochila</h3>
-            <p className="text-sm text-gray-500 mt-1">Itens essenciais</p>
-          </Link>
-
-          <Link href="/guia" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-  <img 
-    src="/images/mochila-icon.png" 
-    alt="Guia" 
-    className="w-16 h-16 mx-auto mb-2 object-contain"
-    onError={(e) => { e.currentTarget.style.display = 'none' }}
-  />
-  <h3 className="font-bold text-gray-900 text-base">Guia de Preparação da Mochila</h3>
-  <p className="text-sm text-gray-500 mt-1">Dicas e orientações</p>
-</Link>
-
-          <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-            <img 
-              src="/images/pessoas-icon.png" 
-              alt="Pessoas Próximas" 
-              className="w-16 h-16 mx-auto mb-2 object-contain"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
-            <h3 className="font-bold text-gray-900 text-base">Pessoas Próximas</h3>
-            <p className="text-sm text-gray-500 mt-1">Comunidade preparada</p>
-          </Link>
-
+       
           <Link href="/loja" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
             <img 
               src="/images/loja-icon.png" 
@@ -239,31 +246,38 @@ export default function Dashboard() {
             <p className="text-sm text-gray-500 mt-1">Produtos essenciais</p>
           </Link>
 
-          <Link href="/catastrofes" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-            <img 
-              src="/images/catastrofes-icon.jpeg" 
-              alt="Catástrofes" 
-              className="w-16 h-16 mx-auto mb-2 object-contain"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
-            <h3 className="font-bold text-gray-900 text-base">Calamidades</h3>
-            <p className="text-sm text-gray-500 mt-1">Orientação e rotas</p>
-          </Link>
+          <button
+  onClick={() => {
+    const mensagem = encodeURIComponent(
+      `Olá,\n\n` +
+      `Estou usando o app PREPARADO e quero compartilhar com você.\n\n` +
+      `É um aplicativo gratuito que auxilia na preparacao para emergencias.\n\n` +
+      `O que voce encontra no PREPARADO:\n` +
+      `• Checklist completo para sua mochila de emergencia\n` +
+      `• Conexao com pessoas proximas e formacao de grupos\n` +
+      `• Chat em tempo real com sua comunidade\n` +
+      `• Guia completo para catastrofes (terremoto, tsunami, frio extremo)\n` +
+      `• Dicas diarias de preparacao\n\n` +
+      `Acesse: https://preparado.vercel.app\n\n` +
+      `Vamos nos preparar juntos.`
+    )
+    window.open(`https://wa.me/?text=${mensagem}`, '_blank')
+  }}
+  className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center group"
+>
+  <div className="w-16 h-16 mx-auto mb-2 rounded-xl flex items-center justify-center bg-white/20">
+    {/* Aqui voce vai colocar seu icone personalizado */}
+    <img 
+      src="/images/indicar-amigo-icon.png" 
+      alt="Indicar Amigo" 
+      className="w-24 h-24 object-contain"
+      onError={(e) => { e.currentTarget.style.display = 'none' }}
+    />
+  </div>
+  <h3 className="font-bold text-black text-base">Indique um Amigo</h3>
+  <p className="text-sm text-gray/80 mt-1">Compartilhe o aplicativo</p>
+</button>
 
-          {/* Comunicador Via Rádio */}
-          <Link
-            href="/comunicador/canal/8bfb8c3e-9fb0-4a43-a781-dc96b0a09baf"
-            className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center"
-          >
-            <img 
-              src="/images/comunicador1-icon.png" 
-              alt="Comunicador Via Rádio" 
-              className="w-16 h-16 mx-auto mb-2 object-contain"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
-            <h3 className="font-bold text-gray-900 text-base">Comunicador Via Rádio</h3>
-            <p className="text-sm text-gray-500 mt-1">PTT - Pressione para falar</p>
-          </Link>
         </div>
 
         
