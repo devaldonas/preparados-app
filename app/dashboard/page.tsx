@@ -9,6 +9,7 @@ import MapaMonitoramentoCompleto from '@/components/MapaMonitoramentoCompleto'
 import GuiaPreparacaoCard from '@/components/GuiaPreparacaoCard'
 import NavBar from '@/components/NavBar'
 
+
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -18,34 +19,49 @@ export default function Dashboard() {
   const [completedItems, setCompletedItems] = useState(0)
   const router = useRouter()
   const [mostrarRadio, setMostrarRadio] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
-      } else {
-        setUser(user)
-        await loadProfile(user.id)
-        await loadProgress(user.id)
-        await checkCheckinStatus(user.id)
-      }
-      setLoading(false)
+  const getUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/auth/login')
+    } else {
+      setUser(user)
+      await loadProfile(user.id)
+      await loadProgress(user.id)
+      await checkCheckinStatus(user.id)
+      await checkAdminStatus(user.id)  // ← Adicionar esta linha
     }
-    getUser()
-  }, [])
-
-  const loadProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('full_name, mochila_tipo')
-      .eq('id', userId)
-      .single()
-    
-    if (data && user) {
-      setUser({ ...user, user_metadata: { ...user.user_metadata, full_name: data.full_name, mochila_tipo: data.mochila_tipo } })
-    }
+    setLoading(false)
   }
+  getUser()
+}, [])
+
+const loadProfile = async (userId: string) => {
+  const { data } = await supabase
+    .from('profiles')
+    .select('full_name, mochila_tipo')
+    .eq('id', userId)
+    .single()
+  
+  if (data && user) {
+    setUser({ ...user, user_metadata: { ...user.user_metadata, full_name: data.full_name, mochila_tipo: data.mochila_tipo } })
+  }
+}
+
+// Adicionar esta nova função
+const checkAdminStatus = async (userId: string) => {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single()
+
+  if (profile?.role === 'admin') {
+    setIsAdmin(true)
+  }
+}
 
   const loadProgress = async (userId: string) => {
     const { data: userProgress } = await supabase
@@ -170,6 +186,16 @@ export default function Dashboard() {
         {/* Menu Principal - Cards de Acesso Rápido */}
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Acesso Rápido</h2>
         <div className="grid grid-cols-2 gap-4 mb-8">
+
+          {isAdmin && (
+  <Link href="/admin/produtos" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+    <div className="w-16 h-16 mx-auto mb-2 rounded-xl flex items-center justify-center bg-gray-100">
+      <span className="text-2xl">⚙️</span>
+    </div>
+    <h3 className="font-bold text-gray-900 text-base">Admin</h3>
+    <p className="text-sm text-gray-500 mt-1">Gerenciar loja</p>
+  </Link>
+)}
 
           <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
             <img 

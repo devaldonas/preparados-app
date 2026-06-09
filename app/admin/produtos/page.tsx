@@ -22,42 +22,56 @@ export default function AdminProdutos() {
   const router = useRouter()
 
   useEffect(() => {
+    console.log('1. useEffect executado')
     verificarAdmin()
   }, [])
 
   const verificarAdmin = async () => {
+    console.log('2. Verificando admin...')
+    
     const { data: { user } } = await supabase.auth.getUser()
+    console.log('3. Usuario:', user?.email)
+    
     if (!user) {
-      router.push('/auth/login')
+      console.log('4. Sem usuario, redirecionando...')
+      router.push('/dashboard')
       return
     }
 
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
+    console.log('5. Profile:', profile)
+    console.log('6. Error:', error)
+
     if (profile?.role !== 'admin') {
+      console.log('7. Nao é admin, redirecionando...')
       router.push('/dashboard')
       return
     }
 
+    console.log('8. É admin! Carregando produtos...')
     setIsAdmin(true)
-    carregarProdutos()
+    await carregarProdutos()
   }
 
   const carregarProdutos = async () => {
+    console.log('9. Carregando produtos...')
     const { data } = await supabase
       .from('products')
       .select('*')
       .order('name')
 
+    console.log('10. Produtos carregados:', data?.length)
     setProducts(data || [])
     setLoading(false)
   }
 
   const toggleProdutoStatus = async (id: number, currentStatus: boolean) => {
+    console.log('Alternando status do produto:', id)
     await supabase
       .from('products')
       .update({ is_active: !currentStatus })
@@ -66,9 +80,8 @@ export default function AdminProdutos() {
     await carregarProdutos()
   }
 
-  if (!isAdmin) return null
-
   if (loading) {
+    console.log('11. Loading true, mostrando spinner')
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
@@ -76,6 +89,12 @@ export default function AdminProdutos() {
     )
   }
 
+  if (!isAdmin) {
+    console.log('12. isAdmin false, retornando null')
+    return null
+  }
+
+  console.log('13. Renderizando pagina admin')
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <NavBar showBackButton={true} backButtonPath="/dashboard" />
