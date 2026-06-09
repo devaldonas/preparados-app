@@ -4,14 +4,14 @@ export default function BotaoIndicarAmigo() {
   const handleCompartilhar = () => {
     const mensagem = encodeURIComponent(
       `Olá,\n\n` +
-      `Estou usando o app PREPARADO e quero compartilhar com voce.\n\n` +
-      `E um aplicativo gratuito que auxilia na preparacao para emergencias.\n\n` +
-      `O que voce encontra no PREPARADO:\n` +
-      `• Checklist completo para sua mochila de emergencia\n` +
-      `• Conexao com pessoas proximas e formacao de grupos\n` +
+      `Estou usando o app PREPARADO e quero compartilhar com você.\n\n` +
+      `E um aplicativo que auxilia na preparação para emergências.\n\n` +
+      `O que você encontra no PREPARADO:\n` +
+      `• Checklist completo para sua mochila de emergência\n` +
+      `• Conexão com pessoas próximas e formação de grupos\n` +
       `• Chat em tempo real com sua comunidade\n` +
-      `• Guia completo para catastrofes (terremoto, tsunami, frio extremo)\n` +
-      `• Dicas diarias de preparacao\n\n` +
+      `• Guia completo para catástrofes (terremoto, tsunami, frio extremo)\n` +
+      `• Dicas diarias de preparação\n\n` +
       `Acesse: https://preparado.vercel.app\n\n` +
       `Vamos nos preparar juntos.`
     )
