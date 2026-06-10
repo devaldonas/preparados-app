@@ -206,9 +206,7 @@ export default function Carrinho() {
       <div className="flex-1">
         <div className="max-w-4xl mx-auto px-4 py-8">
           
-          <div className="mb-6">
-            <BotaoIndicarAmigo />
-          </div>
+          
 
           <div className="mb-6">
             <Link
@@ -359,6 +357,9 @@ export default function Carrinho() {
             </div>
           )}
         </div>
+        <div className="mb-6">
+            <BotaoIndicarAmigo />
+          </div>
       </div>
     </div>
   )

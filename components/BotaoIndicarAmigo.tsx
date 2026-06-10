@@ -21,7 +21,7 @@ export default function BotaoIndicarAmigo() {
   return (
     <button
       onClick={handleCompartilhar}
-      className="w-full flex items-center justify-center gap-2 bg-black text-white py-2 px-4 rounded-lg font-medium hover:bg-[#1DA851] transition text-sm"
+      className="w-full flex items-center justify-center gap-2 bg-black text-white py-2 px-4 rounded-lg font-medium hover:bg-[gray] transition text-sm"
     >
       <img 
         src="/images/indicar-amigo-icon.png" 
