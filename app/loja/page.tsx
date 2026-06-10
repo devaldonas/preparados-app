@@ -26,6 +26,8 @@ export default function Loja() {
   const [cartCount, setCartCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const productsPerPage = 4
   const router = useRouter()
 
   useEffect(() => {
@@ -66,7 +68,6 @@ export default function Loja() {
       console.error('Erro ao carregar produtos:', error)
     } else {
       setProducts(data || [])
-      // Extrair categorias únicas
       const uniqueCategories = [...new Set(data?.map(p => p.category) || [])]
       setCategories(uniqueCategories)
     }
@@ -84,51 +85,58 @@ export default function Loja() {
   }
 
   const adicionarAoCarrinho = async (product: Product) => {
-  if (!user) return
+    if (!user) return
 
-  // Verificar se já existe no carrinho
-  const { data: existing, error: checkError } = await supabase
-    .from('cart_items')
-    .select('id, quantity')
-    .eq('user_id', user.id)
-    .eq('product_id', product.id)
-    .maybeSingle()  // use maybeSingle em vez de single
-
-  if (checkError && checkError.code !== 'PGRST116') {
-    console.error('Erro ao verificar carrinho:', checkError)
-  }
-
-  if (existing) {
-    await supabase
+    const { data: existing } = await supabase
       .from('cart_items')
-      .update({ quantity: existing.quantity + 1 })
-      .eq('id', existing.id)
-  } else {
-    await supabase
-      .from('cart_items')
-      .insert({
-        user_id: user.id,
-        product_id: product.id,
-        quantity: 1
-      })
-  }
+      .select('id, quantity')
+      .eq('user_id', user.id)
+      .eq('product_id', product.id)
+      .maybeSingle()
 
-  await carregarCarrinhoCount()
-  
-  const btn = document.getElementById(`btn-${product.id}`)
-  if (btn) {
-    btn.textContent = 'Adicionado!'
-    setTimeout(() => {
-      btn.textContent = 'Adicionar ao Carrinho'
-    }, 1500)
+    if (existing) {
+      await supabase
+        .from('cart_items')
+        .update({ quantity: existing.quantity + 1 })
+        .eq('id', existing.id)
+    } else {
+      await supabase
+        .from('cart_items')
+        .insert({
+          user_id: user.id,
+          product_id: product.id,
+          quantity: 1
+        })
+    }
+
+    await carregarCarrinhoCount()
+    
+    const btn = document.getElementById(`btn-${product.id}`)
+    if (btn) {
+      const originalText = btn.textContent
+      btn.textContent = 'Adicionado!'
+      setTimeout(() => {
+        btn.textContent = originalText
+      }, 1500)
+    }
   }
-}
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
     }).format(price)
+  }
+
+  // Paginacao
+  const totalPages = Math.ceil(products.length / productsPerPage)
+  const indexOfLastProduct = currentPage * productsPerPage
+  const indexOfFirstProduct = indexOfLastProduct - productsPerPage
+  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct)
+
+  const paginar = (pageNumber: number) => {
+    setCurrentPage(pageNumber)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   if (loading) {
@@ -145,9 +153,7 @@ export default function Loja() {
       <div className="flex-1">
         <div className="max-w-4xl mx-auto px-4 py-8">
           
-          <div className="mb-6">
-            <BotaoIndicarAmigo />
-          </div>
+          
 
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -167,9 +173,13 @@ export default function Loja() {
             </Link>
           </div>
 
+          {/* Categorias */}
           <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
             <button
-              onClick={() => setSelectedCategory('todos')}
+              onClick={() => {
+                setSelectedCategory('todos')
+                setCurrentPage(1)
+              }}
               className={`px-4 py-2 rounded-lg whitespace-nowrap transition ${
                 selectedCategory === 'todos'
                   ? 'bg-[#FFB800] text-black'
@@ -181,7 +191,10 @@ export default function Loja() {
             {categories.map((cat) => (
               <button
                 key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                onClick={() => {
+                  setSelectedCategory(cat)
+                  setCurrentPage(1)
+                }}
                 className={`px-4 py-2 rounded-lg whitespace-nowrap transition ${
                   selectedCategory === cat
                     ? 'bg-[#FFB800] text-black'
@@ -193,46 +206,98 @@ export default function Loja() {
             ))}
           </div>
 
+          {/* Grid de produtos - 2 colunas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {products.map((product) => (
-              <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
+            {currentProducts.map((product) => (
+              <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group">
+                <div className="relative h-41 bg-gray-100 overflow-hidden">
+  <img 
+    src={product.image_url}
+    alt={product.name}
+    className="w-full h-full object-contain p-3 group-hover:scale-105 transition duration-300"
+    onError={(e) => {
+      e.currentTarget.src = '/images/placeholder.jpg'
+    }}
+  />
+  {product.stock < 5 && product.stock > 0 && (
+    <span className="absolute top-2 left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
+      Ultimas unidades
+    </span>
+  )}
+  {product.stock === 0 && (
+    <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+      Esgotado
+    </span>
+  )}
+</div>
                 <div className="p-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <img 
-                        src={product.image_url}
-                        alt={product.name}
-                        className="w-20 h-20 object-contain"
-                        onError={(e) => { e.currentTarget.style.display = 'none' }}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-gray-900">{product.name}</h3>
-                      <p className="text-xs text-gray-500 mt-1">{product.description}</p>
-                      <div className="flex items-center justify-between mt-3">
-                        <span className="text-lg font-bold text-[#FFB800]">{formatPrice(product.price)}</span>
-                        <button
-                          id={`btn-${product.id}`}
-                          onClick={() => adicionarAoCarrinho(product)}
-                          className="bg-[#FFB800] text-black px-3 py-1 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition"
-                        >
-                          Adicionar ao Carrinho
-                        </button>
-                      </div>
-                    </div>
+                  <h3 className="font-bold text-gray-900 text-lg mb-1 line-clamp-1">{product.name}</h3>
+                  <p className="text-xs text-gray-500 mb-2 line-clamp-2">{product.description}</p>
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-xl font-bold text-[#FFB800]">{formatPrice(product.price)}</span>
+                    <button
+                      id={`btn-${product.id}`}
+                      onClick={() => adicionarAoCarrinho(product)}
+                      disabled={product.stock === 0}
+                      className={`px-4 py-2 rounded-lg font-semibold transition ${
+                        product.stock === 0
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
+                      }`}
+                    >
+                      Comprar
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
 
+          {/* Paginacao */}
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-8">
+              <button
+                onClick={() => paginar(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition"
+              >
+                ←
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => paginar(page)}
+                  className={`px-3 py-1 rounded-lg transition ${
+                    currentPage === page
+                      ? 'bg-[#FFB800] text-black'
+                      : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                onClick={() => paginar(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded-lg bg-white border border-gray-200 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition"
+              >
+                →
+              </button>
+            </div>
+          )}
+
+          {/* Mensagem quando nao ha produtos */}
           {products.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-500">Nenhum produto encontrado nesta categoria.</p>
             </div>
           )}
         </div>
+        <div className="mb-6">
+            <BotaoIndicarAmigo />
+          </div>
       </div>
     </div>
+    
   )
 }
