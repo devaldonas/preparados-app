@@ -58,7 +58,7 @@ export default function RotasFuga() {
         
         <h1 className="text-2xl font-bold text-black mb-2 text-center">Rotas de Fuga</h1>
         <p className="text-gray-500 mb-8 text-center">
-          Guia visual para planejamento de rotas de evacuacao
+          Guia visual para planejamento de rotas de evacuação
         </p>
 
         {/* Carrossel com arraste */}
