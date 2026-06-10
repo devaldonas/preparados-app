@@ -58,7 +58,7 @@ export default function RotasFuga() {
         
         <h1 className="text-2xl font-bold text-black mb-2 text-center">Rotas de Fuga</h1>
         <p className="text-gray-500 mb-8 text-center">
-          Guia visual para planejamento de rotas de evacuação
+          Guia visual para planejamento de rotas de evacuacao
         </p>
 
         {/* Carrossel com arraste */}
@@ -73,29 +73,25 @@ export default function RotasFuga() {
           onMouseUp={handleTouchEnd}
           onMouseLeave={handleTouchEnd}
         >
-          <div className="relative">
-            <img 
-              src={`/images/catastrofes/rotas/rotas${imagens[currentIndex]}.jpeg`}
-              alt={`Rota de Fuga ${currentIndex + 1}`}
-              className="w-full h-auto pointer-events-none"
-              onError={(e) => {
-                e.currentTarget.src = '/images/placeholder.jpg'
-              }}
-            />
-            
-            
+          <img 
+            src={`/images/catastrofes/rotas/rotas${imagens[currentIndex]}.jpeg`}
+            alt={`Rota de Fuga ${currentIndex + 1}`}
+            className="w-full h-auto pointer-events-none"
+            onError={(e) => {
+              e.currentTarget.src = '/images/placeholder.jpg'
+            }}
+          />
 
-            {showHint && (
-              <div className="absolute top-1/2 left-0 right-0 text-center pointer-events-none opacity-70">
-                <span className="text-white text-xs bg-black/50 px-3 py-1 rounded-full">
-                  ← Arraste para mudar →
-                </span>
-              </div>
-            )}
-          </div>
+          {showHint && (
+            <div className="absolute top-1/2 left-0 right-0 text-center pointer-events-none opacity-70">
+              <span className="text-white text-xs bg-black/50 px-3 py-1 rounded-full">
+                ← Arraste para mudar →
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Dots (indicadores) */}
+        {/* Dots (indicadores visuais) - SEM CONTADOR NUMÉRICO */}
         <div className="flex justify-center gap-2 mt-4">
           {imagens.map((_, index) => (
             <button
@@ -103,19 +99,13 @@ export default function RotasFuga() {
               onClick={() => irParaImagem(index)}
               className={`transition-all duration-300 rounded-full ${
                 index === currentIndex 
-                  ? 'bg-[#FFB800] w-6 h-2' 
+                  ? 'bg-[#FFB800] w-8 h-2' 
                   : 'bg-gray-300 w-2 h-2 hover:bg-gray-400'
               }`}
               aria-label={`Ir para imagem ${index + 1}`}
             />
           ))}
         </div>
-
-        <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
-              <span className="bg-black/60 text-white text-sm px-3 py-1 rounded-full">
-                {currentIndex + 1} / {totalImagens}
-              </span>
-            </div>
 
         {/* Miniaturas */}
         <div className="mt-6 overflow-x-auto pb-2">

@@ -5,7 +5,7 @@ export default function BotaoIndicarAmigo() {
     const mensagem = encodeURIComponent(
       `Olá,\n\n` +
       `Estou usando o app PREPARADO e quero compartilhar com você.\n\n` +
-      `E um aplicativo que auxilia na preparação para emergências.\n\n` +
+      `É um aplicativo que auxilia na preparação para emergências.\n\n` +
       `O que você encontra no PREPARADO:\n` +
       `• Checklist completo para sua mochila de emergência\n` +
       `• Conexão com pessoas próximas e formação de grupos\n` +
