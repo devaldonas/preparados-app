@@ -83,11 +83,7 @@ export default function RotasFuga() {
               }}
             />
             
-            <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
-              <span className="bg-black/60 text-white text-sm px-3 py-1 rounded-full">
-                {currentIndex + 1} / {totalImagens}
-              </span>
-            </div>
+            
 
             {showHint && (
               <div className="absolute top-1/2 left-0 right-0 text-center pointer-events-none opacity-70">
@@ -114,6 +110,12 @@ export default function RotasFuga() {
             />
           ))}
         </div>
+
+        <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
+              <span className="bg-black/60 text-white text-sm px-3 py-1 rounded-full">
+                {currentIndex + 1} / {totalImagens}
+              </span>
+            </div>
 
         {/* Miniaturas */}
         <div className="mt-6 overflow-x-auto pb-2">
