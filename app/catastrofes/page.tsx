@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import FooterCarousel from '@/components/CarouselFooter'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
+import { useRouter } from 'next/navigation'
 
 interface CardCatastrofe {
   id: string
@@ -11,41 +12,45 @@ interface CardCatastrofe {
   descricao: string
   icone: string
   cor: string
+   href?: string
 }
 
 export default function Catastrofes() {
   const [cardSelecionado, setCardSelecionado] = useState<string | null>(null)
 
+  const router = useRouter()
+
   const cards: CardCatastrofe[] = [
-    {
-      id: 'terremoto',
-      nome: 'Terremoto',
-      descricao: 'Saiba como agir durante e após um terremoto',
-      icone: '/images/catastrofes/terremoto.jpeg',
-      cor: 'from-White-500 to-red-700'
-    },
-    {
-      id: 'tsunami',
-      nome: 'Tsunami',
-      descricao: 'Identifique sinais e saiba como se proteger',
-      icone: '/images/catastrofes/tsunami.jpeg',
-      cor: 'from-White-500 to-blue-700'
-    },
-    {
-      id: 'rotas',
-      nome: 'Rotas de Fuga',
-      descricao: 'Planeje sua rota de evacuação com antecedência',
-      icone: '/images/catastrofes/rotadefuga.png',
-      cor: 'from-White-500 to-green-700'
-    },
-    {
-      id: 'frio',
-      nome: 'Frio Extremo',
-      descricao: 'Prepare-se para temperaturas extremamente baixas',
-      icone: '/images/catastrofes/frioextremo.jpeg',
-      cor: 'from-White-500 to-cyan-700'
-    }
-  ]
+  {
+    id: 'terremoto',
+    nome: 'Terremoto',
+    descricao: 'Saiba como agir durante e apos um terremoto',
+    icone: '/images/catastrofes/terremoto.jpeg',
+    cor: 'from-red-500 to-red-700'
+  },
+  {
+    id: 'tsunami',
+    nome: 'Tsunami',
+    descricao: 'Identifique sinais e saiba como se proteger',
+    icone: '/images/catastrofes/tsunami.jpeg',
+    cor: 'from-blue-500 to-blue-700'
+  },
+  {
+    id: 'rotas',
+    nome: 'Rotas de Fuga',
+    descricao: 'Planeje sua rota de evacuacao com antecedencia',
+    icone: '/images/catastrofes/rotadefuga.png',
+    cor: 'from-green-500 to-green-700',
+    href: '/catastrofes/rotas-fuga'
+  },
+  {
+    id: 'frio',
+    nome: 'Frio Extremo',
+    descricao: 'Prepare-se para temperaturas extremamente baixas',
+    icone: '/images/catastrofes/frioextremo.jpeg',
+    cor: 'from-cyan-500 to-cyan-700'
+  }
+]
 
   // Card de Terremoto
   if (cardSelecionado === 'terremoto') {
@@ -687,13 +692,28 @@ export default function Catastrofes() {
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Preparação para Catástrofes</h1>
             <p className="text-gray-500">Conhecimento salva vidas. Esteja preparado para qualquer situação.</p>
           </div>
-
+{/* Link direto para Rotas de Fuga */}
+  <div className="mt-4">
+    <Link
+      href="/catastrofes/rotas-fuga"
+      className="inline-flex items-center gap-2 bg-[#FFB800] text-black px-5 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition"
+    >
+      Ver Rotas de Fuga
+    </Link>
+  </div>
           <div className="grid grid-cols-2 gap-4">
             {cards.map((card) => (
               <button
                 key={card.id}
-                onClick={() => setCardSelecionado(card.id)}
+                onClick={() => {
+        if (card.href) {
+          router.push(card.href)
+        } else {
+          setCardSelecionado(card.id)
+        }
+      }}
                 className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center group"
+
               >
                 <div className={`w-16 h-16 mx-auto mb-3 rounded-xl flex items-center justify-center bg-gradient-to-r ${card.cor}`}>
                   <img 
