@@ -26,21 +26,21 @@ export default function Catastrofes() {
     nome: 'Terremoto',
     descricao: 'Saiba como agir durante e apos um terremoto',
     icone: '/images/catastrofes/terremoto.jpeg',
-    cor: 'from-red-500 to-red-700'
+    cor: 'from-white-500 to-red-700'
   },
   {
     id: 'tsunami',
     nome: 'Tsunami',
     descricao: 'Identifique sinais e saiba como se proteger',
     icone: '/images/catastrofes/tsunami.jpeg',
-    cor: 'from-blue-500 to-blue-700'
+    cor: 'from-white-500 to-blue-700'
   },
   {
     id: 'rotas',
     nome: 'Rotas de Fuga',
     descricao: 'Planeje sua rota de evacuacao com antecedencia',
     icone: '/images/catastrofes/rotadefuga.png',
-    cor: 'from-green-500 to-green-700',
+    cor: 'from-white-500 to-green-700',
     href: '/catastrofes/rotas-fuga'
   },
   {
@@ -48,7 +48,7 @@ export default function Catastrofes() {
     nome: 'Frio Extremo',
     descricao: 'Prepare-se para temperaturas extremamente baixas',
     icone: '/images/catastrofes/frioextremo.jpeg',
-    cor: 'from-cyan-500 to-cyan-700'
+    cor: 'from-white-500 to-cyan-700'
   }
 ]
 
@@ -65,7 +65,7 @@ export default function Catastrofes() {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
             >
               <span className="text-lg">←</span>
-              <span>Voltar para Calamidaes</span>
+              <span>Voltar para Catástrofes</span>
             </button>
 
             <div className="flex items-center gap-4 mb-6">

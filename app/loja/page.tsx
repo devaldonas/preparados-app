@@ -233,7 +233,6 @@ export default function Loja() {
           )}
         </div>
       </div>
-      <CarouselFooter />
     </div>
   )
 }

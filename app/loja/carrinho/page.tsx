@@ -360,7 +360,6 @@ export default function Carrinho() {
           )}
         </div>
       </div>
-      <CarouselFooter />
     </div>
   )
 }
