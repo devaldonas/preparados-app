@@ -692,15 +692,6 @@ export default function Catastrofes() {
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Preparação para Catástrofes</h1>
             <p className="text-gray-500">Conhecimento salva vidas. Esteja preparado para qualquer situação.</p>
           </div>
-{/* Link direto para Rotas de Fuga */}
-  <div className="mt-4">
-    <Link
-      href="/catastrofes/rotas-fuga"
-      className="inline-flex items-center gap-2 bg-[#FFB800] text-black px-5 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition"
-    >
-      Ver Rotas de Fuga
-    </Link>
-  </div>
           <div className="grid grid-cols-2 gap-4">
             {cards.map((card) => (
               <button
