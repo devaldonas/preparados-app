@@ -34,7 +34,6 @@ export default function Confirmacao() {
           </div>
         </div>
       </div>
-      <CarouselFooter />
     </div>
   )
 }
