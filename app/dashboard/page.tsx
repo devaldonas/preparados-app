@@ -126,26 +126,36 @@ const checkAdminStatus = async (userId: string) => {
            <div className="max-w-4xl mx-auto px-4 py-8">
         
         {/* Header com saudação e logo */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <img 
-                src="/logo1.svg" 
-                alt="PREPARADO" 
-                className="h-14 w-auto"
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
-              />
-              <div>
-                <h1 className="text-2xl font-bold text-black">
-                  Olá, {getFirstName(user.user_metadata?.full_name || 'Preparado')}!
-                </h1>
-                <p className="text-gray-500 text-sm mt-0.5">
-                  Bem-vindo à sua página de preparação
-                </p>
-              </div>
-            </div>            
-          </div>
+<div className="mb-8">
+  <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="flex items-center gap-3">
+      <img 
+        src="/logo1.svg" 
+        alt="PREPARADO" 
+        className="h-14 w-auto"
+        onError={(e) => { e.currentTarget.style.display = 'none' }}
+      />
+      <div>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-black">
+            Olá, {getFirstName(user.user_metadata?.full_name || 'Preparado')}!
+          </h1>
+          {isAdmin && (
+            <Link
+              href="/admin/produtos"
+              className="bg-[#FFB800] text-black px-3 py-1 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition"
+            >
+              Admin
+            </Link>
+          )}
         </div>
+        <p className="text-gray-500 text-sm mt-0.5">
+          Bem-vindo à sua Home de preparação
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
 
         {/* Cards de Progresso */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -186,16 +196,6 @@ const checkAdminStatus = async (userId: string) => {
         {/* Menu Principal - Cards de Acesso Rápido */}
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Acesso Rápido</h2>
         <div className="grid grid-cols-2 gap-4 mb-8">
-
-          {isAdmin && (
-  <Link href="/admin/produtos" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-    <div className="w-16 h-16 mx-auto mb-2 rounded-xl flex items-center justify-center bg-gray-100">
-      <span className="text-2xl">⚙️</span>
-    </div>
-    <h3 className="font-bold text-gray-900 text-base">Admin</h3>
-    <p className="text-sm text-gray-500 mt-1">Gerenciar loja</p>
-  </Link>
-)}
 
           <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
             <img 
@@ -296,7 +296,7 @@ const checkAdminStatus = async (userId: string) => {
     <img 
       src="/images/indicar-amigo-icon.png" 
       alt="Indicar Amigo" 
-      className="w-24 h-24 object-contain"
+      className="w-16 h-16 object-contain"
       onError={(e) => { e.currentTarget.style.display = 'none' }}
     />
   </div>

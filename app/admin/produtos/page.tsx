@@ -110,8 +110,8 @@ export default function AdminProdutos() {
           </Link>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+          <table className="w-full min-w-[600px]">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 <th className="text-left p-3">Produto</th>
@@ -137,18 +137,36 @@ export default function AdminProdutos() {
                     </span>
                   </td>
                   <td className="p-3">
-                    <button
-                      onClick={() => toggleProdutoStatus(product.id, product.is_active)}
-                      className="text-sm text-[#FFB800] hover:underline"
-                    >
-                      {product.is_active ? 'Desativar' : 'Ativar'}
-                    </button>
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/admin/produtos/${product.id}`}
+                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        Editar
+                      </Link>
+                      <button
+                        onClick={() => toggleProdutoStatus(product.id, product.is_active)}
+                        className={`text-sm ${
+                          product.is_active 
+                            ? 'text-red-600 hover:text-red-800' 
+                            : 'text-green-600 hover:text-green-800'
+                        } hover:underline`}
+                      >
+                        {product.is_active ? 'Desativar' : 'Ativar'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {products.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            Nenhum produto cadastrado ainda.
+          </div>
+        )}
       </div>
     </div>
   )
