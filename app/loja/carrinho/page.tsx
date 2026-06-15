@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import NavBar from '@/components/NavBar'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 import CarouselFooter from '@/components/CarouselFooter'
 
@@ -202,21 +201,9 @@ export default function Carrinho() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <NavBar showBackButton={true} backButtonPath="/loja" />
+      
       <div className="flex-1">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          
-          
-
-          <div className="mb-6">
-            <Link
-              href="/loja"
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
-            >
-              <span>←</span> Voltar para Loja
-            </Link>
-          </div>
-
+        <div className="max-w-4xl mx-auto px-4 py-8">      
           <h1 className="text-2xl font-bold text-black mb-6">Meu Carrinho</h1>
 
           {cartItems.length === 0 ? (
@@ -357,6 +344,16 @@ export default function Carrinho() {
             </div>
           )}
         </div>
+
+<div className="mb-6">
+            <Link
+              href="/loja"
+              className="block text-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <span>←</span> Voltar para Loja
+            </Link>
+          </div>
+
         <div className="mb-6">
             <BotaoIndicarAmigo />
           </div>

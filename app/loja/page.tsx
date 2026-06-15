@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import NavBar from '@/components/NavBar'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 import CarouselFooter from '@/components/CarouselFooter'
 
@@ -149,7 +148,7 @@ export default function Loja() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <NavBar showBackButton={true} backButtonPath="/dashboard" />
+      
       <div className="flex-1">
         <div className="max-w-4xl mx-auto px-4 py-8">
           
@@ -209,7 +208,11 @@ export default function Loja() {
           {/* Grid de produtos - 2 colunas em todos os dispositivos */}
 <div className="grid grid-cols-2 gap-3 sm:gap-4">
   {currentProducts.map((product) => (
-    <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group">
+    <div 
+  key={product.id} 
+  className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group cursor-pointer"
+  onClick={() => router.push(`/loja/produto/${product.id}`)}
+>
       <div className="relative h-32 sm:h-40 bg-gray-100 overflow-hidden">
         <img 
           src={product.image_url}
@@ -293,6 +296,11 @@ export default function Loja() {
             </div>
           )}
         </div>
+
+<Link href="/dashboard" className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition">
+                    Voltar ao Início
+                  </Link>
+
         <div className="mb-6">
             <BotaoIndicarAmigo />
           </div>

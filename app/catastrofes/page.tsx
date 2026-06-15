@@ -629,7 +629,7 @@ export default function Catastrofes() {
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-black-700 mb-2">🚶 Deslocamento no Frio</h3>
+                <h3 className="text-lg font-bold text-black-700 mb-2"> Deslocamento no Frio</h3>
                 <img src="/images/catastrofes/deslocamento-frio-slide1.png" alt="Deslocamento" className="rounded-lg w-full mb-4 border" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 <p className="text-gray-700 mb-3">Quando você está em deslocamento, não é necessário usar camadas pesadas para se aquecer. Se você continuar se movendo e estiver minimamente isolado, produzirá calor suficiente.</p>
                 <p className="text-gray-700 font-semibold">⚠️ DICA: APRENDA A FAZER UMA RAQUETE DE NEVE!</p>
@@ -676,7 +676,7 @@ export default function Catastrofes() {
               <span className="text-lg">←</span>
               <span>Voltar para Catástrofes</span>
             </button>
-            
+
 
               
 
