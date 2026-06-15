@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
-export default function GuiaPreparacao() {
+export default function GuiaPreparação() {
   const [kitsAbertos, setKitsAbertos] = useState<Record<string, boolean>>({
     documentos: false,
     agua: false,

@@ -99,13 +99,8 @@ export default function GroupMap({ userLocations, onGroupSelect }: GroupMapProps
 
       const position = new google.maps.LatLng(lat, lng)
 
-      const markerSvg = `
-        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="22" cy="22" r="18" fill="#FFB800" stroke="white" stroke-width="3"/>
-          <text x="22" y="28" font-size="16" text-anchor="middle" fill="black" font-weight="bold">G</text>
-        </svg>
-      `
-      const markerUrl = `data:image/svg+xml;utf8,${encodeURIComponent(markerSvg)}`
+      // Usar imagem personalizada em vez do SVG com letra "G"
+const markerUrl = '/images/markmap.png'
 
       const marker = new google.maps.Marker({
         position,
