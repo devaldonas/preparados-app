@@ -149,49 +149,49 @@ const checkAdminStatus = async (userId: string) => {
             </Link>
           )}
         </div>
-        <p className="text-gray-500 text-sm mt-0.5">
-          Bem-vindo à sua Home de preparação
-        </p>
       </div>
     </div>
   </div>
 </div>
 
-        {/* Cards de Progresso */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-gray-500 text-sm">Preparação Geral</span>
-              <span className="text-black font-bold text-lg">{Math.round(progress)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div 
-                className="bg-[#FFB800] h-2.5 rounded-full transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              {completedItems} de {totalItems} itens na mochila
-            </p>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-            <div className="flex items-center gap-3 mb-2">
-              <img 
-                src="/images/checkin.jpeg" 
-                alt="Check-in" 
-                className="w-10 h-10 object-contain"
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
-              />
-              <div>
-                <p className="text-sm text-gray-500"></p>
-                <p className="font-medium text-gray-900">
-                  {checkinCompleted ? 'Diagnóstico realizado ✅' : 'Faça seu diagnóstico agora!'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Cards de Progresso */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+  {/* Card de Progresso */}
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div className="text-center mb-3">
+      <span className="text-gray-500 text-sm">Seu nivel de preparação é de:</span>
+      <div className="text-4xl font-bold text-[#FFB800] mt-1">
+        {Math.round(progress)}%
+      </div>
+    </div>
+    <div className="w-full bg-gray-200 rounded-full h-2.5">
+      <div 
+        className="bg-[#FFB800] h-2.5 rounded-full transition-all duration-500"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  </div>
+  
+  {/* Card Check-in */}
+  <Link 
+    href="/check-in"
+    className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition group"
+  >
+    <div className="flex items-center gap-3 mb-2">
+      <img 
+        src="/images/checkin.jpeg" 
+        alt="Check-in" 
+        className="w-10 h-10 object-contain"
+        onError={(e) => { e.currentTarget.style.display = 'none' }}
+      />
+      <div>
+        <p className="font-bold text-black text-xl">
+      Fique 100% preparado
+    </p>
+      </div>
+    </div>
+  </Link>
+</div>
 
         {/* Menu Principal - Cards de Acesso Rápido */}
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Acesso Rápido</h2>
@@ -245,21 +245,7 @@ const checkAdminStatus = async (userId: string) => {
             <p className="text-sm text-gray-500 mt-1">PTT - Pressione para falar</p>
           </Link>
           
-         <Link 
-            href="/check-in" 
-            className={`bg-white p-5 rounded-xl shadow-sm border hover:shadow-md transition text-center ${!checkinCompleted ? 'ring-2 ring-[#FFB800] ring-offset-2' : 'border-gray-100'}`}
-          >
-            <img 
-              src="/images/checkin.jpeg" 
-              alt="Check-in" 
-              className="w-16 h-16 mx-auto mb-2 object-contain"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
-            <h3 className="font-bold text-gray-900 text-base">Check-in</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              {checkinCompleted ? 'Atualizar diagnóstico' : 'Iniciar avaliação'}
-            </p>
-          </Link>
+        
        
           <Link href="/loja" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
             <img 
