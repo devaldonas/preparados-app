@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import NavBar from '@/components/NavBar'
-import UploadImagem from '@/components/UploadImagem'
+import UploadMultiplasImagens from '@/components/UploadMultiplasImagens'
 
 interface Product {
   id: number
@@ -14,6 +13,7 @@ interface Product {
   price: number
   category: string
   image_url: string
+  images: string[]
   stock: number
   mochila_tipo: string[]
   is_active: boolean
@@ -25,7 +25,7 @@ export default function EditarProduto() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
+  const [imageUrls, setImageUrls] = useState<string[]>([])
   const router = useRouter()
   const params = useParams()
   const productId = params.id as string
@@ -57,9 +57,21 @@ export default function EditarProduto() {
       router.push('/admin/produtos')
     } else {
       setProduct(data)
-      setImageUrl(data.image_url)
+      // Carregar as imagens
+      if (data.images && data.images.length > 0) {
+        setImageUrls(data.images)
+      } else if (data.image_url) {
+        setImageUrls([data.image_url])
+      } else {
+        setImageUrls([])
+      }
     }
     setLoading(false)
+  }
+
+  const handleImagesUploadComplete = (urls: string[]) => {
+    setImageUrls(urls)
+    setProduct(prev => prev ? { ...prev, images: urls, image_url: urls[0] } : null)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -80,11 +92,6 @@ export default function EditarProduto() {
     })
   }
 
-  const handleUploadComplete = (url: string) => {
-    setImageUrl(url)
-    setProduct(prev => prev ? { ...prev, image_url: url } : null)
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!product) return
@@ -93,18 +100,21 @@ export default function EditarProduto() {
     setError('')
     setSuccess('')
 
+    const updateData = {
+      name: product.name,
+      description: product.description,
+      price: parseFloat(String(product.price)),
+      category: product.category,
+      image_url: imageUrls[0] || '',
+      images: imageUrls,
+      stock: parseInt(String(product.stock)) || 0,
+      mochila_tipo: product.mochila_tipo,
+      updated_at: new Date().toISOString()
+    }
+
     const { error: updateError } = await supabase
       .from('products')
-      .update({
-        name: product.name,
-        description: product.description,
-        price: parseFloat(String(product.price)),
-        category: product.category,
-        image_url: imageUrl,
-        stock: parseInt(String(product.stock)) || 0,
-        mochila_tipo: product.mochila_tipo,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', product.id)
 
     if (updateError) {
@@ -146,17 +156,9 @@ export default function EditarProduto() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <NavBar showBackButton={true} backButtonPath="/admin/produtos" />
       <div className="max-w-2xl mx-auto px-4 py-8">
         
-        <div className="mb-6">
-          <Link
-            href="/admin/produtos"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
-          >
-            <span>←</span> Voltar
-          </Link>
-        </div>
+        
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-6">
@@ -260,14 +262,15 @@ export default function EditarProduto() {
               </select>
             </div>
 
-            {/* Upload de Imagem */}
+            {/* Upload de multiplas imagens */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Imagem do Produto
+                Imagens do Produto (ate 5)
               </label>
-              <UploadImagem 
-                onUploadComplete={handleUploadComplete}
-                currentImage={imageUrl}
+              <UploadMultiplasImagens 
+                onUploadComplete={handleImagesUploadComplete}
+                currentImages={imageUrls}
+                maxImages={5}
                 produtoNome={product.name}
               />
             </div>
@@ -308,6 +311,14 @@ export default function EditarProduto() {
               </button>
             </div>
           </form>
+        </div>
+        <div className="mb-6">
+          <Link
+            href="/admin/produtos"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
+          >
+            <span>←</span> Voltar
+          </Link>
         </div>
       </div>
     </div>
