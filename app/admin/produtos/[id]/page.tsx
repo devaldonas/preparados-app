@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import NavBar from '@/components/NavBar'
 import UploadMultiplasImagens from '@/components/UploadMultiplasImagens'
 
 interface Product {
@@ -42,31 +43,44 @@ export default function EditarProduto() {
   const mochilaTipos = ['EDC', 'BOB', 'BOLT']
 
   useEffect(() => {
-    carregarProduto()
+    if (productId) {
+      carregarProduto()
+    }
   }, [productId])
 
   const carregarProduto = async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', productId)
-      .single()
+    try {
+      console.log('Carregando produto ID:', productId)
+      
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single()
 
-    if (error) {
-      console.error('Erro ao carregar produto:', error)
-      router.push('/admin/produtos')
-    } else {
-      setProduct(data)
-      // Carregar as imagens
-      if (data.images && data.images.length > 0) {
-        setImageUrls(data.images)
-      } else if (data.image_url) {
-        setImageUrls([data.image_url])
-      } else {
-        setImageUrls([])
+      if (error) {
+        console.error('Erro detalhado:', error)
+        setError('Produto não encontrado')
+        setTimeout(() => {
+          router.push('/admin/produtos')
+        }, 1500)
+        return
       }
+
+      if (data) {
+        setProduct(data)
+        if (data.images && data.images.length > 0) {
+          setImageUrls(data.images)
+        } else if (data.image_url) {
+          setImageUrls([data.image_url])
+        }
+      }
+    } catch (err) {
+      console.error('Erro inesperado:', err)
+      setError('Erro ao carregar produto')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const handleImagesUploadComplete = (urls: string[]) => {
@@ -152,13 +166,37 @@ export default function EditarProduto() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Link
+            href="/admin/produtos"
+            className="bg-[#FFB800] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition"
+          >
+            Voltar para lista de produtos
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   if (!product) return null
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
+      <NavBar showBackButton={true} backButtonPath="/admin/produtos" />
       <div className="max-w-2xl mx-auto px-4 py-8">
         
-        
+        <div className="mb-6">
+          <Link
+            href="/admin/produtos"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
+          >
+            <span>←</span> Voltar
+          </Link>
+        </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-6">
@@ -262,7 +300,6 @@ export default function EditarProduto() {
               </select>
             </div>
 
-            {/* Upload de multiplas imagens */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Imagens do Produto (ate 5)
@@ -311,14 +348,6 @@ export default function EditarProduto() {
               </button>
             </div>
           </form>
-        </div>
-        <div className="mb-6">
-          <Link
-            href="/admin/produtos"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
-          >
-            <span>←</span> Voltar
-          </Link>
         </div>
       </div>
     </div>
