@@ -134,29 +134,7 @@ export default function MinhasMochilas() {
           <p className="text-gray-500 text-sm mt-2">Gerencie todas as suas mochilas de preparação</p>
         </div>
 
-      {/* Guia de Preparacao da Mochila - NOVO CARD */}
-      <Link
-        href="/guia"
-        className="block bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition mb-8"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#FFB800] bg-opacity-10 rounded-xl flex items-center justify-center">
-            <img 
-              src="/images/mochila-icon.png" 
-              alt="Guia" 
-              className="w-6 h-6 object-contain"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-gray-900">Guia de Preparacao da Mochila</h3>
-            <p className="text-sm text-gray-500">Dicas e orientacoes para montar sua mochila</p>
-          </div>
-          <div className="text-[#FFB800]">
-            <span className="text-xl">→</span>
-          </div>
-        </div>
-      </Link>
+      
 
         {/* Lista de mochilas */}
         {backpacks.length === 0 ? (
@@ -216,7 +194,31 @@ export default function MinhasMochilas() {
           </div>
         )}
 
-        <Link 
+       {/* Guia de Preparação da Mochila - NOVO CARD */}
+      <Link
+        href="/guia"
+        className="block bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition mb-8"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-[#FFB800] bg-opacity-10 rounded-xl flex items-center justify-center">
+            <img 
+              src="/images/mochila-icon.png" 
+              alt="Guia" 
+              className="w-6 h-6 object-contain"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-bold text-gray-900">Guia de Preparação da Mochila</h3>
+            <p className="text-sm text-gray-500">Dicas e orientacoes para montar sua mochila</p>
+          </div>
+          <div className="text-[#FFB800]">
+            <span className="text-xl">→</span>
+          </div>
+        </div>
+      </Link>
+
+      <Link 
             href="/dashboard"
             className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
           >

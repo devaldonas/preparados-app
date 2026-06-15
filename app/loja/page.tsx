@@ -206,52 +206,52 @@ export default function Loja() {
             ))}
           </div>
 
-          {/* Grid de produtos - 2 colunas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {currentProducts.map((product) => (
-              <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group">
-                <div className="relative h-40 bg-gray-100 overflow-hidden">
-  <img 
-    src={product.image_url}
-    alt={product.name}
-    className="w-full h-full object-contain p-3 group-hover:scale-105 transition duration-300"
-    onError={(e) => {
-      e.currentTarget.src = '/images/placeholder.jpg'
-    }}
-  />
-  {product.stock < 5 && product.stock > 0 && (
-    <span className="absolute top-2 left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
-      Ultimas unidades
-    </span>
-  )}
-  {product.stock === 0 && (
-    <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-      Esgotado
-    </span>
-  )}
+          {/* Grid de produtos - 2 colunas em todos os dispositivos */}
+<div className="grid grid-cols-2 gap-3 sm:gap-4">
+  {currentProducts.map((product) => (
+    <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group">
+      <div className="relative h-32 sm:h-40 bg-gray-100 overflow-hidden">
+        <img 
+          src={product.image_url}
+          alt={product.name}
+          className="w-full h-full object-contain p-2 sm:p-3 group-hover:scale-105 transition duration-300"
+          onError={(e) => {
+            e.currentTarget.src = '/images/placeholder.jpg'
+          }}
+        />
+        {product.stock < 5 && product.stock > 0 && (
+          <span className="absolute top-1 left-1 bg-orange-500 text-white text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full">
+            Ultimas
+          </span>
+        )}
+        {product.stock === 0 && (
+          <span className="absolute top-1 left-1 bg-red-500 text-white text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full">
+            Esgotado
+          </span>
+        )}
+      </div>
+      <div className="p-2 sm:p-4">
+        <h3 className="font-bold text-gray-900 text-sm sm:text-lg mb-0.5 sm:mb-1 line-clamp-1">{product.name}</h3>
+        <p className="text-[10px] sm:text-xs text-gray-500 mb-1 sm:mb-2 line-clamp-2">{product.description}</p>
+        <div className="flex items-center justify-between mt-2 sm:mt-3">
+          <span className="text-sm sm:text-xl font-bold text-[#FFB800]">{formatPrice(product.price)}</span>
+          <button
+            id={`btn-${product.id}`}
+            onClick={() => adicionarAoCarrinho(product)}
+            disabled={product.stock === 0}
+            className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg font-semibold transition text-xs sm:text-base ${
+              product.stock === 0
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
+            }`}
+          >
+            Comprar
+          </button>
+        </div>
+      </div>
+    </div>
+  ))}
 </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-gray-900 text-lg mb-1 line-clamp-1">{product.name}</h3>
-                  <p className="text-xs text-gray-500 mb-2 line-clamp-2">{product.description}</p>
-                  <div className="flex items-center justify-between mt-3">
-                    <span className="text-xl font-bold text-[#FFB800]">{formatPrice(product.price)}</span>
-                    <button
-                      id={`btn-${product.id}`}
-                      onClick={() => adicionarAoCarrinho(product)}
-                      disabled={product.stock === 0}
-                      className={`px-4 py-2 rounded-lg font-semibold transition ${
-                        product.stock === 0
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
-                      }`}
-                    >
-                      Comprar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
 
           {/* Paginacao */}
           {totalPages > 1 && (

@@ -60,14 +60,7 @@ export default function Catastrofes() {
         <div className="flex-1">
           <div className="max-w-4xl mx-auto px-4 py-8">
             
-            <button
-              onClick={() => setCardSelecionado(null)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-            >
-              <span className="text-lg">←</span>
-              <span>Voltar para Catástrofes</span>
-            </button>
-
+            
             <div className="flex items-center gap-4 mb-6">
               <img 
                 src="/images/catastrofes/terremoto.jpeg" 
@@ -90,7 +83,7 @@ export default function Catastrofes() {
                   A energia liberada se propaga em ondas sísmicas, que podem causar grandes danos humanos e materiais.
                 </p>
                 <p className="text-gray-700 mt-3">
-                  <strong className="text-red-600">⚠️ Importante:</strong> Um terremoto pode acontecer a qualquer momento, sem aviso prévio.
+                  <strong className="text-black-600"> Importante:</strong> Um terremoto pode acontecer a qualquer momento, sem aviso prévio.
                 </p>
               </div>
 
@@ -115,7 +108,7 @@ export default function Catastrofes() {
                       <tr><td className="p-2 font-medium">6,0 a 6,9</td><td className="p-2">Danos consideráveis a edifícios</td></tr>
                       <tr><td className="p-2 font-medium">7,0 a 7,3</td><td className="p-2">Danos graves a edifícios e quebra de encanamentos</td></tr>
                       <tr><td className="p-2 font-medium">7,4 a 7,9</td><td className="p-2">Graves danos, destruição de prédios</td></tr>
-                      <tr><td className="p-2 font-medium text-red-600">acima de 8,0</td><td className="p-2 text-red-600">Destruição completa</td></tr>
+                      <tr><td className="p-2 font-medium text-black-600">acima de 8,0</td><td className="p-2 text-black-600">Destruição completa</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -129,7 +122,7 @@ export default function Catastrofes() {
                   <li><strong>Zonas de rift:</strong> onde as placas tectônicas estão se separando</li>
                 </ul>
                 <p className="text-gray-700 mt-3 bg-yellow-50 p-3 rounded-lg">
-                  ⚠️ <strong>Importante:</strong> Embora a maioria ocorra nessas regiões, terremotos podem acontecer em qualquer lugar do mundo.
+                   <strong>Importante:</strong> Embora a maioria ocorra nessas regiões, terremotos podem acontecer em qualquer lugar do mundo.
                 </p>
               </div>
 
@@ -146,7 +139,7 @@ export default function Catastrofes() {
                       <li>Procure abrigo sob um móvel sólido (mesa ou escrivaninha)</li>
                       <li>Afaste-se de janelas, espelhos, quadros e prateleiras</li>
                       <li>Se não houver abrigo, sente-se no chão encostado em uma parede interna</li>
-                      <li className="text-red-600 font-medium">Não saia correndo para fora durante o tremor forte</li>
+                      <li className="text-black-600 font-medium">Não saia correndo para fora durante o tremor forte</li>
                     </ul>
                   </div>
                   <div>
@@ -177,6 +170,15 @@ export default function Catastrofes() {
                   <li>Dirigir-se a um local aberto e seguro</li>
                 </ul>
               </div>
+
+              <button
+              onClick={() => setCardSelecionado(null)}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+            >
+              <span className="text-lg">←</span>
+              <span>Voltar para Catástrofes</span>
+            </button>
+
             </div>
           </div>
         </div>
@@ -192,14 +194,7 @@ export default function Catastrofes() {
         <div className="flex-1">
           <div className="max-w-4xl mx-auto px-4 py-8">
             
-            <button
-              onClick={() => setCardSelecionado(null)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-            >
-              <span className="text-lg">←</span>
-              <span>Voltar para Catástrofes</span>
-            </button>
-
+            
             <div className="flex items-center gap-4 mb-6">
               <img 
                 src="/images/catastrofes/tsunami.jpeg" 
@@ -233,21 +228,21 @@ export default function Catastrofes() {
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 className="text-xl font-bold text-red-600 mb-3">Sinais de Alerta ANTES de um Tsunami</h2>
+                <h2 className="text-xl font-bold text-black-600 mb-3">Sinais de Alerta ANTES de um Tsunami</h2>
                 <div className="space-y-4">
-                  <div className="border-l-4 border-red-500 pl-4">
+                  <div className="border-l-4 border-yellow-500 pl-4">
                     <h3 className="font-bold text-gray-900">1. Tremores intensos</h3>
                     <p className="text-gray-700">Se sentir um terremoto forte, afaste-se imediatamente da praia.</p>
                   </div>
-                  <div className="border-l-4 border-red-500 pl-4">
+                  <div className="border-l-4 border-yellow-500 pl-4">
                     <h3 className="font-bold text-gray-900">2. Recuo repentino do mar</h3>
                     <p className="text-gray-700">O mar pode se afastar de forma anormal, deixando o fundo exposto. Esse é um dos sinais mais claros!</p>
                   </div>
-                  <div className="border-l-4 border-red-500 pl-4">
+                  <div className="border-l-4 border-yellow-500 pl-4">
                     <h3 className="font-bold text-gray-900">3. Ondas incomuns</h3>
                     <p className="text-gray-700">Ondas fora do padrão, mais fortes ou em intervalos irregulares.</p>
                   </div>
-                  <div className="border-l-4 border-red-500 pl-4">
+                  <div className="border-l-4 border-yellow-500 pl-4">
                     <h3 className="font-bold text-gray-900">4. Barulho forte do mar</h3>
                     <p className="text-gray-700">Sons semelhantes a trovões, rugidos ou barulho de um trem.</p>
                   </div>
@@ -287,6 +282,15 @@ export default function Catastrofes() {
                   é a melhor opção em caso de tsunami.
                 </p>
               </div>
+
+              <button
+              onClick={() => setCardSelecionado(null)}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+            >
+              <span className="text-lg">←</span>
+              <span>Voltar para Catástrofes</span>
+            </button>
+
             </div>
           </div>
         </div>
@@ -332,7 +336,7 @@ export default function Catastrofes() {
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-blue-600 mb-3">Pontos de Alagamento</h3>
+                <h3 className="text-lg font-bold text-black-600 mb-3">Pontos de Alagamento</h3>
                 <p className="text-gray-700 mb-3">Identifique possíveis pontos de alagamento na sua cidade/rota, como baixadas e laterais de córregos ou rios.</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                   <img src="/images/catastrofes/alagamento-slide1.png" alt="Alagamento 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" onError={(e) => { e.currentTarget.style.display = 'none' }} />
@@ -352,7 +356,7 @@ export default function Catastrofes() {
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-red-600 mb-3">Pontes e Viadutos</h3>
+                <h3 className="text-lg font-bold text-black-600 mb-3">Pontes e Viadutos</h3>
                 <p className="text-gray-700 mb-3">Evite pontes suspensas e viadutos durante a fuga.</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                   <img src="/images/catastrofes/pontes-slide1.png" alt="Pontes 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" onError={(e) => { e.currentTarget.style.display = 'none' }} />
@@ -407,7 +411,7 @@ export default function Catastrofes() {
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-blue-600 mb-3">Mapear Fontes de Água</h3>
+                <h3 className="text-lg font-bold text-black-600 mb-3">Mapear Fontes de Água</h3>
                 <p className="text-gray-700 mb-3">Mapear fontes de água na sua região também é uma estratégia inteligente, pois é um recurso indispensável que pouca gente armazena.</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                   <img src="/images/catastrofes/fontesdeagua-slide1.png" alt="Fontes de Água 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" onError={(e) => { e.currentTarget.style.display = 'none' }} />
@@ -427,7 +431,7 @@ export default function Catastrofes() {
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-bold text-blue-700 mb-2">Passos Subsequentes</h4>
+                    <h4 className="font-bold text-black-700 mb-2">Passos Subsequentes</h4>
                     <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                       <li>Informar-se sobre rotas de evacuação e abrigos disponíveis</li>
                       <li>Seguir orientações da Defesa Civil, Corpo de Bombeiros</li>
@@ -450,7 +454,7 @@ export default function Catastrofes() {
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-bold text-red-700 mb-2">Cuidados com a Saúde</h4>
+                    <h4 className="font-bold text-black-700 mb-2">Cuidados com a Saúde</h4>
                     <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                       <li>Levar medicamentos de uso contínuo</li>
                       <li>Manter itens de higiene pessoal</li>
@@ -495,13 +499,7 @@ export default function Catastrofes() {
         <div className="flex-1">
           <div className="max-w-4xl mx-auto px-4 py-8">
             
-            <button
-              onClick={() => setCardSelecionado(null)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-            >
-              <span className="text-lg">←</span>
-              <span>Voltar para Catástrofes</span>
-            </button>
+            
 
             <div className="flex items-center gap-4 mb-6">
               <img 
@@ -518,29 +516,29 @@ export default function Catastrofes() {
 
             <div className="space-y-6">
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 className="text-xl font-bold text-blue-700 mb-3">Sistema de Camadas</h2>
+                <h2 className="text-xl font-bold text-black-700 mb-3">Sistema de Camadas</h2>
                 <img src="/images/catastrofes/camadas-slide1.png" alt="Sistema de Camadas" className="rounded-lg w-full h-auto mb-4 border" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 <p className="text-gray-700">É o sistema usado por moradores de regiões frias, alpinistas e pessoas em expedições em locais de frio extremo.</p>
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-blue-700 mb-2">Primeira Camada (Roupa Térmica)</h3>
+                <h3 className="text-lg font-bold text-black-700 mb-2">Primeira Camada (Roupa Térmica)</h3>
                 <p className="text-gray-700">Gerenciamento de umidade, absorção e dissipação de suor. Minimiza a perda de calor por indução. A maioria das roupas térmicas é sintática, extremamente leve. Sua principal função é manter o corpo aquecido e seco.</p>
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-blue-700 mb-2">Segunda Camada (Gerenciamento Térmico)</h3>
+                <h3 className="text-lg font-bold text-black-700 mb-2">Segunda Camada (Gerenciamento Térmico)</h3>
                 <p className="text-gray-700">Deve se vestir por cima das roupas térmicas, fortalecendo a primeira camada, isolando mais a temperatura do corpo. Função: reter o calor do corpo. Pode ser de fibras naturais (lã grossa) ou artificiais (fleece - poliéster de fibra sintética).</p>
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-blue-700 mb-2">Terceira Camada (Camada Exterior)</h3>
+                <h3 className="text-lg font-bold text-black-700 mb-2">Terceira Camada (Camada Exterior)</h3>
                 <p className="text-gray-700">Jaqueta e calça. Age como isolante. Deve ser totalmente impermeável, respirável, à prova de vento, neve e chuva, mantendo as demais camadas secas.</p>
                 <img src="/images/catastrofes/preparadoparaofrio-slide1.png" alt="Preparação para o Frio" className="rounded-lg w-full h-auto mt-4 border" onError={(e) => { e.currentTarget.style.display = 'none' }} />
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-red-600 mb-2">⚠️ Atenção às Extremidades</h3>
+                <h3 className="text-lg font-bold text-black-600 mb-2">⚠️ Atenção às Extremidades</h3>
                 <p className="text-gray-700 mb-3">Por onde perdemos mais calor. O sangue vai para o centro do corpo para preservar os órgãos vitais, deixando mãos, pés, nariz e orelhas com menos circulação, mais propícios a queimaduras e, em casos extremos, necrose.</p>
                 <ul className="list-disc list-inside text-gray-700 space-y-1 ml-2">
                   <li>Meias térmicas com absorção de suor, respirabilidade e secagem rápida</li>
@@ -558,7 +556,7 @@ export default function Catastrofes() {
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-blue-700 mb-2">Hipotermia</h3>
+                <h3 className="text-lg font-bold text-black-700 mb-2">Hipotermia</h3>
                 <p className="text-gray-700 mb-3"><strong>O que é:</strong> Quando a temperatura do corpo cai abaixo de 35°C. O organismo precisa estar entre 36°C e 37,5°C para realizar suas funções metabólicas.</p>
                 <p className="text-gray-700 mb-3"><strong>Causas:</strong> Longo período exposto ao frio intenso. O corpo humano libera mais calor do que consegue reter. Corpo molhado ou exposto ao vento perde calor 25 vezes mais rápido.</p>
                 <p className="text-gray-700 mb-3"><strong>Sintomas:</strong> Tremores (fricção para aquecer o corpo), mãos e pés dormentes, cansaço, lentidão, dificuldade no falar, frequência cardíaca diminuída, dificuldade em respirar, perda de controle dos membros, perda de consciência, parada cardíaca.</p>
@@ -566,7 +564,7 @@ export default function Catastrofes() {
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-blue-700 mb-2">Isolantes Térmicos - Use sua criatividade</h3>
+                <h3 className="text-lg font-bold text-black-700 mb-2">Isolantes Térmicos - Use sua criatividade</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                   <img src="/images/catastrofes/isolantes-slide1.png" alt="Isolante 1" className="rounded-lg border" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                   <img src="/images/catastrofes/isolantes-slide2.png" alt="Isolante 2" className="rounded-lg border" onError={(e) => { e.currentTarget.style.display = 'none' }} />
@@ -586,7 +584,7 @@ export default function Catastrofes() {
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-blue-700 mb-2">Casa vs Apartamento - Preparação para Frio Extremo</h3>
+                <h3 className="text-lg font-bold text-black-700 mb-2">Casa vs Apartamento - Preparação para Frio Extremo</h3>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h4 className="font-bold text-gray-800 text-lg mb-3">Quem mora em CASA</h4>
@@ -600,7 +598,7 @@ export default function Catastrofes() {
                     </ul>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-4">
-                    <h4 className="font-bold text-blue-800 text-lg mb-3">Quem mora em APARTAMENTO</h4>
+                    <h4 className="font-bold text-black-800 text-lg mb-3">Quem mora em APARTAMENTO</h4>
                     <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                       <li>Apartamento tem um pouco mais de segurança</li>
                       <li>Mais pontos de estrangulamento (escadas, elevador)</li>
@@ -631,7 +629,7 @@ export default function Catastrofes() {
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-blue-700 mb-2">🚶 Deslocamento no Frio</h3>
+                <h3 className="text-lg font-bold text-black-700 mb-2">🚶 Deslocamento no Frio</h3>
                 <img src="/images/catastrofes/deslocamento-frio-slide1.png" alt="Deslocamento" className="rounded-lg w-full mb-4 border" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 <p className="text-gray-700 mb-3">Quando você está em deslocamento, não é necessário usar camadas pesadas para se aquecer. Se você continuar se movendo e estiver minimamente isolado, produzirá calor suficiente.</p>
                 <p className="text-gray-700 font-semibold">⚠️ DICA: APRENDA A FAZER UMA RAQUETE DE NEVE!</p>
@@ -639,16 +637,16 @@ export default function Catastrofes() {
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-red-600 mb-2">⚠️ Infraestrutura no Frio Extremo</h3>
+                <h3 className="text-lg font-bold text-black-600 mb-2">⚠️ Infraestrutura no Frio Extremo</h3>
                 <p className="text-gray-700 mb-3">Nossas casas e carros não foram feitos para frios extremos. O sistema hidráulico não funciona, canos dilatam e quebram com a formação de gelo. Vasos sanitários congelam. Carros não ligam (fluidos congelam).</p>
                 <div className="grid md:grid-cols-2 gap-4 mt-4">
                   <div>
-                    <h4 className="font-bold text-blue-700">Armazenamento de Água</h4>
+                    <h4 className="font-bold text-black-700">Armazenamento de Água</h4>
                     <img src="/images/catastrofes/agua-slide1.png" alt="Água" className="rounded-lg w-full border mb-2" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                     <img src="/images/catastrofes/agua-slide2.png" alt="Água" className="rounded-lg w-full border" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                   </div>
                   <div>
-                    <h4 className="font-bold text-orange-700">Cuidados com Gás</h4>
+                    <h4 className="font-bold text-black-700">Cuidados com Gás</h4>
                     <img src="/images/catastrofes/gas-slide1.png" alt="Gás" className="rounded-lg w-full border mb-2" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                     <img src="/images/catastrofes/gas-slide2.png" alt="Gás" className="rounded-lg w-full border" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                   </div>
@@ -656,7 +654,7 @@ export default function Catastrofes() {
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-orange-700 mb-2">Como Cozinhar sem Gás</h3>
+                <h3 className="text-lg font-bold text-black-700 mb-2">Como Cozinhar sem Gás</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                   <img src="/images/catastrofes/cozinhar-slide1.png" alt="Cozinhar" className="rounded-lg border" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                   <img src="/images/catastrofes/cozinhar-slide2.png" alt="Cozinhar" className="rounded-lg border" onError={(e) => { e.currentTarget.style.display = 'none' }} />
@@ -665,11 +663,22 @@ export default function Catastrofes() {
                 <p className="text-gray-700">Óleo de cozinha como combustível, lata ou panela, álcool de posto.</p>
               </div>
 
-              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-5 border border-blue-100">
-                <h3 className="text-lg font-bold text-blue-700 mb-2">Planejamento de Reservas</h3>
+              <div className="bg-gradient-to-r from-black-50 to-cyan-50 rounded-xl p-5 border border-blue-100">
+                <h3 className="text-lg font-bold text-black-700 mb-2">Planejamento de Reservas</h3>
                 <p className="text-gray-700">Família de 3 pessoas: aproximadamente 30 litros de água/dia. Para 6 meses: cerca de 5.400 litros.</p>
                 <p className="text-gray-700 mt-2">Gás: se gasta 13kg por mês, 6 botijões são suficientes para 6 meses.</p>
               </div>
+
+              <button
+              onClick={() => setCardSelecionado(null)}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+            >
+              <span className="text-lg">←</span>
+              <span>Voltar para Catástrofes</span>
+            </button>
+            
+
+              
 
               <div className="bg-gradient-to-r from-gray-50 to-emerald-50 rounded-xl p-6 border border-gray-100 text-center">
                 <p className="text-gray-800 font-semibold">Busquem conhecimento!<br />www.dakilapesquisas.com.br</p>
