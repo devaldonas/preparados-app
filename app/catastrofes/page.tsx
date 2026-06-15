@@ -733,7 +733,6 @@ export default function Catastrofes() {
                   <Link href="/dashboard" className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition">
                     Voltar ao Início
                   </Link>
-
                   <div className="mb-6">
           <BotaoIndicarAmigo />
         </div>

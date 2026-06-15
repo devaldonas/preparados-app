@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import NavBar from '@/components/NavBar'
 
 interface Product {
   id: number
@@ -97,7 +96,6 @@ export default function AdminProdutos() {
   console.log('13. Renderizando pagina admin')
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <NavBar showBackButton={true} backButtonPath="/dashboard" />
       <div className="max-w-4xl mx-auto px-4 py-8">
         
         <div className="flex justify-between items-center mb-6">
@@ -168,6 +166,14 @@ export default function AdminProdutos() {
           </div>
         )}
       </div>
+
+      <div className="mt-8">
+                  <Link href="/dashboard" className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition">
+                    Voltar ao Início
+                  </Link>
+                
+              </div>
+
     </div>
   )
 }
