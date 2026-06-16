@@ -154,20 +154,21 @@ const checkAdminStatus = async (userId: string) => {
   </div>
 </div>
 
-      {/* Cards de Progresso */}
+{/* Cards de Progresso */}
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+  
   {/* Card de Progresso */}
   <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
     <div className="text-center">
       <p className="font-bold text-black text-lg">Você está</p>
       <div className="flex items-center justify-center gap-3 mt-1 mb-3">
-        <span className="text-2xl font-bold text-[#FFB800]">
+        <span className="text-4xl font-bold text-[#FFB800]">
           {Math.round(progress)}%
         </span>
         <img 
           src="/images/preparado.png" 
           alt="PREPARADO" 
-          className="h-4 w-auto"
+          className="h-8 w-auto"
           onError={(e) => { e.currentTarget.style.display = 'none' }}
         />
       </div>
@@ -181,36 +182,37 @@ const checkAdminStatus = async (userId: string) => {
   </div>
   
   {/* Card Check-in */}
-  <Link 
-    href="/check-in"
-    className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition group"
-  >
-    <div className="flex items-center gap-3 mb-2">
-      <img 
-        src="/images/checkin.jpeg" 
-        alt="Check-in" 
-        className="w-10 h-10 object-contain"
-        onError={(e) => { e.currentTarget.style.display = 'none' }}
-      />
-      <div>
-        <p className="font-bold text-black text-xl"> FIQUE 100%</p>
-      </div>
-    </div>
-  </Link>
+<Link 
+  href="/check-in"
+  className="bg-[#FFB800] rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition group flex items-center justify-center"
+>
+  <div className="text-center">
+    <img 
+      src="/images/checkin.jpeg" 
+      alt="Check-in" 
+      className="w-12 h-12 mx-auto mb-3 object-contain"
+      onError={(e) => { e.currentTarget.style.display = 'none' }}
+    />
+    <p className="font-bold text-black text-xl">
+      FIQUE 100%
+    </p>
+    
+  </div>
+</Link>
+  
 </div>
 
-        {/* Menu Principal - Cards de Acesso Rápido */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-
-          <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-            <img 
-              src="/images/pessoas-icon.png" 
-              alt="Pessoas Próximas" 
-              className="w-16 h-16 mx-auto mb-2 object-contain"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
-            <h3 className="font-bold text-gray-900 text-base">Pessoas Próximas</h3>
-            <p className="text-sm text-gray-500 mt-1">Comunidade preparada</p>
+{/* Menu Principal - Cards de Acesso Rápido */}
+<div className="grid grid-cols-2 gap-4 mb-8">
+  <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+    <img 
+      src="/images/pessoas-icon.png" 
+      alt="Pessoas Próximas" 
+      className="w-16 h-16 mx-auto mb-2 object-contain"
+      onError={(e) => { e.currentTarget.style.display = 'none' }}
+    />
+    <h3 className="font-bold text-gray-900 text-base">Pessoas Próximas</h3>
+    <p className="text-sm text-gray-500 mt-1">Comunidade preparada</p>
           </Link>
 
  <Link href="/mochilas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
