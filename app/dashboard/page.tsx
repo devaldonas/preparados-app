@@ -206,7 +206,6 @@ const checkAdminStatus = async (userId: string) => {
       onError={(e) => { e.currentTarget.style.display = 'none' }}
     />
     <h3 className="font-bold text-gray-900 text-base">Pessoas Próximas</h3>
-    <p className="text-sm text-gray-500 mt-1">Comunidade preparada</p>
           </Link>
 
  <Link href="/mochilas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
@@ -217,7 +216,6 @@ const checkAdminStatus = async (userId: string) => {
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
             <h3 className="font-bold text-gray-900 text-base">Mochila</h3>
-            <p className="text-sm text-gray-500 mt-1">Itens essenciais</p>
           </Link>
 
 <Link href="/catastrofes" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
@@ -228,7 +226,6 @@ const checkAdminStatus = async (userId: string) => {
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
             <h3 className="font-bold text-gray-900 text-base">Catástrofes</h3>
-            <p className="text-sm text-gray-500 mt-1">Orientação e rotas</p>
           </Link>
 
   {/* Comunicador Via Rádio */}
@@ -242,8 +239,7 @@ const checkAdminStatus = async (userId: string) => {
               className="w-16 h-16 mx-auto mb-2 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
-            <h3 className="font-bold text-gray-900 text-base">Comunicador Via Rádio</h3>
-            <p className="text-sm text-gray-500 mt-1">PTT - Pressione para falar</p>
+            <h3 className="font-bold text-gray-900 text-base">Rádio</h3>
           </Link>
           
         
@@ -256,7 +252,6 @@ const checkAdminStatus = async (userId: string) => {
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
             <h3 className="font-bold text-gray-900 text-base">Loja</h3>
-            <p className="text-sm text-gray-500 mt-1">Produtos essenciais</p>
           </Link>
 
           <button
@@ -287,8 +282,7 @@ const checkAdminStatus = async (userId: string) => {
       onError={(e) => { e.currentTarget.style.display = 'none' }}
     />
   </div>
-  <h3 className="font-bold text-black text-base">Indique um Amigo</h3>
-  <p className="text-sm text-gray/80 mt-1">Compartilhe o aplicativo</p>
+  <h3 className="font-bold text-black text-base">Compartilhe</h3>
 </button>
 
         </div>
