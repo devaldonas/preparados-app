@@ -158,28 +158,25 @@ const checkAdminStatus = async (userId: string) => {
 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
   {/* Card de Progresso */}
   <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-    <div className="text-center mb-3">
-      <div className="flex items-center justify-center gap-2 mb-2">
+    <div className="text-center">
+      <p className="font-bold text-black text-lg">Você está</p>
+      <div className="flex items-center justify-center gap-3 mt-1 mb-3">
+        <span className="text-2xl font-bold text-[#FFB800]">
+          {Math.round(progress)}%
+        </span>
         <img 
-          src="/logo1.svg" 
+          src="/images/preparado.png" 
           alt="PREPARADO" 
-          className="h-6 w-auto"
+          className="h-4 w-auto"
           onError={(e) => { e.currentTarget.style.display = 'none' }}
         />
-        <p className="font-bold text-gray-700 text-base">
-          Preparado
-        </p>
       </div>
-      <div className="text-4xl font-bold text-[#FFB800] mt-1">
-        {Math.round(progress)}%
+      <div className="w-full bg-gray-200 rounded-full h-2.5">
+        <div 
+          className="bg-[#FFB800] h-2.5 rounded-full transition-all duration-500"
+          style={{ width: `${progress}%` }}
+        />
       </div>
-    </div>
-
-    <div className="w-full bg-gray-200 rounded-full h-2.5">
-      <div 
-        className="bg-[#FFB800] h-2.5 rounded-full transition-all duration-500"
-        style={{ width: `${progress}%` }}
-      />
     </div>
   </div>
   
@@ -196,12 +193,7 @@ const checkAdminStatus = async (userId: string) => {
         onError={(e) => { e.currentTarget.style.display = 'none' }}
       />
       <div>
-        <p className="font-bold text-black text-xl">
-      Fique 100% preparado
-    </p>
-    <p className="text-xs text-gray-400 mt-2">
-      {checkinCompleted ? 'clique aqui' : 'Iniciar avaliacao'}
-    </p>
+        <p className="font-bold text-black text-xl"> FIQUE 100%</p>
       </div>
     </div>
   </Link>
