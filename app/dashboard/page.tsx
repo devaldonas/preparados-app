@@ -220,9 +220,9 @@ const checkAdminStatus = async (userId: string) => {
 
 <Link href="/catastrofes" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
             <img 
-              src="/images/catastrofes-icon.jpeg" 
+              src="/images/catastrofes-icon.png"
               alt="Catástrofes" 
-              className="w-16 h-16 mx-auto mb-2 object-contain"
+              className="w-20 h-20 mx-auto mb-2 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
             <h3 className="font-bold text-gray-900 text-base">Catástrofes</h3>
@@ -248,7 +248,7 @@ const checkAdminStatus = async (userId: string) => {
             <img 
               src="/images/loja-icon.png" 
               alt="Loja" 
-              className="w-16 h-16 mx-auto mb-2 object-contain"
+              className="w-20 h-20 mx-auto mb-2 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
             <h3 className="font-bold text-gray-900 text-base">Loja</h3>
@@ -273,13 +273,13 @@ const checkAdminStatus = async (userId: string) => {
   }}
   className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center group"
 >
-  <div className="w-16 h-16 mx-auto mb-2 rounded-xl flex items-center justify-center bg-white/20">
+  <div className="w-20 h-20 mx-auto mb-2 rounded-xl flex items-center justify-center bg-white/20">
     {/* Aqui voce vai colocar seu icone personalizado */}
     <img 
-      src="/images/indicar-amigo-icon.png" 
-      alt="Indicar Amigo" 
-      className="w-16 h-16 object-contain"
-      onError={(e) => { e.currentTarget.style.display = 'none' }}
+    src="/images/indicar-amigo-icon.png" 
+    alt="Indicar Amigo" 
+    className="w-20 h-20 mx-auto mb-2 object-contain"
+    onError={(e) => { e.currentTarget.style.display = 'none' }}
     />
   </div>
   <h3 className="font-bold text-black text-base">Compartilhe</h3>
