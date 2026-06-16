@@ -162,7 +162,7 @@ const checkAdminStatus = async (userId: string) => {
   <div className="text-center">
     <p className="font-bold text-black text-xl">Você está</p>
     <div className="flex items-center justify-center gap-3 mt-1 mb-3">
-      <span className="text-3xl font-bold text-[#FFB800]">
+      <span className="text-2xl font-bold text-[#FFB800]">
         {Math.round(progress)}%
       </span>
       <img 
