@@ -187,12 +187,6 @@ const checkAdminStatus = async (userId: string) => {
   className="bg-[#FFB800] rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition group flex items-center justify-center"
 >
   <div className="text-center">
-    <img 
-      src="/images/checkin.jpeg" 
-      alt="Check-in" 
-      className="w-12 h-12 mx-auto mb-3 object-contain"
-      onError={(e) => { e.currentTarget.style.display = 'none' }}
-    />
     <p className="font-bold text-black text-xl">
       FIQUE 100%
     </p>
