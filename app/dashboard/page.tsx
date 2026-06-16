@@ -174,6 +174,7 @@ const checkAdminStatus = async (userId: string) => {
         {Math.round(progress)}%
       </div>
     </div>
+
     <div className="w-full bg-gray-200 rounded-full h-2.5">
       <div 
         className="bg-[#FFB800] h-2.5 rounded-full transition-all duration-500"
@@ -207,7 +208,6 @@ const checkAdminStatus = async (userId: string) => {
 </div>
 
         {/* Menu Principal - Cards de Acesso Rápido */}
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Acesso Rápido</h2>
         <div className="grid grid-cols-2 gap-4 mb-8">
 
           <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
