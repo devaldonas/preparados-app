@@ -159,7 +159,17 @@ const checkAdminStatus = async (userId: string) => {
   {/* Card de Progresso */}
   <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
     <div className="text-center mb-3">
-      <span className="text-gray-500 text-sm">Seu nivel de preparação é de:</span>
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <img 
+          src="/logo1.svg" 
+          alt="PREPARADO" 
+          className="h-6 w-auto"
+          onError={(e) => { e.currentTarget.style.display = 'none' }}
+        />
+        <p className="font-bold text-gray-700 text-base">
+          Preparado
+        </p>
+      </div>
       <div className="text-4xl font-bold text-[#FFB800] mt-1">
         {Math.round(progress)}%
       </div>
@@ -187,6 +197,9 @@ const checkAdminStatus = async (userId: string) => {
       <div>
         <p className="font-bold text-black text-xl">
       Fique 100% preparado
+    </p>
+    <p className="text-xs text-gray-400 mt-2">
+      {checkinCompleted ? 'clique aqui' : 'Iniciar avaliacao'}
     </p>
       </div>
     </div>
