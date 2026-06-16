@@ -168,7 +168,7 @@ const checkAdminStatus = async (userId: string) => {
         <img 
           src="/images/preparado.png" 
           alt="PREPARADO" 
-          className="h-8 w-auto"
+          className="h-4 w-auto"
           onError={(e) => { e.currentTarget.style.display = 'none' }}
         />
       </div>
