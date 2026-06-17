@@ -108,7 +108,7 @@ const markerUrl = '/images/markmap.png'
         title: `${group.name} - ${group.member_count} membros`,
         icon: {
           url: markerUrl,
-          scaledSize: new google.maps.Size(44, 44),
+          scaledSize: new google.maps.Size(14, 24),
           anchor: new google.maps.Point(22, 22),
         },
       })
@@ -255,13 +255,6 @@ const markerUrl = '/images/markmap.png'
         initialZoom={4}
         onMapReady={handleMapReady}
       />
-      
-      <button
-        onClick={() => setShowGroupsList(!showGroupsList)}
-        className="absolute top-4 right-4 bg-[#FFB800] text-black px-4 py-2 rounded-lg font-semibold shadow-lg hover:bg-[#E5A600] transition z-10"
-      >
-        {showGroupsList ? 'Ocultar Grupos' : 'Ver Todos Grupos'}
-      </button>
 
       {showGroupsList && (
         <div className="absolute top-16 right-4 w-80 bg-white rounded-xl shadow-xl border border-gray-200 max-h-[500px] overflow-y-auto z-10">
