@@ -15,7 +15,9 @@ export default function BotaoIndicarAmigo() {
       `Acesse: https://preparado.vercel.app\n\n` +
       `Vamos nos preparar juntos.`
     )
-    window.open(`https://wa.me/?text=${mensagem}`, '_blank')
+    
+    // Usar api.whatsapp.com que funciona com WhatsApp e WhatsApp Business
+    window.open(`https://api.whatsapp.com/send?text=${mensagem}`, '_blank')
   }
 
   return (
