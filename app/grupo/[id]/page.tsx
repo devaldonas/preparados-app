@@ -255,6 +255,9 @@ export default function GrupoChat() {
     // Subtrair 3 horas (UTC-3)
     data.setHours(data.getHours() - 3)
     return data.toLocaleTimeString('pt-BR', { 
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
       hour: '2-digit', 
       minute: '2-digit'
     })
