@@ -343,21 +343,21 @@ export default function Carrinho() {
               </div>
             </div>
           )}
+          
+        <div className="mt-8 space-y-4">
+        <Link
+          href="/loja"
+          className="block text-center bg-gray-300 text-gray-700 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
+        >
+          <span>←</span> Voltar para Loja
+        </Link>
+
+        <div>
+          <BotaoIndicarAmigo />
         </div>
-
-<div className="mb-6">
-            <Link
-              href="/loja"
-              className="block text-center gap-2 text-gray-600 hover:text-gray-900"
-            >
-              <span>←</span> Voltar para Loja
-            </Link>
-          </div>
-
-        <div className="mb-6">
-            <BotaoIndicarAmigo />
-          </div>
       </div>
     </div>
-  )
+  </div>
+  </div>
+)
 }

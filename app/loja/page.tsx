@@ -295,17 +295,23 @@ export default function Loja() {
               <p className="text-gray-500">Nenhum produto encontrado nesta categoria.</p>
             </div>
           )}
+
         </div>
 
-<Link href="/dashboard" className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition">
-                    Voltar ao Início
-                  </Link>
+<div className="mt-8 space-y-4">
+  <Link
+    href="/dashboard"
+    className="block text-center bg-gray-300 text-gray-700 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
+  >
+    Voltar ao Início
+  </Link>
 
-        <div className="mb-6">
-            <BotaoIndicarAmigo />
-          </div>
-      </div>
-    </div>
-    
-  )
+  <div>
+    <BotaoIndicarAmigo />
+  </div>
+</div>
+
+</div>
+</div>
+)
 }

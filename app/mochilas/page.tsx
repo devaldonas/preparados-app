@@ -218,17 +218,18 @@ export default function MinhasMochilas() {
         </div>
       </Link>
 
-      <Link 
-            href="/dashboard"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <span>←</span> Voltar ao Início
-          </Link>
+      <div className="mt-8 space-y-4">
+  <Link
+    href="/dashboard"
+    className="block text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
+  >
+    Voltar ao Início
+  </Link>
 
-{/* Botao Indicar Amigo */}
-        <div className="mb-6">
-          <BotaoIndicarAmigo />
-        </div>
+  <div>
+    <BotaoIndicarAmigo />
+  </div>
+</div>
 
         {/* Modal de criação */}
         {showModal && (

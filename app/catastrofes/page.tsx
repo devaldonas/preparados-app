@@ -172,12 +172,15 @@ export default function Catastrofes() {
               </div>
 
               <button
-              onClick={() => setCardSelecionado(null)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-            >
-              <span className="text-lg">←</span>
-              <span>Voltar para Catástrofes</span>
-            </button>
+  onClick={() => setCardSelecionado(null)}
+  className="w-full flex items-center justify-center gap-2 text-center
+             bg-gray-300 text-gray-700 px-4 py-3 rounded-lg font-semibold
+             hover:bg-gray-200 transition h-9"
+>
+  <span className="text-lg">←</span>
+  <span>Voltar para Catástrofes</span>
+</button>
+
 
             </div>
           </div>
@@ -284,12 +287,15 @@ export default function Catastrofes() {
               </div>
 
               <button
-              onClick={() => setCardSelecionado(null)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-            >
-              <span className="text-lg">←</span>
-              <span>Voltar para Catástrofes</span>
-            </button>
+  onClick={() => setCardSelecionado(null)}
+  className="w-full flex items-center justify-center gap-2 text-center
+             bg-gray-300 text-gray-700 px-4 py-3 rounded-lg font-semibold
+             hover:bg-gray-200 transition h-9"
+>
+  <span className="text-lg">←</span>
+  <span>Voltar para Catástrofes</span>
+</button>
+
 
             </div>
           </div>
@@ -306,12 +312,15 @@ export default function Catastrofes() {
           <div className="max-w-4xl mx-auto px-4 py-8">
             
             <button
-              onClick={() => setCardSelecionado(null)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-            >
-              <span className="text-lg">←</span>
-              <span>Voltar para Catástrofes</span>
-            </button>
+  onClick={() => setCardSelecionado(null)}
+  className="w-full flex items-center justify-center gap-2 text-center
+             bg-gray-300 text-gray-700 px-4 py-3 rounded-lg font-semibold
+             hover:bg-gray-200 transition h-9"
+>
+  <span className="text-lg">←</span>
+  <span>Voltar para Catástrofes</span>
+</button>
+
 
             <div className="flex items-center gap-4 mb-6">
               <img 
@@ -670,12 +679,15 @@ export default function Catastrofes() {
               </div>
 
               <button
-              onClick={() => setCardSelecionado(null)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-            >
-              <span className="text-lg">←</span>
-              <span>Voltar para Catástrofes</span>
-            </button>
+  onClick={() => setCardSelecionado(null)}
+  className="w-full flex items-center justify-center gap-2 text-center
+             bg-gray-300 text-gray-700 px-4 py-3 rounded-lg font-semibold
+             hover:bg-gray-200 transition h-9"
+>
+  <span className="text-lg">←</span>
+  <span>Voltar para Catástrofes</span>
+</button>
+
 
 
               
@@ -729,15 +741,18 @@ export default function Catastrofes() {
             ))}
           </div>
         </div>
-         <div className="mt-8">
-                  <Link href="/dashboard" className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition">
-                    Voltar ao Início
-                  </Link>
-                  <div className="mb-6">
-          <BotaoIndicarAmigo />
-        </div>
+         <div className="mt-8 space-y-4">
+  <Link
+    href="/dashboard"
+    className="block text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
+  >
+    Voltar ao Início
+  </Link>
 
-                </div>
+  <div>
+    <BotaoIndicarAmigo />
+  </div>
+</div>
       </div>
       
     </div>

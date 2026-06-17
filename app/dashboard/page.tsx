@@ -200,32 +200,38 @@ const checkAdminStatus = async (userId: string) => {
 <div className="grid grid-cols-2 gap-4 mb-8">
   
   <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-    <img 
-      src="/images/pessoas1-icon.png" 
-      alt="Pessoas Próximas" 
-      className="w-16 h-16 mx-auto mb-2 object-cover"
-      onError={(e) => { e.currentTarget.style.display = 'none' }}
-    />
+      <img
+     src="/images/pessoas1-icon.png"
+     alt="Pessoas Próximas"
+     width={64}
+     height={64}
+     className="w-16 h-16 mx-auto mb-2 object-contain block"
+     onError={(e) => { e.currentTarget.style.display = 'none' }}
+   />
     <h3 className="font-bold text-gray-900 text-base">Pessoas Próximas</h3>
   </Link>
 
   <Link href="/mochilas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-    <img 
-      src="/images/mochila-icon.png" 
-      alt="Mochila" 
-      className="w-16 h-16 mx-auto mb-2 object-cover"
-      onError={(e) => { e.currentTarget.style.display = 'none' }}
-    />
+    <img
+     src="/images/mochila-icon.png"
+     alt="Pessoas Próximas"
+     width={64}
+     height={64}
+     className="w-16 h-16 mx-auto mb-2 object-contain block"
+     onError={(e) => { e.currentTarget.style.display = 'none' }}
+   />
     <h3 className="font-bold text-gray-900 text-base">Mochila</h3>
   </Link>
 
   <Link href="/catastrofes" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-    <img 
-      src="/images/catastrofes-icon.png"
-      alt="Catástrofes" 
-      className="w-16 h-16 mx-auto mb-2 object-cover"
-      onError={(e) => { e.currentTarget.style.display = 'none' }}
-    />
+    <img
+     src="/images/catastrofes-icon.png"
+     alt="Catástrofes"
+     width={64}
+     height={64}
+     className="w-20 h-20 mx-auto mb-2 object-contain block"
+     onError={(e) => { e.currentTarget.style.display = 'none' }}
+   />
     <h3 className="font-bold text-gray-900 text-base">Catástrofes</h3>
   </Link>
 
@@ -233,9 +239,11 @@ const checkAdminStatus = async (userId: string) => {
     <img 
       src="/images/comunicador1-icon.png" 
       alt="Comunicador Via Rádio" 
-      className="w-16 h-16 mx-auto mb-2 object-cover"
-      onError={(e) => { e.currentTarget.style.display = 'none' }}
-    />
+       width={64}
+     height={64}
+     className="w-16 h-16 mx-auto mb-2 object-contain block"
+     onError={(e) => { e.currentTarget.style.display = 'none' }}
+   />
     <h3 className="font-bold text-gray-900 text-base">Rádio</h3>
   </Link>
 
@@ -243,9 +251,11 @@ const checkAdminStatus = async (userId: string) => {
     <img 
       src="/images/loja-icon.png" 
       alt="Loja" 
-      className="w-20 h-20 mx-auto mb-2 object-cover"
-      onError={(e) => { e.currentTarget.style.display = 'none' }}
-    />
+       width={64}
+     height={64}
+     className="w-20 h-20 mx-auto mb-2 object-contain block"
+     onError={(e) => { e.currentTarget.style.display = 'none' }}
+   />
     <h3 className="font-bold text-gray-900 text-base">Loja</h3>
   </Link>
 
@@ -271,9 +281,11 @@ const checkAdminStatus = async (userId: string) => {
     <img 
       src="/images/indicar-amigo-icon.png" 
       alt="Indicar Amigo" 
-      className="w-16 h-16 mx-auto mb-2 object-cover"
-      onError={(e) => { e.currentTarget.style.display = 'none' }}
-    />
+       width={64}
+     height={64}
+     className="w-18 h-18 mx-auto mb-2 object-contain block"
+     onError={(e) => { e.currentTarget.style.display = 'none' }}
+   />
     <h3 className="font-bold text-gray-900 text-base">Compartilhe</h3>
   </button>
 
