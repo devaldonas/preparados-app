@@ -198,95 +198,147 @@ const checkAdminStatus = async (userId: string) => {
 
 {/* Menu Principal - Cards de Acesso Rápido */}
 <div className="grid grid-cols-2 gap-4 mb-8">
-  
-  <Link href="/pessoas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
+
+  {/* Pessoas */}
+  <Link
+    href="/pessoas"
+    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
+  >
+    <div className="w-20 h-20 flex items-center justify-center">
       <img
-     src="/images/pessoas1-icon.png"
-     alt="Pessoas Próximas"
-     width={64}
-     height={64}
-     className="w-16 h-16 mx-auto mb-2 object-contain block"
-     onError={(e) => { e.currentTarget.style.display = 'none' }}
-   />
-    <h3 className="font-bold text-gray-900 text-base">Pessoas Próximas</h3>
+        src="/images/pessoas1-icon.png"
+        alt="Pessoas Próximas"
+        className="w-16 h-16 object-contain"
+        onError={(e) => {
+          e.currentTarget.style.display = "none"
+        }}
+      />
+    </div>
+
+    <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
+      Pessoas Próximas
+    </h3>
   </Link>
 
-  <Link href="/mochilas" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-    <img
-     src="/images/mochila-icon.png"
-     alt="Pessoas Próximas"
-     width={64}
-     height={64}
-     className="w-16 h-16 mx-auto mb-2 object-contain block"
-     onError={(e) => { e.currentTarget.style.display = 'none' }}
-   />
-    <h3 className="font-bold text-gray-900 text-base">Mochila</h3>
+  {/* Mochila */}
+  <Link
+    href="/mochilas"
+    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
+  >
+    <div className="w-20 h-20 flex items-center justify-center">
+      <img
+        src="/images/mochila-icon.png"
+        alt="Mochila"
+        className="w-16 h-16 object-contain"
+        onError={(e) => {
+          e.currentTarget.style.display = "none"
+        }}
+      />
+    </div>
+
+    <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
+      Mochila
+    </h3>
   </Link>
 
-  <Link href="/catastrofes" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-    <img
-     src="/images/catastrofes-icon.png"
-     alt="Catástrofes"
-     width={64}
-     height={64}
-     className="w-20 h-20 mx-auto mb-2 object-contain block"
-     onError={(e) => { e.currentTarget.style.display = 'none' }}
-   />
-    <h3 className="font-bold text-gray-900 text-base">Catástrofes</h3>
+  {/* Catástrofes */}
+  <Link
+    href="/catastrofes"
+    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
+  >
+    <div className="w-20 h-20 flex items-center justify-center">
+      <img
+        src="/images/catastrofes-icon.png"
+        alt="Catástrofes"
+        className="w-16 h-16 object-contain"
+        onError={(e) => {
+          e.currentTarget.style.display = "none"
+        }}
+      />
+    </div>
+
+    <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
+      Catástrofes
+    </h3>
   </Link>
 
-  <Link href="/comunicador/canal/8bfb8c3e-9fb0-4a43-a781-dc96b0a09baf" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-    <img 
-      src="/images/comunicador1-icon.png" 
-      alt="Comunicador Via Rádio" 
-       width={64}
-     height={64}
-     className="w-16 h-16 mx-auto mb-2 object-contain block"
-     onError={(e) => { e.currentTarget.style.display = 'none' }}
-   />
-    <h3 className="font-bold text-gray-900 text-base">Rádio</h3>
+  {/* Rádio */}
+  <Link
+    href="/comunicador/canal/8bfb8c3e-9fb0-4a43-a781-dc96b0a09baf"
+    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
+  >
+    <div className="w-20 h-20 flex items-center justify-center">
+      <img
+        src="/images/comunicador1-icon.png"
+        alt="Comunicador Via Rádio"
+        className="w-16 h-16 object-contain"
+        onError={(e) => {
+          e.currentTarget.style.display = "none"
+        }}
+      />
+    </div>
+
+    <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
+      Rádio
+    </h3>
   </Link>
 
-  <Link href="/loja" className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center">
-    <img 
-      src="/images/loja-icon.png" 
-      alt="Loja" 
-       width={64}
-     height={64}
-     className="w-20 h-20 mx-auto mb-2 object-contain block"
-     onError={(e) => { e.currentTarget.style.display = 'none' }}
-   />
-    <h3 className="font-bold text-gray-900 text-base">Loja</h3>
+  {/* Loja */}
+  <Link
+    href="/loja"
+    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
+  >
+    <div className="w-20 h-20 flex items-center justify-center">
+      <img
+        src="/images/loja-icon.png"
+        alt="Loja"
+        className="w-16 h-16 object-contain"
+        onError={(e) => {
+          e.currentTarget.style.display = "none"
+        }}
+      />
+    </div>
+
+    <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
+      Loja
+    </h3>
   </Link>
 
+  {/* Compartilhar */}
   <button
     onClick={() => {
       const mensagem = encodeURIComponent(
         `Olá,\n\n` +
-        `Estou usando o app PREPARADO e quero compartilhar com você.\n\n` +
-        `É um aplicativo gratuito que auxilia na preparacao para emergencias.\n\n` +
-        `O que voce encontra no PREPARADO:\n` +
-        `• Checklist completo para sua mochila de emergencia\n` +
-        `• Conexao com pessoas proximas e formacao de grupos\n` +
-        `• Chat em tempo real com sua comunidade\n` +
-        `• Guia completo para catastrofes (terremoto, tsunami, frio extremo)\n` +
-        `• Dicas diarias de preparacao\n\n` +
-        `Acesse: https://preparado.vercel.app\n\n` +
-        `Vamos nos preparar juntos.`
+          `Estou usando o app PREPARADO e quero compartilhar com você.\n\n` +
+          `É um aplicativo que auxilia na preparação para emergencias.\n\n` +
+          `O que você encontra no PREPARADO:\n` +
+          `• Checklist completo para sua mochila de emergencia\n` +
+          `• Conexão com pessoas próximas e formação de grupos\n` +
+          `• Chat em tempo real com sua comunidade\n` +
+          `• Guia completo para catástrofes (terremoto, tsunami, frio extremo)\n` +
+          `• Dicas diárias de preparação\n\n` +
+          `Acesse: https://preparado.vercel.app\n\n` +
+          `Vamos nos preparar juntos.`
       )
-      window.open(`https://wa.me/?text=${mensagem}`, '_blank')
+
+      window.open(`https://wa.me/?text=${mensagem}`, "_blank")
     }}
-    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center"
+    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
   >
-    <img 
-      src="/images/indicar-amigo-icon.png" 
-      alt="Indicar Amigo" 
-       width={64}
-     height={64}
-     className="w-18 h-18 mx-auto mb-2 object-contain block"
-     onError={(e) => { e.currentTarget.style.display = 'none' }}
-   />
-    <h3 className="font-bold text-gray-900 text-base">Compartilhe</h3>
+    <div className="w-20 h-20 flex items-center justify-center">
+      <img
+        src="/images/indicar-amigo-icon.png"
+        alt="Indicar Amigo"
+        className="w-16 h-16 object-contain"
+        onError={(e) => {
+          e.currentTarget.style.display = "none"
+        }}
+      />
+    </div>
+
+    <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
+      Compartilhe
+    </h3>
   </button>
 
 </div>
