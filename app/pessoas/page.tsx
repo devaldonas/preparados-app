@@ -23,6 +23,7 @@ export default function PessoasProximas() {
   const [userLocations, setUserLocations] = useState<UserLocation[]>([])
   const [totalPreparados, setTotalPreparados] = useState(0)
   const [userCep, setUserCep] = useState('')
+  const [showGroupsList, setShowGroupsList] = useState(false)  // ← NOVO ESTADO
   const router = useRouter()
   const [redirecting, setRedirecting] = useState(false)
 
@@ -121,39 +122,38 @@ export default function PessoasProximas() {
         </div>
 
         {/* Contadores e botão Ver Todos Grupos */}
-<div className="grid grid-cols-2 gap-4 mb-6">
-  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
-    <div className="text-3xl font-bold text-[#FFB800]">{userLocations.length}</div>
-    <p className="text-sm text-gray-600">Preparados no mapa</p>
-  </div>
-  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center relative">
-    <div className="text-3xl font-bold text-[#FFB800]">{totalPreparados}</div>
-    <p className="text-sm text-gray-600">Total de Preparados</p>
-    <button
-      onClick={() => {
-        const mapComponent = document.querySelector('.relative') as HTMLElement
-        const listButton = mapComponent?.querySelector('button') as HTMLElement
-        if (listButton) {
-          listButton.click()
-        }
-      }}
-      className="mt-2 bg-[#FFB800] text-black px-3 py-1 rounded-lg text-xs font-semibold hover:bg-[#E5A600] transition"
-    >
-      Ver Todos Grupos
-    </button>
-  </div>
-</div>
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
+            <div className="text-3xl font-bold text-[#FFB800]">{userLocations.length}</div>
+            <p className="text-sm text-gray-600">Preparados no mapa</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
+            <div className="text-3xl font-bold text-[#FFB800]">{totalPreparados}</div>
+            <p className="text-sm text-gray-600">Total de Preparados</p>
+          </div>
+          <button
+            onClick={() => setShowGroupsList(!showGroupsList)}
+            className="bg-[#FFB800] rounded-xl shadow-sm border border-gray-100 p-4 text-center hover:shadow-md transition flex flex-col items-center justify-center"
+          >
+            <div className="text-3xl font-bold text-black"></div>
+            <p className="text-sm text-black font-medium">
+              {showGroupsList ? 'Ocultar Grupos' : 'Ver Todos Grupos'}
+            </p>
+          </button>
+        </div>
 
         {/* Mapa */}
-<div className="mb-6">
-  <GroupMap 
-    userLocations={userLocations}
-    onGroupSelect={(groupId) => {
-      const targetGroup = groupId || 1
-      router.push(`/grupo/${targetGroup}`)
-    }}
-  />
-</div>
+        <div className="mb-6">
+          <GroupMap 
+            userLocations={userLocations}
+            showGroupsList={showGroupsList}           // ← PASSAR ESTADO
+            setShowGroupsList={setShowGroupsList}     // ← PASSAR FUNÇÃO
+            onGroupSelect={(groupId) => {
+              const targetGroup = groupId || 1
+              router.push(`/grupo/${targetGroup}`)
+            }}
+          />
+        </div>
 
         {/* Controles */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
@@ -170,19 +170,18 @@ export default function PessoasProximas() {
             </button>
           </div>
         </div>
-       <div className="mt-8 space-y-4">
-  <Link
-    href="/dashboard"
-    className="block text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
-  >
-    Voltar ao Início
-  </Link>
 
+        <div className="mt-8 space-y-4">
+          <Link
+            href="/dashboard"
+            className="block text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
+          >
+            Voltar ao Início
+          </Link>
 
-           {/* Botao Indicar Amigo */}
-        <div className="mb-6">
-          <BotaoIndicarAmigo />
-        </div>
+          <div className="mb-6">
+            <BotaoIndicarAmigo />
+          </div>
         </div>
       </div>
     </div>
