@@ -250,11 +250,16 @@ export default function GrupoChat() {
                 </div>
                 <p className="text-sm break-words">{msg.content}</p>
                 <p className={`text-xs mt-1 ${isOwn ? 'opacity-70' : 'text-gray-400'}`}>
-                  {new Date(msg.created_at).toLocaleTimeString('pt-BR', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </p>
+  {(() => {
+    const data = new Date(msg.created_at)
+    // Subtrair 3 horas (UTC-3)
+    data.setHours(data.getHours() - 3)
+    return data.toLocaleTimeString('pt-BR', { 
+      hour: '2-digit', 
+      minute: '2-digit'
+    })
+  })()}
+</p>
               </div>
             </div>
           )

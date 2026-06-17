@@ -18,15 +18,22 @@ interface UserLocation {
 interface GroupMapProps {
   userLocations: UserLocation[]
   onGroupSelect?: (groupId: number | null) => void
+  showGroupsList?: boolean          // ← NOVO
+  setShowGroupsList?: (value: boolean) => void  // ← NOVO
 }
 
-export default function GroupMap({ userLocations, onGroupSelect }: GroupMapProps) {
+export default function GroupMap({ 
+  userLocations, 
+  onGroupSelect,
+  showGroupsList = false,           // ← DEFAULT
+  setShowGroupsList                 // ← NOVO
+}: GroupMapProps) {
   const mapRef = useRef<google.maps.Map | null>(null)
   const markersRef = useRef<google.maps.Marker[]>([])
   const groupMarkersRef = useRef<google.maps.Marker[]>([])
   const [mapReady, setMapReady] = useState(false)
   const [allGroups, setAllGroups] = useState<any[]>([])
-  const [showGroupsList, setShowGroupsList] = useState(false)
+  // Remove o estado local showGroupsList
   const router = useRouter()
 
   const handleMapReady = (map: google.maps.Map) => {
