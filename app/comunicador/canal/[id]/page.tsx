@@ -21,6 +21,8 @@ export default function SalaComunicador() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [audioURLs, setAudioURLs] = useState<{ id: string; url: string; from: string }[]>([])
+
+  
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])

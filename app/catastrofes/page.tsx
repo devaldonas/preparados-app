@@ -20,27 +20,27 @@ export default function Catastrofes() {
 
   const router = useRouter()
 
-  const cards: CardCatastrofe[] = [
+ const cards: CardCatastrofe[] = [
   {
     id: 'terremoto',
     nome: 'Terremoto',
-    descricao: 'Saiba como agir durante e apos um terremoto',
+    descricao: 'Saiba como agir durante e após um terremoto',
     icone: '/images/catastrofes/terremoto.jpeg',
-    cor: 'from-white-500 to-red-700'
+    cor: 'from-red-500 to-red-700'
   },
   {
     id: 'tsunami',
     nome: 'Tsunami',
     descricao: 'Identifique sinais e saiba como se proteger',
     icone: '/images/catastrofes/tsunami.jpeg',
-    cor: 'from-white-500 to-blue-700'
+    cor: 'from-blue-500 to-blue-700'
   },
   {
     id: 'rotas',
     nome: 'Rotas de Fuga',
-    descricao: 'Planeje sua rota de evacuacao com antecedencia',
+    descricao: 'Planeje sua rota de evacuação com antecedência',
     icone: '/images/catastrofes/rotadefuga.png',
-    cor: 'from-white-500 to-green-700',
+    cor: 'from-green-500 to-green-700',
     href: '/catastrofes/rotas-fuga'
   },
   {
@@ -48,7 +48,7 @@ export default function Catastrofes() {
     nome: 'Frio Extremo',
     descricao: 'Prepare-se para temperaturas extremamente baixas',
     icone: '/images/catastrofes/frioextremo.jpeg',
-    cor: 'from-white-500 to-cyan-700'
+    cor: 'from-cyan-500 to-cyan-700'
   }
 ]
 
@@ -65,9 +65,11 @@ export default function Catastrofes() {
               <img 
                 src="/images/catastrofes/terremoto.jpeg" 
                 alt="Terremoto" 
-                className="w-16 h-16 object-contain rounded-xl"
+                width={64}
+                height={64}
+                className="w-20 h-20 mx-auto mb-2 object-contain block"
                 onError={(e) => { e.currentTarget.style.display = 'none' }}
-              />
+                />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Terremoto</h1>
                 <p className="text-gray-500">Saiba como agir durante e após um terremoto</p>
@@ -202,9 +204,11 @@ export default function Catastrofes() {
               <img 
                 src="/images/catastrofes/tsunami.jpeg" 
                 alt="Tsunami" 
-                className="w-16 h-16 object-contain rounded-xl"
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
-              />
+                width={64}
+     height={64}
+     className="w-20 h-20 mx-auto mb-2 object-contain block"
+     onError={(e) => { e.currentTarget.style.display = 'none' }}
+   />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Tsunami</h1>
                 <p className="text-gray-500">Identifique sinais e saiba como se proteger</p>
@@ -326,7 +330,7 @@ export default function Catastrofes() {
               <img 
                 src="/images/catastrofes/rotadefuga.png" 
                 alt="Rotas de Fuga" 
-                className="w-16 h-16 object-contain rounded-xl"
+                className="w-18 h-18 object-contain rounded-xl"
                 onError={(e) => { e.currentTarget.style.display = 'none' }}
               />
               <div>
@@ -727,14 +731,15 @@ export default function Catastrofes() {
                 className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition text-center group"
 
               >
-                <div className={`w-16 h-16 mx-auto mb-3 rounded-xl flex items-center justify-center bg-gradient-to-r ${card.cor}`}>
-                  <img 
-                    src={card.icone} 
-                    alt={card.nome} 
-                    className="w-10 h-10 object-contain"
-                    onError={(e) => { e.currentTarget.style.display = 'none' }}
-                  />
-                </div>
+                <div className="mx-auto mb-3 flex items-center justify-center">
+  <img 
+    src={card.icone} 
+    alt={card.nome} 
+    className="w-16 h-16 object-contain"
+    onError={(e) => { e.currentTarget.style.display = 'none' }}
+  />
+</div>
+
                 <h3 className="font-bold text-gray-900 text-base">{card.nome}</h3>
                 <p className="text-xs text-gray-500 mt-1">{card.descricao}</p>
               </button>

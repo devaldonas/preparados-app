@@ -13,6 +13,13 @@ interface Message {
   user_name: string
 }
 
+// Função para detectar links na mensagem
+const contemLink = (texto: string) => {
+  const urlRegex =
+    /(https?:\/\/[^\s]+)|(\bwww\.[^\s]+)|([^\s]+\.[a-z]{2,})(\/[^\s]*)?/i
+  return urlRegex.test(texto)
+}
+
 export default function GrupoChat() {
   const params = useParams()
   const router = useRouter()
@@ -25,6 +32,7 @@ export default function GrupoChat() {
   const [loading, setLoading] = useState(true)
   const [groupName, setGroupName] = useState('Carregando...')
   const [groupInfo, setGroupInfo] = useState<any>(null)
+  const [error, setError] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -127,6 +135,14 @@ export default function GrupoChat() {
   const sendMessage = async () => {
     if (!newMessage.trim() || !user) return
 
+    // Verificar se contém links
+    if (contemLink(newMessage.trim())) {
+      setError('Não é permitido enviar links no chat')
+      setTimeout(() => setError(''), 4000)
+      return
+    }
+
+    setError('')
     const userName = profile?.full_name || user.email?.split('@')[0] || 'Preparado'
 
     const { error } = await supabase
@@ -196,6 +212,13 @@ export default function GrupoChat() {
           </div>
         )}
 
+        {/* Mensagem de erro */}
+        {error && (
+          <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-2 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
+
         {messages.length === 0 && (
           <div className="text-center text-gray-400 py-8">
             Nenhuma mensagem ainda. Seja o primeiro a falar!
@@ -250,7 +273,10 @@ export default function GrupoChat() {
             <input
               type="text"
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={(e) => {
+                setNewMessage(e.target.value)
+                if (error) setError('')
+              }}
               onKeyPress={handleKeyPress}
               placeholder="Digite sua mensagem..."
               className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent text-base"
@@ -263,6 +289,9 @@ export default function GrupoChat() {
               Enviar
             </button>
           </div>
+          <p className="text-xs text-gray-400 mt-1 text-center">
+            Não é permitido enviar links no chat
+          </p>
         </div>
       </div>
     </div>

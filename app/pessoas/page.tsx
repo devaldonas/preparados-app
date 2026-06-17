@@ -120,17 +120,29 @@ export default function PessoasProximas() {
           </p>
         </div>
 
-        {/* Contadores */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
-            <div className="text-3xl font-bold text-[#FFB800]">{userLocations.length}</div>
-            <p className="text-sm text-gray-600">Preparados no mapa</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
-            <div className="text-3xl font-bold text-[#FFB800]">{totalPreparados}</div>
-            <p className="text-sm text-gray-600">Total de Preparados</p>
-          </div>
-        </div>
+        {/* Contadores e botão Ver Todos Grupos */}
+<div className="grid grid-cols-2 gap-4 mb-6">
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
+    <div className="text-3xl font-bold text-[#FFB800]">{userLocations.length}</div>
+    <p className="text-sm text-gray-600">Preparados no mapa</p>
+  </div>
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center relative">
+    <div className="text-3xl font-bold text-[#FFB800]">{totalPreparados}</div>
+    <p className="text-sm text-gray-600">Total de Preparados</p>
+    <button
+      onClick={() => {
+        const mapComponent = document.querySelector('.relative') as HTMLElement
+        const listButton = mapComponent?.querySelector('button') as HTMLElement
+        if (listButton) {
+          listButton.click()
+        }
+      }}
+      className="mt-2 bg-[#FFB800] text-black px-3 py-1 rounded-lg text-xs font-semibold hover:bg-[#E5A600] transition"
+    >
+      Ver Todos Grupos
+    </button>
+  </div>
+</div>
 
         {/* Mapa */}
 <div className="mb-6">
