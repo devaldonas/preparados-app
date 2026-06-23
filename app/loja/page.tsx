@@ -1,3 +1,4 @@
+// app/loja/page.tsx (CORRIGIDO)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -6,9 +7,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 import CarouselFooter from '@/components/CarouselFooter'
+import { useCart } from '@/lib/store/cart'
 
 interface Product {
-  id: number
+  id: string
   name: string
   description: string
   price: number
@@ -16,18 +18,22 @@ interface Product {
   image_url: string
   stock: number
   mochila_tipo: string[]
+  is_active: boolean
+  featured?: boolean
 }
 
 export default function Loja() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('todos')
-  const [cartCount, setCartCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const productsPerPage = 4
   const router = useRouter()
+  
+  const { addItem, getTotalItems, items } = useCart()
+  const cartCount = getTotalItems()
 
   useEffect(() => {
     carregarUsuario()
@@ -36,7 +42,6 @@ export default function Loja() {
   useEffect(() => {
     if (user) {
       carregarProdutos()
-      carregarCarrinhoCount()
     }
   }, [user, selectedCategory])
 
@@ -72,51 +77,40 @@ export default function Loja() {
     }
   }
 
-  const carregarCarrinhoCount = async () => {
-    const { count, error } = await supabase
-      .from('cart_items')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user?.id)
-
-    if (!error) {
-      setCartCount(count || 0)
-    }
-  }
-
-  const adicionarAoCarrinho = async (product: Product) => {
+  const adicionarAoCarrinho = (product: Product) => {
     if (!user) return
 
-    const { data: existing } = await supabase
-      .from('cart_items')
-      .select('id, quantity')
-      .eq('user_id', user.id)
-      .eq('product_id', product.id)
-      .maybeSingle()
-
-    if (existing) {
-      await supabase
-        .from('cart_items')
-        .update({ quantity: existing.quantity + 1 })
-        .eq('id', existing.id)
-    } else {
-      await supabase
-        .from('cart_items')
-        .insert({
-          user_id: user.id,
-          product_id: product.id,
-          quantity: 1
-        })
-    }
-
-    await carregarCarrinhoCount()
+    // Verificar se o produto já está no carrinho
+    const existingItem = items.find(item => item.product_id === product.id)
     
+    if (existingItem) {
+      // Se já existe, não adiciona novamente - apenas atualiza a quantidade
+      // O store já faz isso automaticamente
+    }
+    
+    // Adicionar ao carrinho
+    addItem({
+      product_id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image_url,
+      max_stock: product.stock,
+    }, 1)
+
+    // Feedback visual
     const btn = document.getElementById(`btn-${product.id}`)
     if (btn) {
       const originalText = btn.textContent
-      btn.textContent = 'Adicionado!'
+      btn.textContent = '✓ Adicionado!'
+      btn.className = 'px-2 sm:px-4 py-1 sm:py-2 rounded-lg font-semibold transition text-xs sm:text-base bg-green-500 text-white'
       setTimeout(() => {
         btn.textContent = originalText
-      }, 1500)
+        btn.className = `px-2 sm:px-4 py-1 sm:py-2 rounded-lg font-semibold transition text-xs sm:text-base ${
+          product.stock === 0
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
+        }`
+      }, 2000)
     }
   }
 
@@ -127,7 +121,7 @@ export default function Loja() {
     }).format(price)
   }
 
-  // Paginacao
+  // Paginação
   const totalPages = Math.ceil(products.length / productsPerPage)
   const indexOfLastProduct = currentPage * productsPerPage
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage
@@ -148,15 +142,11 @@ export default function Loja() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      
       <div className="flex-1">
         <div className="max-w-4xl mx-auto px-4 py-8">
-          
-          
-
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-black">Loja Preparado</h1>
+              <h1 className="text-2xl font-bold text-black">🛒 Loja Preparado</h1>
               <p className="text-gray-500 text-sm">Equipamentos essenciais para sua mochila</p>
             </div>
             <Link
@@ -205,58 +195,66 @@ export default function Loja() {
             ))}
           </div>
 
-          {/* Grid de produtos - 2 colunas em todos os dispositivos */}
-<div className="grid grid-cols-2 gap-3 sm:gap-4">
-  {currentProducts.map((product) => (
-    <div 
-  key={product.id} 
-  className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group cursor-pointer"
-  onClick={() => router.push(`/loja/produto/${product.id}`)}
->
-      <div className="relative h-32 sm:h-40 bg-gray-100 overflow-hidden">
-        <img 
-          src={product.image_url}
-          alt={product.name}
-          className="w-full h-full object-contain p-2 sm:p-3 group-hover:scale-105 transition duration-300"
-          onError={(e) => {
-            e.currentTarget.src = '/images/placeholder.jpg'
-          }}
-        />
-        {product.stock < 5 && product.stock > 0 && (
-          <span className="absolute top-1 left-1 bg-orange-500 text-white text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full">
-            Ultimas
-          </span>
-        )}
-        {product.stock === 0 && (
-          <span className="absolute top-1 left-1 bg-red-500 text-white text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full">
-            Esgotado
-          </span>
-        )}
-      </div>
-      <div className="p-2 sm:p-4">
-        <h3 className="font-bold text-gray-900 text-sm sm:text-lg mb-0.5 sm:mb-1 line-clamp-1">{product.name}</h3>
-        <p className="text-[10px] sm:text-xs text-gray-500 mb-1 sm:mb-2 line-clamp-2">{product.description}</p>
-        <div className="flex items-center justify-between mt-2 sm:mt-3">
-          <span className="text-sm sm:text-xl font-bold text-[#FFB800]">{formatPrice(product.price)}</span>
-          <button
-            id={`btn-${product.id}`}
-            onClick={() => adicionarAoCarrinho(product)}
-            disabled={product.stock === 0}
-            className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg font-semibold transition text-xs sm:text-base ${
-              product.stock === 0
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
-            }`}
-          >
-            Comprar
-          </button>
-        </div>
-      </div>
-    </div>
-  ))}
-</div>
+          {/* Grid de produtos */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            {currentProducts.map((product) => (
+              <div 
+                key={product.id} 
+                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition group cursor-pointer"
+                onClick={() => router.push(`/loja/produto/${product.id}`)}
+              >
+                <div className="relative h-32 sm:h-40 bg-gray-100 overflow-hidden">
+                  <img 
+                    src={product.image_url}
+                    alt={product.name}
+                    className="w-full h-full object-contain p-2 sm:p-3 group-hover:scale-105 transition duration-300"
+                    onError={(e) => {
+                      e.currentTarget.src = '/images/placeholder.jpg'
+                    }}
+                  />
+                  {product.featured && (
+                    <span className="absolute top-1 right-1 bg-[#FFB800] text-black text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full font-bold">
+                      Destaque
+                    </span>
+                  )}
+                  {product.stock < 5 && product.stock > 0 && (
+                    <span className="absolute top-1 left-1 bg-orange-500 text-white text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full">
+                      Últimas
+                    </span>
+                  )}
+                  {product.stock === 0 && (
+                    <span className="absolute top-1 left-1 bg-red-500 text-white text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full">
+                      Esgotado
+                    </span>
+                  )}
+                </div>
+                <div className="p-2 sm:p-4">
+                  <h3 className="font-bold text-gray-900 text-sm sm:text-lg mb-0.5 sm:mb-1 line-clamp-1">{product.name}</h3>
+                  <p className="text-[10px] sm:text-xs text-gray-500 mb-1 sm:mb-2 line-clamp-2">{product.description}</p>
+                  <div className="flex items-center justify-between mt-2 sm:mt-3">
+                    <span className="text-sm sm:text-xl font-bold text-[#FFB800]">{formatPrice(product.price)}</span>
+                    <button
+                      id={`btn-${product.id}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        adicionarAoCarrinho(product)
+                      }}
+                      disabled={product.stock === 0}
+                      className={`px-2 sm:px-4 py-1 sm:py-2 rounded-lg font-semibold transition text-xs sm:text-base ${
+                        product.stock === 0
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
+                      }`}
+                    >
+                      Comprar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
 
-          {/* Paginacao */}
+          {/* Paginação */}
           {totalPages > 1 && (
             <div className="flex justify-center gap-2 mt-8">
               <button
@@ -289,29 +287,29 @@ export default function Loja() {
             </div>
           )}
 
-          {/* Mensagem quando nao ha produtos */}
+          {/* Mensagem quando não há produtos */}
           {products.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-500">Nenhum produto encontrado nesta categoria.</p>
             </div>
           )}
-
         </div>
 
-<div className="mt-8 space-y-4">
-  <Link
-    href="/dashboard"
-    className="block text-center bg-gray-300 text-gray-700 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
-  >
-    Voltar ao Início
-  </Link>
+        <div className="mt-8 space-y-4 max-w-4xl mx-auto px-4 pb-8">
+          <Link
+            href="/dashboard"
+            className="block text-center bg-gray-300 text-gray-700 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
+          >
+            Voltar ao Início
+          </Link>
 
-  <div>
-    <BotaoIndicarAmigo />
-  </div>
-</div>
-
-</div>
-</div>
-)
+          <div>
+            <BotaoIndicarAmigo />
+          </div>
+          
+          <CarouselFooter />
+        </div>
+      </div>
+    </div>
+  )
 }
