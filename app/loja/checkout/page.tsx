@@ -1,6 +1,7 @@
-// app/loja/checkout/page.tsx (CORRIGIDO)
+// app/loja/checkout/page.tsx (VERSÃO CORRIGIDA PARA BUILD)
 'use client'
 
+import { Suspense } from 'react'
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -8,25 +9,12 @@ import { supabase } from '@/lib/supabaseClient'
 import { useCart } from '@/lib/store/cart'
 import { ArrowLeft, Loader2, Check, Copy, Banknote, CreditCard } from 'lucide-react'
 
-interface Order {
-  id: number
-  user_id: string
-  total_amount: number
-  payment_method: string
-  payment_status: string
-  transaction_id: string
-  status: string
-  shipping_address: string
-  created_at: string
-  items: any[]
-}
-
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams.get('order')
   
-  const [order, setOrder] = useState<Order | null>(null)
+  const [order, setOrder] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [pixData, setPixData] = useState<{ qrCode: string; copyPaste: string } | null>(null)
@@ -45,7 +33,6 @@ export default function CheckoutPage() {
 
   const carregarPedido = async () => {
     try {
-      // Buscar pedido
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .select('*')
@@ -54,7 +41,6 @@ export default function CheckoutPage() {
 
       if (orderError) throw orderError
 
-      // Buscar itens do pedido
       const { data: items } = await supabase
         .from('order_items')
         .select('*')
@@ -62,14 +48,11 @@ export default function CheckoutPage() {
 
       setOrder({ ...orderData, items: items || [] })
 
-      // Se o pedido já foi pago, redirecionar para detalhes
       if (orderData.payment_status === 'paid') {
         router.push(`/loja/pedidos/${orderData.id}`)
         return
       }
 
-      // Gerar QR Code PIX (simulação)
-      // Em produção: integrar com Mercado Pago / Asaas
       const qrCodeData = `00020126580014BR.GOV.BCB.PIX0136${'cliente@preparado.com'}5204000053039865404${orderData.total_amount.toFixed(2)}5802BR5913PREPARADO6009SAO PAULO62070503***6304`
       
       setPixData({
@@ -92,10 +75,7 @@ export default function CheckoutPage() {
     setError(null)
     
     try {
-      console.log('Confirmando pagamento do pedido:', order.id)
-      
-      // Atualizar status do pedido para pago
-      const { data, error: updateError } = await supabase
+      const { error: updateError } = await supabase
         .from('orders')
         .update({ 
           payment_status: 'paid',
@@ -103,20 +83,10 @@ export default function CheckoutPage() {
           updated_at: new Date().toISOString()
         })
         .eq('id', order.id)
-        .select()
 
-      if (updateError) {
-        console.error('Erro ao atualizar pedido:', updateError)
-        throw updateError
-      }
+      if (updateError) throw updateError
 
-      console.log('Pedido atualizado com sucesso:', data)
-
-      // Limpar carrinho
       clearCart()
-
-      // Redirecionar para detalhes do pedido
-      console.log('Redirecionando para:', `/loja/pedidos/${order.id}`)
       router.push(`/loja/pedidos/${order.id}`)
       
     } catch (error) {
@@ -210,7 +180,7 @@ export default function CheckoutPage() {
             </h3>
             
             <div className="space-y-2">
-              {order.items && order.items.map((item, index) => (
+              {order.items && order.items.map((item: any, index: number) => (
                 <div key={index} className="flex justify-between text-sm">
                   <span className="text-gray-600">
                     {item.quantity}x {item.name || `Produto ${item.product_id}`}
@@ -333,5 +303,17 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
+      </div>
+    }>
+      <CheckoutContent />
+    </Suspense>
   )
 }
