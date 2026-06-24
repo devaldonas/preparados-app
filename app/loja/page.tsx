@@ -146,7 +146,7 @@ export default function Loja() {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-black">🛒 Loja Preparado</h1>
+              <h1 className="text-2xl font-bold text-black"> Loja Preparado</h1>
               <p className="text-gray-500 text-sm">Equipamentos essenciais para sua mochila</p>
             </div>
             <Link
@@ -246,7 +246,7 @@ export default function Loja() {
                           : 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
                       }`}
                     >
-                      Comprar
+                      Adicionar ao Carrinho
                     </button>
                   </div>
                 </div>
