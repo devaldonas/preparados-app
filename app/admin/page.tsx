@@ -1,4 +1,4 @@
-// app/admin/page.tsx
+// app/admin/page.tsx (ATUALIZADO COM TODOS OS BOTÕES)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -11,7 +11,10 @@ import {
   Users,
   Truck,
   DollarSign,
-  Clock
+  Clock,
+  BarChart3,
+  Settings,
+  ClipboardList
 } from 'lucide-react'
 
 export default function AdminDashboard() {
@@ -30,12 +33,10 @@ export default function AdminDashboard() {
 
   const carregarDados = async () => {
     try {
-      // Buscar produtos
       const { count: productCount } = await supabase
         .from('products')
         .select('*', { count: 'exact', head: true })
 
-      // Buscar pedidos
       const { data: orders, count: orderCount } = await supabase
         .from('orders')
         .select('*', { count: 'exact' })
@@ -46,7 +47,6 @@ export default function AdminDashboard() {
         ?.filter(o => o.payment_status === 'paid')
         .reduce((sum, o) => sum + o.total_amount, 0) || 0
 
-      // Buscar usuários
       const { count: userCount } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
@@ -86,7 +86,7 @@ export default function AdminDashboard() {
       
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">🛠️ Painel Administrativo</h1>
+          <h1 className="text-2xl font-bold text-gray-900"> Painel Administrativo</h1>
           <p className="text-gray-500 text-sm">Gerencie todos os aspectos da sua loja</p>
         </div>
 
@@ -158,7 +158,7 @@ export default function AdminDashboard() {
           <Link href="/admin/pedidos">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
               <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center mb-3">
-                <ShoppingBag size={24} className="text-purple-600" />
+                <ClipboardList size={24} className="text-purple-600" />
               </div>
               <h3 className="font-display font-bold text-gray-900">Pedidos</h3>
               <p className="text-sm text-gray-500">Acompanhar e gerenciar pedidos</p>
@@ -192,14 +192,25 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Estoque */}
-          <Link href="/admin/estoque">
+          {/* Relatórios */}
+          <Link href="/admin/relatorios">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
               <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center mb-3">
-                <Package size={24} className="text-orange-600" />
+                <BarChart3 size={24} className="text-orange-600" />
               </div>
-              <h3 className="font-display font-bold text-gray-900">Estoque</h3>
-              <p className="text-sm text-gray-500">Gerenciar estoque</p>
+              <h3 className="font-display font-bold text-gray-900">Relatórios</h3>
+              <p className="text-sm text-gray-500">Análises e estatísticas</p>
+            </div>
+          </Link>
+
+          {/* Configurações */}
+          <Link href="/admin/configuracoes">
+            <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
+              <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center mb-3">
+                <Settings size={24} className="text-gray-600" />
+              </div>
+              <h3 className="font-display font-bold text-gray-900">Configurações</h3>
+              <p className="text-sm text-gray-500">Configurações da loja</p>
             </div>
           </Link>
         </div>

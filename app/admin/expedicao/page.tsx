@@ -1,4 +1,4 @@
-// app/admin/expedicao/page.tsx
+// app/admin/expedicao/page.tsx (CORRIGIDO - COM RPC)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -9,17 +9,14 @@ import { Package, Truck, CheckCircle, Clock, AlertCircle, RefreshCw } from 'luci
 
 interface Order {
   id: number
-  order_number: string
   user_id: string
   total_amount: number
   payment_method: string
   payment_status: string
   shipping_status: string
   created_at: string
-  user?: {
-    full_name: string
-    email: string
-  }
+  user_name?: string
+  user_email?: string
 }
 
 export default function AdminExpedicao() {
@@ -35,22 +32,69 @@ export default function AdminExpedicao() {
 
   const carregarPedidos = async () => {
     try {
+      // 1. Buscar pedidos pagos
       const { data: ordersData, error } = await supabase
         .from('orders')
-        .select(`
-          *,
-          profiles:user_id (
-            full_name,
-            email
-          )
-        `)
-        .in('payment_status', ['paid'])
+        .select('*')
+        .eq('payment_status', 'paid')
         .order('created_at', { ascending: true })
 
-      if (error) throw error
-      setOrders(ordersData || [])
+      if (error) {
+        console.error('Erro ao carregar pedidos:', error)
+        setErrorMessage('Erro ao carregar pedidos: ' + error.message)
+        setLoading(false)
+        return
+      }
+
+      if (!ordersData || ordersData.length === 0) {
+        setOrders([])
+        setLoading(false)
+        return
+      }
+
+      // 2. Buscar usuários com email via RPC
+      const ordersWithUsers = await Promise.all(
+        ordersData.map(async (order) => {
+          let userName = 'Cliente'
+          let userEmail = 'Sem email'
+
+          if (order.user_id) {
+            try {
+              // Buscar dados do perfil
+              const { data: userData, error: userError } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', order.user_id)
+                .maybeSingle()
+
+              if (!userError && userData) {
+                userName = userData.full_name || 'Cliente'
+              }
+
+              // Buscar email via RPC
+              const { data: emailData, error: emailError } = await supabase
+                .rpc('get_user_email', { user_id: order.user_id })
+
+              if (!emailError && emailData) {
+                userEmail = emailData
+              }
+
+            } catch (err) {
+              console.error('Erro ao buscar usuário:', err)
+            }
+          }
+
+          return {
+            ...order,
+            user_name: userName,
+            user_email: userEmail
+          }
+        })
+      )
+
+      setOrders(ordersWithUsers)
     } catch (error) {
-      console.error('Erro ao carregar pedidos:', error)
+      console.error('Erro:', error)
       setErrorMessage('Erro ao carregar pedidos')
     } finally {
       setLoading(false)
@@ -59,6 +103,9 @@ export default function AdminExpedicao() {
 
   const atualizarStatus = async (orderId: number, status: string) => {
     setUpdating(true)
+    setErrorMessage('')
+    setSuccessMessage('')
+
     try {
       const { error } = await supabase
         .from('orders')
@@ -126,7 +173,7 @@ export default function AdminExpedicao() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">🚚 Central de Expedição</h1>
+            <h1 className="text-2xl font-bold text-gray-900"> Central de Expedição</h1>
             <p className="text-gray-500 text-sm">Gerencie os pedidos pagos e aguardando envio</p>
           </div>
           <button
@@ -197,10 +244,10 @@ export default function AdminExpedicao() {
                         </td>
                         <td className="px-4 py-3">
                           <p className="text-sm font-medium text-gray-900">
-                            {order.user?.full_name || 'Cliente'}
+                            {order.user_name || 'Cliente'}
                           </p>
                           <p className="text-xs text-gray-500">
-                            {order.user?.email || 'Sem email'}
+                            {order.user_email || 'Sem email'}
                           </p>
                         </td>
                         <td className="px-4 py-3">

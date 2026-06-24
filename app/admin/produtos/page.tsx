@@ -225,7 +225,7 @@ export default function AdminProdutos() {
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">📦 Gerenciar Produtos</h1>
+            <h1 className="text-2xl font-bold text-gray-900"> Gerenciar Produtos</h1>
             <p className="text-gray-500 text-sm">Gerencie todos os produtos da loja</p>
           </div>
           <Link href="/admin/produtos/novo">
