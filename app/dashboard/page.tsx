@@ -1,3 +1,4 @@
+// app/dashboard/page.tsx (APENAS CORREÇÃO DO LINK)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -31,7 +32,7 @@ export default function Dashboard() {
       await loadProfile(user.id)
       await loadProgress(user.id)
       await checkCheckinStatus(user.id)
-      await checkAdminStatus(user.id)  // ← Adicionar esta linha
+      await checkAdminStatus(user.id)
     }
     setLoading(false)
   }
@@ -50,7 +51,6 @@ const loadProfile = async (userId: string) => {
   }
 }
 
-// Adicionar esta nova função
 const checkAdminStatus = async (userId: string) => {
   const { data: profile } = await supabase
     .from('profiles')
@@ -140,9 +140,10 @@ const checkAdminStatus = async (userId: string) => {
           <h1 className="text-2xl font-bold text-black">
             Olá, {getFirstName(user.user_metadata?.full_name || 'Preparado')}!
           </h1>
+          {/* CORREÇÃO: href="/admin/produtos" → href="/admin" */}
           {isAdmin && (
             <Link
-              href="/admin/produtos"
+              href="/admin"
               className="bg-[#FFB800] text-black px-3 py-1 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition"
             >
               Admin
