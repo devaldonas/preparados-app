@@ -1,3 +1,4 @@
+// app/loja/produto/[id]/page.tsx (CORRIGIDO - USANDO ZUSTAND)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -7,9 +8,10 @@ import Link from 'next/link'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 import CarouselFooter from '@/components/CarouselFooter'
 import GaleriaProduto from '@/components/GaleriaProduto'
+import { useCart } from '@/lib/store/cart' // Importar o store do carrinho
 
 interface Product {
-  id: number
+  id: string // Mudar para string para compatibilidade com UUID
   name: string
   description: string
   price: number
@@ -23,90 +25,68 @@ interface Product {
 export default function DetalheProduto() {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
-  const [cartCount, setCartCount] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [adding, setAdding] = useState(false)
   const router = useRouter()
   const params = useParams()
   const productId = params.id as string
+  
+  // Usar o store do carrinho
+  const { addItem, getTotalItems } = useCart()
+  const cartCount = getTotalItems()
 
   useEffect(() => {
     carregarProduto()
-    carregarCarrinhoCount()
-  }, [])
+  }, [productId])
 
   const carregarProduto = async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', productId)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .single()
 
-    if (error) {
-      console.error('Erro ao carregar produto:', error)
-      router.push('/loja')
-    } else {
-      setProduct(data)
+      if (error) {
+        console.error('Erro ao carregar produto:', error)
+        router.push('/loja')
+      } else {
+        // Garantir que o ID é string
+        setProduct({ ...data, id: String(data.id) })
+      }
+    } catch (error) {
+      console.error('Erro:', error)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
-  const carregarCarrinhoCount = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const { count } = await supabase
-      .from('cart_items')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-
-    setCartCount(count || 0)
-  }
-
-  const adicionarAoCarrinho = async () => {
+  const adicionarAoCarrinho = () => {
     if (!product) return
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/auth/login')
-      return
-    }
 
     setAdding(true)
 
-    const { data: existing } = await supabase
-      .from('cart_items')
-      .select('id, quantity')
-      .eq('user_id', user.id)
-      .eq('product_id', product.id)
-      .maybeSingle()
+    // Usar o store do carrinho
+    addItem({
+      product_id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image_url || product.images?.[0] || '/images/placeholder.jpg',
+      max_stock: product.stock,
+    }, quantity)
 
-    if (existing) {
-      await supabase
-        .from('cart_items')
-        .update({ quantity: existing.quantity + quantity })
-        .eq('id', existing.id)
-    } else {
-      await supabase
-        .from('cart_items')
-        .insert({
-          user_id: user.id,
-          product_id: product.id,
-          quantity: quantity
-        })
-    }
-
-    await carregarCarrinhoCount()
     setAdding(false)
     
     // Feedback visual
     const btn = document.getElementById('btn-add-cart')
     if (btn) {
       const originalText = btn.textContent
-      btn.textContent = 'Adicionado!'
+      btn.textContent = '✓ Adicionado!'
+      btn.className = 'w-full bg-green-500 text-white py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2'
       setTimeout(() => {
         btn.textContent = originalText
-      }, 1500)
+        btn.className = 'w-full bg-[#FFB800] text-black py-3 rounded-lg font-semibold hover:bg-[#E5A600] transition disabled:opacity-50 flex items-center justify-center gap-2'
+      }, 2000)
     }
   }
 
@@ -136,7 +116,12 @@ export default function DetalheProduto() {
           
           {/* Header com ícone do carrinho */}
           <div className="flex justify-between items-center mb-4">
-            
+            <Link
+              href="/loja"
+              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <span>←</span> Voltar para Loja
+            </Link>
             
             <Link
               href="/loja/carrinho"
@@ -176,7 +161,7 @@ export default function DetalheProduto() {
 
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Preco</span>
+                  <span className="text-gray-600">Preço</span>
                   <span className="text-2xl font-bold text-[#FFB800]">{formatPrice(product.price)}</span>
                 </div>
                 
@@ -244,17 +229,11 @@ export default function DetalheProduto() {
                 </div>
               )}
             </div>
-
-            <Link
-              href="/loja"
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
-            >
-              <span>←</span> Voltar para Loja
-            </Link>
-            
           </div>
         </div>
       </div>
+      
+      <CarouselFooter />
     </div>
   )
 }

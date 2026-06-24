@@ -1,4 +1,4 @@
-// app/admin/usuarios/page.tsx
+// app/admin/usuarios/page.tsx (CORRIGIDO)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -10,7 +10,7 @@ import { Search, User, Mail, Calendar, Check, X, MapPin, Package } from 'lucide-
 interface Profile {
   id: string
   full_name: string
-  email: string
+  email?: string
   created_at: string
   cep: string
   mochila_tipo: string
@@ -21,6 +21,7 @@ export default function AdminUsuarios() {
   const [users, setUsers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
     carregarUsuarios()
@@ -28,15 +29,50 @@ export default function AdminUsuarios() {
 
   const carregarUsuarios = async () => {
     try {
-      const { data, error } = await supabase
+      // 1. Buscar perfis
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
-      setUsers(data || [])
+      if (profilesError) throw profilesError
+
+      if (!profilesData || profilesData.length === 0) {
+        setUsers([])
+        setLoading(false)
+        return
+      }
+
+      // 2. Buscar emails via RPC para cada usuário
+      const usersWithEmail = await Promise.all(
+        profilesData.map(async (profile) => {
+          let email = 'Sem email'
+
+          if (profile.id) {
+            try {
+              // Buscar email via RPC
+              const { data: emailData, error: emailError } = await supabase
+                .rpc('get_user_email', { user_id: profile.id })
+
+              if (!emailError && emailData) {
+                email = emailData
+              }
+            } catch (err) {
+              console.error('Erro ao buscar email:', err)
+            }
+          }
+
+          return {
+            ...profile,
+            email: email
+          }
+        })
+      )
+
+      setUsers(usersWithEmail)
     } catch (error) {
       console.error('Erro ao carregar usuários:', error)
+      setErrorMessage('Erro ao carregar usuários')
     } finally {
       setLoading(false)
     }
@@ -75,6 +111,12 @@ export default function AdminUsuarios() {
           </div>
           <span className="text-sm text-gray-500">Total: {users.length}</span>
         </div>
+
+        {errorMessage && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+            {errorMessage}
+          </div>
+        )}
 
         {/* Busca */}
         <div className="bg-white rounded-xl border border-gray-100 p-4 mb-6">
