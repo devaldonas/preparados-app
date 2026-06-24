@@ -77,6 +77,13 @@ Salvar e continuar = preto
 Voltar = amarelo
 
 
+=======================================================================================================================
+
+Deixa eu entender uma coisa. Quando você fala em Dashboardeu entendo que é a nossa página inicial onde temos os cards de acesso rápido. Neste Dashboard não teremos o card "Pedidos", depois iremos implementar para todos os usuários terem acesso aos seus pedidos,conforme o NavBar que você colocou dentro do painel Admin.
+
+Diante disso, me esclareca de qual Dashboard você está falando, Seria um Dashboar que vc criou dentro do painel Admin?
+Se for isso, tudo bem, mas ele não está aparecendo.
+
 
 
 

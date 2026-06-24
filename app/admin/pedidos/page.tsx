@@ -1,9 +1,8 @@
-// app/admin/pedidos/page.tsx
+// app/admin/pedidos/page.tsx (CORRIGIDO - SEM ERROS DE SINTAXE)
 'use client'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import NavBar from '@/components/NavBar'
 import {
@@ -17,10 +16,6 @@ import {
   Clock,
   DollarSign,
   RefreshCw,
-  ChevronDown,
-  ChevronUp,
-  Printer,
-  Send,
   Ban,
   CheckCircle
 } from 'lucide-react'
@@ -37,10 +32,8 @@ interface Order {
   created_at: string
   updated_at: string
   items?: OrderItem[]
-  user?: {
-    full_name: string
-    email: string
-  }
+  user_name?: string
+  user_email?: string
 }
 
 interface OrderItem {
@@ -66,7 +59,6 @@ export default function AdminPedidos() {
   const [updating, setUpdating] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
-  const router = useRouter()
 
   useEffect(() => {
     carregarPedidos()
@@ -74,23 +66,63 @@ export default function AdminPedidos() {
 
   const carregarPedidos = async () => {
     try {
-      // Buscar pedidos com dados do usuário
-      const { data: ordersData, error: ordersError } = await supabase
+      const { data: ordersData, error } = await supabase
         .from('orders')
-        .select(`
-          *,
-          profiles:user_id (
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
 
-      if (ordersError) throw ordersError
+      if (error) {
+        console.error('Erro ao carregar pedidos:', error)
+        setErrorMessage('Erro ao carregar pedidos: ' + error.message)
+        setLoading(false)
+        return
+      }
 
-      // Buscar itens de cada pedido
+      if (!ordersData || ordersData.length === 0) {
+        setOrders([])
+        setLoading(false)
+        return
+      }
+
+      const ordersWithUsers = await Promise.all(
+        ordersData.map(async (order) => {
+          let userName = 'Cliente'
+          let userEmail = 'Sem email'
+
+          if (order.user_id) {
+            try {
+              const { data: userData, error: userError } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', order.user_id)
+                .maybeSingle()
+
+              if (!userError && userData) {
+                userName = userData.full_name || 'Cliente'
+              }
+
+              const { data: emailData, error: emailError } = await supabase
+                .rpc('get_user_email', { user_id: order.user_id })
+
+              if (!emailError && emailData) {
+                userEmail = emailData
+              }
+
+            } catch (err) {
+              console.error('Erro ao buscar usuário:', err)
+            }
+          }
+
+          return {
+            ...order,
+            user_name: userName,
+            user_email: userEmail
+          }
+        })
+      )
+
       const ordersWithItems = await Promise.all(
-        (ordersData || []).map(async (order) => {
+        ordersWithUsers.map(async (order) => {
           const { data: items } = await supabase
             .from('order_items')
             .select(`
@@ -104,15 +136,14 @@ export default function AdminPedidos() {
 
           return {
             ...order,
-            items: items || [],
-            user: order.profiles
+            items: items || []
           }
         })
       )
 
       setOrders(ordersWithItems)
     } catch (error) {
-      console.error('Erro ao carregar pedidos:', error)
+      console.error('Erro:', error)
       setErrorMessage('Erro ao carregar pedidos')
     } finally {
       setLoading(false)
@@ -137,7 +168,6 @@ export default function AdminPedidos() {
 
       if (error) throw error
 
-      // Atualizar lista
       setOrders(orders.map(order =>
         order.id === orderId
           ? { ...order, ...updateData }
@@ -148,7 +178,7 @@ export default function AdminPedidos() {
         setSelectedOrder({ ...selectedOrder, ...updateData })
       }
 
-      setSuccessMessage(`Pedido atualizado com sucesso!`)
+      setSuccessMessage('Pedido atualizado com sucesso!')
       setTimeout(() => setSuccessMessage(''), 3000)
     } catch (error) {
       console.error('Erro ao atualizar pedido:', error)
@@ -197,12 +227,11 @@ export default function AdminPedidos() {
     return map[status] || map.pending
   }
 
-  // Filtrar pedidos
   const filteredOrders = orders.filter(order => {
     const matchSearch =
       (order.transaction_id?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-      (order.user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-      (order.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
+      (order.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
+      (order.user_email?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
     
     const matchStatus = filterStatus === 'todos' || order.status === filterStatus
     const matchPayment = filterPayment === 'todos' || order.payment_status === filterPayment
@@ -210,7 +239,6 @@ export default function AdminPedidos() {
     return matchSearch && matchStatus && matchPayment
   })
 
-  // Estatísticas
   const stats = {
     total: orders.length,
     pending: orders.filter(o => o.payment_status === 'pending').length,
@@ -232,10 +260,9 @@ export default function AdminPedidos() {
       <NavBar showBackButton={true} backButtonPath="/admin" />
       
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">📋 Gerenciar Pedidos</h1>
+            <h1 className="text-2xl font-bold text-gray-900"> Gerenciar Pedidos</h1>
             <p className="text-gray-500 text-sm">Acompanhe e gerencie todos os pedidos da loja</p>
           </div>
           <button
@@ -247,7 +274,6 @@ export default function AdminPedidos() {
           </button>
         </div>
 
-        {/* Mensagens */}
         {successMessage && (
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 flex items-center gap-2">
             <Check size={18} />
@@ -261,7 +287,6 @@ export default function AdminPedidos() {
           </div>
         )}
 
-        {/* Estatísticas */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl border border-gray-100 p-4">
             <p className="text-[0.6rem] text-gray-500 font-display tracking-wider uppercase">Total</p>
@@ -281,7 +306,6 @@ export default function AdminPedidos() {
           </div>
         </div>
 
-        {/* Filtros */}
         <div className="bg-white rounded-xl border border-gray-100 p-4 mb-6">
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[200px]">
@@ -325,33 +349,18 @@ export default function AdminPedidos() {
           </div>
         </div>
 
-        {/* Tabela de Pedidos */}
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">
-                    Pedido
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">
-                    Cliente
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">
-                    Pagamento
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">
-                    Data
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">
-                    Ações
-                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">Pedido</th>
+                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">Cliente</th>
+                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">Total</th>
+                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">Pagamento</th>
+                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">Data</th>
+                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -376,27 +385,17 @@ export default function AdminPedidos() {
                         </td>
                         <td className="px-4 py-3">
                           <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {order.user?.full_name || 'Cliente'}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {order.user?.email || 'Sem email'}
-                            </p>
+                            <p className="text-sm font-medium text-gray-900">{order.user_name || 'Cliente'}</p>
+                            <p className="text-xs text-gray-500">{order.user_email || 'Sem email'}</p>
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="font-display font-bold text-[#FFB800]">
-                            {formatPrice(order.total_amount)}
-                          </span>
+                          <span className="font-display font-bold text-[#FFB800]">{formatPrice(order.total_amount)}</span>
                         </td>
                         <td className="px-4 py-3">
                           <div className="space-y-1">
-                            <span className={`text-xs font-medium ${paymentInfo.color}`}>
-                              {paymentInfo.label}
-                            </span>
-                            <span className="block text-[0.55rem] text-gray-400 uppercase">
-                              {order.payment_method || 'PIX'}
-                            </span>
+                            <span className={`text-xs font-medium ${paymentInfo.color}`}>{paymentInfo.label}</span>
+                            <span className="block text-[0.55rem] text-gray-400 uppercase">{order.payment_method || 'PIX'}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
@@ -406,9 +405,7 @@ export default function AdminPedidos() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-xs text-gray-500">
-                            {formatDate(order.created_at)}
-                          </span>
+                          <span className="text-xs text-gray-500">{formatDate(order.created_at)}</span>
                         </td>
                         <td className="px-4 py-3">
                           <button
@@ -437,19 +434,14 @@ export default function AdminPedidos() {
         </div>
       </div>
 
-      {/* Modal de Detalhes do Pedido */}
       {showOrderModal && selectedOrder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">
-                    Pedido #{selectedOrder.transaction_id?.slice(-8) || selectedOrder.id}
-                  </h2>
-                  <p className="text-sm text-gray-500">
-                    {formatDate(selectedOrder.created_at)}
-                  </p>
+                  <h2 className="text-xl font-bold text-gray-900">Pedido #{selectedOrder.transaction_id?.slice(-8) || selectedOrder.id}</h2>
+                  <p className="text-sm text-gray-500">{formatDate(selectedOrder.created_at)}</p>
                 </div>
                 <button
                   onClick={() => {
@@ -463,14 +455,12 @@ export default function AdminPedidos() {
               </div>
 
               <div className="space-y-6">
-                {/* Informações do Cliente */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-display font-bold text-gray-900 text-sm mb-2">Cliente</h3>
-                  <p className="text-gray-700">{selectedOrder.user?.full_name || 'Cliente'}</p>
-                  <p className="text-sm text-gray-500">{selectedOrder.user?.email || 'Sem email'}</p>
+                  <p className="text-gray-700">{selectedOrder.user_name || 'Cliente'}</p>
+                  <p className="text-sm text-gray-500">{selectedOrder.user_email || 'Sem email'}</p>
                 </div>
 
-                {/* Itens do Pedido */}
                 <div>
                   <h3 className="font-display font-bold text-gray-900 text-sm mb-3">Itens do Pedido</h3>
                   <div className="space-y-2">
@@ -486,17 +476,11 @@ export default function AdminPedidos() {
                             />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {item.product?.name || `Produto ${item.product_id}`}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {item.quantity}x {formatPrice(item.price)}
-                            </p>
+                            <p className="text-sm font-medium text-gray-900">{item.product?.name || `Produto ${item.product_id}`}</p>
+                            <p className="text-xs text-gray-500">{item.quantity}x {formatPrice(item.price)}</p>
                           </div>
                         </div>
-                        <span className="font-display font-bold text-sm text-[#FFB800]">
-                          {formatPrice(item.price * item.quantity)}
-                        </span>
+                        <span className="font-display font-bold text-sm text-[#FFB800]">{formatPrice(item.price * item.quantity)}</span>
                       </div>
                     ))}
                   </div>
@@ -517,75 +501,48 @@ export default function AdminPedidos() {
                   </div>
                 </div>
 
-                {/* Status e Ações */}
                 <div className="border-t border-gray-100 pt-4">
                   <h3 className="font-display font-bold text-gray-900 text-sm mb-3">Atualizar Status</h3>
-                  
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => updateOrderStatus(selectedOrder.id, 'pending')}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                        selectedOrder.status === 'pending'
-                          ? 'bg-yellow-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition ${selectedOrder.status === 'pending' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                     >
                       Pendente
                     </button>
                     <button
                       onClick={() => updateOrderStatus(selectedOrder.id, 'paid', 'paid')}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                        selectedOrder.status === 'paid'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition ${selectedOrder.status === 'paid' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                     >
                       Pago
                     </button>
                     <button
                       onClick={() => updateOrderStatus(selectedOrder.id, 'processing')}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                        selectedOrder.status === 'processing'
-                          ? 'bg-purple-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition ${selectedOrder.status === 'processing' ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                     >
                       Processando
                     </button>
                     <button
                       onClick={() => updateOrderStatus(selectedOrder.id, 'shipped')}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                        selectedOrder.status === 'shipped'
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition ${selectedOrder.status === 'shipped' ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                     >
                       Enviado
                     </button>
                     <button
                       onClick={() => updateOrderStatus(selectedOrder.id, 'delivered')}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                        selectedOrder.status === 'delivered'
-                          ? 'bg-green-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition ${selectedOrder.status === 'delivered' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                     >
                       Entregue
                     </button>
                     <button
                       onClick={() => updateOrderStatus(selectedOrder.id, 'cancelled')}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                        selectedOrder.status === 'cancelled'
-                          ? 'bg-red-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition ${selectedOrder.status === 'cancelled' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                     >
                       Cancelar
                     </button>
                   </div>
                 </div>
 
-                {/* Informações de Pagamento */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-display font-bold text-gray-900 text-sm mb-2">Informações de Pagamento</h3>
                   <div className="grid grid-cols-2 gap-2 text-sm">
@@ -606,13 +563,10 @@ export default function AdminPedidos() {
                   </div>
                 </div>
 
-                {/* Endereço de Entrega */}
                 {selectedOrder.shipping_address && (
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h3 className="font-display font-bold text-gray-900 text-sm mb-2">Endereço de Entrega</h3>
-                    <p className="text-sm text-gray-700 whitespace-pre-line">
-                      {selectedOrder.shipping_address}
-                    </p>
+                    <p className="text-sm text-gray-700 whitespace-pre-line">{selectedOrder.shipping_address}</p>
                   </div>
                 )}
               </div>
