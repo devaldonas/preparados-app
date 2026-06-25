@@ -282,40 +282,51 @@ function CheckoutContent() {
             </p>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
-            <h3 className="font-display font-bold text-gray-900 text-sm mb-3">
-              Resumo do Pedido
-            </h3>
-            
-            <div className="space-y-2">
-              {order.items && order.items.map((item: any, index: number) => (
-                <div key={index} className="flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    {item.quantity}x {item.name || `Produto ${item.product_id}`}
-                  </span>
-                  <span className="text-gray-900 font-medium">
-                    {formatPrice(item.price * item.quantity)}
-                  </span>
-                </div>
-              ))}
-              
-              <div className="border-t border-gray-200 pt-2 mt-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span className="text-gray-900">{formatPrice(order.total_amount)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Frete</span>
-                  <span className="text-gray-900">Grátis</span>
-                </div>
-                <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-200 mt-2">
-                  <span className="text-gray-900">Total</span>
-                  <span className="text-[#FFB800]">{formatPrice(order.total_amount)}</span>
-                </div>
-              </div>
-            </div>
+         <div className="bg-gray-50 rounded-lg p-4 mb-6">
+  <h3 className="font-display font-bold text-gray-900 text-sm mb-3">
+    Resumo do Pedido
+  </h3>
+  
+  <div className="space-y-2">
+    {order.items && order.items.map((item: any, index: number) => (
+      <div key={index} className="flex justify-between text-sm">
+        <span className="text-gray-600">
+          {item.quantity}x {item.name || `Produto ${item.product_id}`}
+        </span>
+        <span className="text-gray-900 font-medium">
+          {formatPrice(item.price * item.quantity)}
+        </span>
+      </div>
+    ))}
+    
+    {/* Calcular subtotal a partir dos itens */}
+    {(() => {
+      const subtotal = order?.items?.reduce((sum: number, item: any) => {
+        return sum + (item.price * item.quantity)
+      }, 0) || 0
+      
+      const shipping = subtotal > 100 ? 0 : 15.90
+      const total = subtotal + shipping
+      
+      return (
+        <div className="border-t border-gray-200 pt-2 mt-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Subtotal</span>
+            <span className="text-gray-900">{formatPrice(subtotal)}</span>
           </div>
-
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">Frete</span>
+            <span className="text-gray-900">{shipping === 0 ? 'Grátis' : formatPrice(shipping)}</span>
+          </div>
+          <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-200 mt-2">
+            <span className="text-gray-900">Total</span>
+            <span className="text-[#FFB800]">{formatPrice(total)}</span>
+          </div>
+        </div>
+      )
+    })()}
+  </div>
+</div>
           <div className="space-y-6">
             <div>
               <h3 className="font-display font-bold text-gray-900 text-sm mb-3">
