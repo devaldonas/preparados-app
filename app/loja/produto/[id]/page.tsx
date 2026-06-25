@@ -232,8 +232,6 @@ export default function DetalheProduto() {
           </div>
         </div>
       </div>
-      
-      <CarouselFooter />
     </div>
   )
 }
