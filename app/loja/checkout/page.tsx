@@ -1,14 +1,14 @@
 // app/loja/checkout/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import { useCart } from '@/lib/store/cart'
 import { ArrowLeft, Loader2, Check, Copy, Banknote, Coins, AlertCircle } from 'lucide-react'
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams.get('order')
@@ -36,50 +36,46 @@ export default function CheckoutPage() {
     carregarPedido()
   }, [orderId])
 
-  // app/loja/checkout/page.tsx - Parte do carregarPedido
+  const carregarPedido = async () => {
+    try {
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', parseInt(orderId as string))
+        .single()
 
-const carregarPedido = async () => {
-  try {
-    const { data: orderData, error: orderError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', parseInt(orderId as string))
-      .single()
+      if (orderError) throw orderError
 
-    if (orderError) throw orderError
+      const { data: items } = await supabase
+        .from('order_items')
+        .select('*')
+        .eq('order_id', orderData.id)
 
-    const { data: items } = await supabase
-      .from('order_items')
-      .select('*')
-      .eq('order_id', orderData.id)
+      setOrder({ ...orderData, items: items || [] })
 
-    setOrder({ ...orderData, items: items || [] })
+      if (orderData.payment_status === 'paid') {
+        router.push(`/loja/pedidos/${orderData.id}`)
+        return
+      }
 
-    if (orderData.payment_status === 'paid') {
-      router.push(`/loja/pedidos/${orderData.id}`)
-      return
+      // Gerar QR Code PIX com a chave CPF
+      const chavePix = '13132276847' // CPF sem pontuação
+      const valor = orderData.total_amount.toFixed(2)
+      
+      const qrCodeData = `00020126580014BR.GOV.BCB.PIX0136${chavePix}5204000053039865404${valor}5802BR5913PREPARADO6009SAO PAULO62070503***6304`
+      
+      setPixData({
+        qrCode: qrCodeData,
+        copyPaste: qrCodeData
+      })
+
+    } catch (error) {
+      console.error('Erro ao carregar pedido:', error)
+      setError('Erro ao carregar pedido')
+    } finally {
+      setLoading(false)
     }
-
-    // Gerar QR Code PIX com a chave CPF
-    // Chave PIX: 131.322.768-47 (somente números)
-    const chavePix = '13132276847' // CPF sem pontuação
-    const valor = orderData.total_amount.toFixed(2)
-    
-    // Formato do payload PIX
-    const qrCodeData = `00020126580014BR.GOV.BCB.PIX0136${chavePix}5204000053039865404${valor}5802BR5913PREPARADO6009SAO PAULO62070503***6304`
-    
-    setPixData({
-      qrCode: qrCodeData,
-      copyPaste: qrCodeData
-    })
-
-  } catch (error) {
-    console.error('Erro ao carregar pedido:', error)
-    setError('Erro ao carregar pedido')
-  } finally {
-    setLoading(false)
   }
-}
 
   // Função para buscar cotação BDM
   const buscarCotacaoBDM = async (valorReais: number) => {
@@ -500,5 +496,17 @@ const carregarPedido = async () => {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
+      </div>
+    }>
+      <CheckoutContent />
+    </Suspense>
   )
 }
