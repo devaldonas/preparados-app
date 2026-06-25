@@ -205,13 +205,13 @@ export default function Loja() {
               >
                 <div className="relative h-32 sm:h-40 bg-gray-100 overflow-hidden">
                   <img 
-                    src={product.image_url}
-                    alt={product.name}
-                    className="w-full h-full object-contain p-2 sm:p-3 group-hover:scale-105 transition duration-300"
-                    onError={(e) => {
-                      e.currentTarget.src = '/images/placeholder.jpg'
-                    }}
-                  />
+  src={product.image_url || '/images/placeholder.jpg'}  // Adicionar fallback
+  alt={product.name}
+  className="w-full h-full object-contain p-2 sm:p-3 group-hover:scale-105 transition duration-300"
+  onError={(e) => {
+    e.currentTarget.src = '/images/placeholder.jpg'
+  }}
+/>
                   {product.featured && (
                     <span className="absolute top-1 right-1 bg-[#FFB800] text-black text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full font-bold">
                       Destaque
@@ -306,8 +306,6 @@ export default function Loja() {
           <div>
             <BotaoIndicarAmigo />
           </div>
-          
-          <CarouselFooter />
         </div>
       </div>
     </div>

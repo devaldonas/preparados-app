@@ -1,15 +1,25 @@
 // components/FloatingCartButton.tsx (CORRIGIDO)
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useCart } from '@/lib/store/cart'
 import { ShoppingBag } from 'lucide-react'
 
 export default function FloatingCartButton() {
   const { getTotalItems } = useCart()
-  const cartCount = getTotalItems()
+  const [cartCount, setCartCount] = useState(0)
+  const [mounted, setMounted] = useState(false)
 
-  // Se não houver itens, não mostrar o botão
+  useEffect(() => {
+    setMounted(true)
+    setCartCount(getTotalItems())
+  }, [getTotalItems])
+
+  // Não renderizar no servidor (evita hydration mismatch)
+  if (!mounted) return null
+
+  // Se não houver itens, não mostrar
   if (cartCount === 0) return null
 
   return (
