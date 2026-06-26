@@ -1,4 +1,4 @@
-// middleware.ts (na raiz do projeto)
+// middleware.ts
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { supabase } from './lib/supabaseClient'
@@ -39,25 +39,51 @@ export async function middleware(request: NextRequest) {
     .single()
 
   if (error || !profile) {
-    return NextResponse.redirect(new URL('/auth/welcome', request.url))
+    // Se não encontrar o perfil, redirecionar para login
+    return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  // Se for uma rota do app e a assinatura estiver expirada
+  // Se o usuário é admin, permitir acesso sem verificar trial
+  const { data: adminCheck } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', session.user.id)
+    .single()
+
+  if (adminCheck?.role === 'admin') {
+    return NextResponse.next()
+  }
+
+  // Se não tiver as colunas de trial (usuário antigo), criar trial de 30 dias
+  if (!profile.trial_end_date || !profile.subscription_status) {
+    const startDate = new Date()
+    const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
+    
+    await supabase
+      .from('profiles')
+      .update({
+        trial_start_date: startDate.toISOString(),
+        trial_end_date: endDate.toISOString(),
+        subscription_status: 'trial'
+      })
+      .eq('id', session.user.id)
+    
+    return NextResponse.next()
+  }
+
+  // Verificar se o trial expirou
   if (profile.subscription_status === 'expired' || profile.subscription_status === 'cancelled') {
-    // Verificar se o trial expirou
-    if (profile.trial_end_date) {
-      const now = new Date()
-      const endDate = new Date(profile.trial_end_date)
+    const now = new Date()
+    const endDate = new Date(profile.trial_end_date)
+    
+    if (now > endDate) {
+      // Atualizar status para expired
+      await supabase
+        .from('profiles')
+        .update({ subscription_status: 'expired' })
+        .eq('id', session.user.id)
       
-      if (now > endDate) {
-        // Atualizar status para expired
-        await supabase
-          .from('profiles')
-          .update({ subscription_status: 'expired' })
-          .eq('id', session.user.id)
-        
-        return NextResponse.redirect(new URL('/auth/welcome', request.url))
-      }
+      return NextResponse.redirect(new URL('/auth/welcome', request.url))
     }
   }
 
