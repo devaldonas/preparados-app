@@ -35,6 +35,16 @@ const botoes: BotaoCarrossel[] = [
     cor: 'from-[#FFB800] to-[#E5A600]',
     iconeImg: '/images/preparadofundoamarelo-icon.png'
   },
+  { 
+    id: 3, 
+    nome: 'Seja um Parceiro', 
+    icone: '🤝', 
+    descricao: 'Venda seus produtos na nossa loja',
+    href: '/parceiro/cadastro', 
+    type: 'link',
+    cor: 'from-black to-gray-800',
+    iconeImg: '/images/preparadofundopreto-icon.png'
+  },
 ]
 
 export default function FooterCarousel() {

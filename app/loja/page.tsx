@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
-import CarouselFooter from '@/components/CarouselFooter'
 import { useCart } from '@/lib/store/cart'
 
 interface Product {

@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
-import CarouselFooter from '@/components/CarouselFooter'
 import GaleriaProduto from '@/components/GaleriaProduto'
 import { useCart } from '@/lib/store/cart' // Importar o store do carrinho
 
