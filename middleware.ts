@@ -1,4 +1,4 @@
-// middleware.ts
+// middleware.ts (CORRIGIDO)
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { supabase } from './lib/supabaseClient'
@@ -6,7 +6,7 @@ import { supabase } from './lib/supabaseClient'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Rotas públicas que não precisam de verificação
+  // Rotas públicas que não precisam de autenticação
   const publicRoutes = [
     '/auth/login',
     '/auth/cadastro',
@@ -17,7 +17,8 @@ export async function middleware(request: NextRequest) {
     '/_next',
     '/favicon.ico',
     '/images',
-    '/logo1.svg'
+    '/logo1.svg',
+    '/'
   ]
 
   // Verificar se é rota pública
@@ -27,34 +28,31 @@ export async function middleware(request: NextRequest) {
 
   // Verificar autenticação
   const { data: { session } } = await supabase.auth.getSession()
+  
+  // Se não estiver autenticado, redirecionar para login
   if (!session) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  // Verificar status da assinatura
+  // Buscar perfil do usuário para verificar se é admin
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('subscription_status, trial_end_date')
+    .select('role, subscription_status, trial_end_date')
     .eq('id', session.user.id)
     .single()
 
+  // Se não encontrar o perfil, permitir acesso (não bloquear)
   if (error || !profile) {
-    // Se não encontrar o perfil, redirecionar para login
-    return NextResponse.redirect(new URL('/auth/login', request.url))
-  }
-
-  // Se o usuário é admin, permitir acesso sem verificar trial
-  const { data: adminCheck } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', session.user.id)
-    .single()
-
-  if (adminCheck?.role === 'admin') {
     return NextResponse.next()
   }
 
-  // Se não tiver as colunas de trial (usuário antigo), criar trial de 30 dias
+  // ADMIN: acesso total (ignora trial)
+  if (profile.role === 'admin') {
+    return NextResponse.next()
+  }
+
+  // USUÁRIOS COMUNS: verificar trial
+  // Se não tiver dados de trial, criar automaticamente
   if (!profile.trial_end_date || !profile.subscription_status) {
     const startDate = new Date()
     const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
@@ -77,12 +75,7 @@ export async function middleware(request: NextRequest) {
     const endDate = new Date(profile.trial_end_date)
     
     if (now > endDate) {
-      // Atualizar status para expired
-      await supabase
-        .from('profiles')
-        .update({ subscription_status: 'expired' })
-        .eq('id', session.user.id)
-      
+      // Se expirou, redirecionar para página de welcome/assinatura
       return NextResponse.redirect(new URL('/auth/welcome', request.url))
     }
   }
@@ -91,6 +84,7 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next()
 }
 
+// Configurar quais rotas o middleware deve verificar
 export const config = {
   matcher: [
     '/dashboard/:path*',
@@ -103,5 +97,7 @@ export const config = {
     '/grupo/:path*',
     '/admin/:path*',
     '/parceiro/:path*',
+    '/check-in/:path*',
+    '/perfil/:path*',
   ]
 }
