@@ -24,7 +24,7 @@ export default function WelcomePage() {
     if (trialEndDate) {
       const interval = setInterval(() => {
         calcularTempoRestante()
-      }, 60000) // Atualiza a cada minuto
+      }, 60000)
 
       return () => clearInterval(interval)
     }
@@ -40,7 +40,6 @@ export default function WelcomePage() {
 
       setUser(user)
 
-      // Buscar dados do perfil
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('trial_start_date, trial_end_date, subscription_status')
@@ -58,7 +57,6 @@ export default function WelcomePage() {
         calcularTempoRestante(endDate)
       }
 
-      // Se já tiver assinatura ativa, redirecionar para dashboard
       if (profile?.subscription_status === 'active') {
         router.push('/dashboard')
         return
@@ -109,7 +107,6 @@ export default function WelcomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FFB800]/10 to-white flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
-        {/* Card Principal */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
           {/* Header com ícone */}
           <div className="bg-gradient-to-r from-[#FFB800] to-[#E5A600] px-6 py-8 text-center">
@@ -167,7 +164,7 @@ export default function WelcomePage() {
               {daysLeft <= 3 && daysLeft > 0 && (
                 <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                   <p className="text-sm text-yellow-700">
-                    ⚠️ Seu período de teste está acabando! Aproveite ao máximo.
+                    Seu período de teste está acabando! Aproveite ao máximo.
                   </p>
                 </div>
               )}
@@ -181,29 +178,44 @@ export default function WelcomePage() {
               )}
             </div>
 
-            {/* Benefícios */}
+            {/* Benefícios com ícones personalizados */}
             <div className="border-t border-gray-100 pt-4">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">
                 O que você tem acesso:
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <div className="w-6 h-6 bg-[#FFB800]/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Shield size={14} className="text-[#FFB800]" />
-                  </div>
-                  <span>Checklist completo de preparação</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <div className="w-6 h-6 bg-[#FFB800]/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Users size={14} className="text-[#FFB800]" />
+                  <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+                    <img 
+                      src="/images/pessoas1-icon.png"
+                      alt="Conexão"
+                      className="w-8 h-8 object-contain"
+                      onError={(e) => { e.currentTarget.style.display = 'none' }}
+                    />
                   </div>
                   <span>Conexão com pessoas próximas</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <div className="w-6 h-6 bg-[#FFB800]/10 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Zap size={14} className="text-[#FFB800]" />
+                  <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+                    <img 
+                      src="/images/catastrofes-icon.png"
+                      alt="Monitoramento"
+                      className="w-8 h-8 object-contain"
+                      onError={(e) => { e.currentTarget.style.display = 'none' }}
+                    />
                   </div>
                   <span>Monitoramento de emergências em tempo real</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+                    <img 
+                      src="/images/defesa.jpeg"
+                      alt="Checklist"
+                      className="w-8 h-8 object-cover rounded"
+                      onError={(e) => { e.currentTarget.style.display = 'none' }}
+                    />
+                  </div>
+                  <span>Checklist completo de preparação</span>
                 </div>
               </div>
             </div>
@@ -223,25 +235,8 @@ export default function WelcomePage() {
                   'Assinar Agora'
                 )}
               </button>
-
-              {daysLeft > 0 && (
-                <p className="text-xs text-gray-400 text-center mt-3">
-                  Após os {daysLeft} dias, você poderá assinar para continuar usando.
-                </p>
-              )}
             </div>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-4 text-center">
-          <Link href="/dashboard" className="text-xs text-gray-400 hover:text-gray-600">
-            Pular por enquanto
-          </Link>
-          <span className="text-xs text-gray-300 mx-2">•</span>
-          <Link href="/auth/login" className="text-xs text-gray-400 hover:text-gray-600">
-            Sair
-          </Link>
         </div>
       </div>
     </div>
