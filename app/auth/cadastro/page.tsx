@@ -21,7 +21,8 @@ import {
   Building2,
   Map,
   Hash,
-  Calendar
+  Users,
+  Store
 } from 'lucide-react'
 
 export default function Cadastro() {
@@ -39,6 +40,7 @@ export default function Cadastro() {
   const [numero, setNumero] = useState('')
   const [complemento, setComplemento] = useState('')
   const [buscandoCep, setBuscandoCep] = useState(false)
+  const [tipoCadastro, setTipoCadastro] = useState<'usuario' | 'parceiro'>('usuario')
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -284,6 +286,9 @@ export default function Cadastro() {
           }
         }
 
+        // Determinar papel do usuário
+        const role = tipoCadastro === 'parceiro' ? 'partner' : null
+
         const { error: profileError } = await supabase.from('profiles').insert([{
           id: authData.user.id,
           full_name: fullName,
@@ -292,6 +297,7 @@ export default function Cadastro() {
           latitude: latitude || null,
           longitude: longitude || null,
           group_id: groupId,
+          role: role,
           trial_start_date: new Date().toISOString(),
           trial_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           subscription_status: 'trial',
@@ -303,7 +309,12 @@ export default function Cadastro() {
           throw new Error('Erro ao criar perfil')
         }
 
-        router.push('/auth/welcome')
+        // Se for parceiro, redirecionar para o dashboard do parceiro
+        if (tipoCadastro === 'parceiro') {
+          router.push('/parceiro/dashboard')
+        } else {
+          router.push('/auth/welcome')
+        }
       }
     } catch (err: any) {
       console.error('Erro no cadastro:', err)
@@ -465,6 +476,52 @@ export default function Cadastro() {
                     {password && validations.password.valid && (
                       <p className="text-xs text-green-500 mt-1">Senha válida</p>
                     )}
+                  </div>
+
+                  {/* Tipo de Cadastro */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipo de cadastro
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setTipoCadastro('usuario')}
+                        className={`p-3 rounded-lg border-2 transition-all ${
+                          tipoCadastro === 'usuario'
+                            ? 'border-[#FFB800] bg-yellow-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                            <User size={20} className="text-gray-600" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">Usuário</span>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTipoCadastro('parceiro')}
+                        className={`p-3 rounded-lg border-2 transition-all ${
+                          tipoCadastro === 'parceiro'
+                            ? 'border-[#FFB800] bg-yellow-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                            <Store size={20} className="text-gray-600" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-900">Parceiro</span>
+                        </div>
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">
+                      {tipoCadastro === 'usuario' 
+                        ? 'Acesse como usuário comum do app' 
+                        : 'Venda seus produtos na nossa loja'}
+                    </p>
                   </div>
                 </div>
               )}
@@ -645,6 +702,10 @@ export default function Cadastro() {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">E-mail</span>
                       <span className="text-gray-900 font-medium">{email}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Tipo</span>
+                      <span className="text-gray-900 font-medium capitalize">{tipoCadastro}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">Endereço</span>

@@ -1,3 +1,4 @@
+// components/ClientLayout.tsx
 'use client'
 
 import { usePathname } from 'next/navigation'
@@ -10,15 +11,8 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname()
   
-  // Rotas onde NÃO queremos mostrar o carrossel
-  const hideCarouselRoutes = [
-    '/auth/login', 
-    '/auth/cadastro', 
-    '/auth/recuperar-senha', 
-    '/auth/atualizar-senha',
-    '/'  // ← ADICIONE ESTA LINHA para esconder na home
-  ]
-  const showCarousel = !hideCarouselRoutes.includes(pathname)
+  // DESABILITAR CARROSSEL TEMPORARIAMENTE - retornar false sempre
+  const showCarousel = false
 
   return (
     <>
