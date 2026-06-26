@@ -1,4 +1,4 @@
-// app/parceiro/comissoes/page.tsx
+// app/parceiro/comissoes/page.tsx (CORRIGIDO - SEM COMENTÁRIOS NO SQL)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -10,6 +10,7 @@ import { ArrowLeft, DollarSign, Clock, CheckCircle, XCircle, TrendingUp } from '
 
 interface Commission {
   id: string
+  partner_id: string
   order_id: number
   product_id: number
   amount: number
@@ -20,6 +21,7 @@ interface Commission {
   created_at: string
   product?: {
     name: string
+    price: number
   }
 }
 
@@ -61,13 +63,14 @@ export default function PartnerComissoes() {
 
       setPartner(partnerData)
 
-      // Buscar comissões
+      // Buscar comissões - SEM COMENTÁRIOS NA STRING
       const { data: commissionsData, error: commissionsError } = await supabase
         .from('partner_commissions')
         .select(`
           *,
-          products:product_id (
-            name
+          product:product_id (
+            name,
+            price
           )
         `)
         .eq('partner_id', partnerData.id)
@@ -78,7 +81,6 @@ export default function PartnerComissoes() {
       } else {
         setCommissions(commissionsData || [])
         
-        // Calcular estatísticas
         const total = commissionsData?.length || 0
         const pending = commissionsData?.filter(c => c.status === 'pending').length || 0
         const paid = commissionsData?.filter(c => c.status === 'paid').length || 0
@@ -125,10 +127,10 @@ export default function PartnerComissoes() {
     const info = map[status] || map.pending
     const Icon = info.icon
     return (
-      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${info.color}`}>
+      <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${info.color}`}>
         <Icon size={14} />
         {info.label}
-      </div>
+      </span>
     )
   }
 
@@ -259,7 +261,7 @@ export default function PartnerComissoes() {
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-sm text-gray-900">
-                          {commission.products?.name || `Produto ${commission.product_id}`}
+                          {commission.product?.name || `Produto ${commission.product_id}`}
                         </span>
                       </td>
                       <td className="px-4 py-3">
