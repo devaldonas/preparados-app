@@ -4,7 +4,7 @@
 import Link from 'next/link'
 import NavBar from '@/components/NavBar'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
-import CarouselFooter from '@/components/CarouselFooter'
+
 
 export default function RotasFuga() {
   return (

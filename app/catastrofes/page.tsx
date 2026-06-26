@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import FooterCarousel from '@/components/CarouselFooter'
+
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 import { useRouter } from 'next/navigation'
 

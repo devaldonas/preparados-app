@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useCart } from '@/lib/store/cart'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
-import CarouselFooter from '@/components/CarouselFooter'
 import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft } from 'lucide-react'
 
 export default function Carrinho() {
@@ -37,79 +36,80 @@ export default function Carrinho() {
     setUser(user)
     setLoading(false)
   }
+// app/loja/carrinho/page.tsx - Função processarCheckout
 
-  const processarCheckout = async () => {
-    if (items.length === 0) return
+const processarCheckout = async () => {
+  if (items.length === 0) return
 
-    setProcessing(true)
-    setError(null)
-    
-    try {
-      // 1. Verificar usuário
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
-        return
-      }
-
-      // 2. Criar pedido
-      const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
-      
-      const orderData = {
-        user_id: user.id,
-        total_amount: total,
-        payment_method: 'pix', // valor padrão, será alterado no checkout
-        payment_status: 'pending',
-        status: 'pending',
-        transaction_id: orderNumber,
-        shipping_address: JSON.stringify({
-          street: '',
-          number: '',
-          complement: '',
-          neighborhood: '',
-          city: '',
-          state: '',
-          zip: ''
-        })
-      }
-
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert([orderData])
-        .select()
-        .single()
-
-      if (orderError) {
-        console.error('Erro ao criar pedido:', orderError)
-        setError('Erro ao criar pedido. Tente novamente.')
-        setProcessing(false)
-        return
-      }
-
-      // 3. Inserir itens
-      for (const item of items) {
-        await supabase
-          .from('order_items')
-          .insert({
-            order_id: order.id,
-            product_id: item.product_id,
-            quantity: item.quantity,
-            price: item.price
-          })
-      }
-
-      // 4. Limpar carrinho
-      clearCart()
-
-      // 5. Redirecionar para checkout
-      router.push(`/loja/checkout?order=${order.id}`)
-      
-    } catch (error) {
-      console.error('Erro ao processar pedido:', error)
-      setError('Erro ao processar pedido. Tente novamente.')
-      setProcessing(false)
+  setProcessing(true)
+  setError(null)
+  
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/auth/login')
+      return
     }
+
+    // Calcular valores corretamente
+    const subtotal = getTotalPrice() // Valor sem frete
+    const shipping = subtotal > 100 ? 0 : 15.90
+    const total = subtotal + shipping
+
+    const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+    
+    const orderData = {
+      user_id: user.id,
+      total_amount: total, // Total com frete
+      payment_method: 'pix',
+      payment_status: 'pending',
+      status: 'pending',
+      transaction_id: orderNumber,
+      shipping_address: JSON.stringify({
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        city: '',
+        state: '',
+        zip: ''
+      })
+    }
+
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert([orderData])
+      .select()
+      .single()
+
+    if (orderError) {
+      console.error('Erro ao criar pedido:', orderError)
+      setError('Erro ao criar pedido. Tente novamente.')
+      setProcessing(false)
+      return
+    }
+
+    // Inserir itens
+    for (const item of items) {
+      await supabase
+        .from('order_items')
+        .insert({
+          order_id: order.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: item.price
+        })
+    }
+
+    clearCart()
+    router.push(`/loja/checkout?order=${order.id}`)
+    
+  } catch (error) {
+    console.error('Erro ao processar pedido:', error)
+    setError('Erro ao processar pedido. Tente novamente.')
+    setProcessing(false)
   }
+}
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
