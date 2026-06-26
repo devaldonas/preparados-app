@@ -1,3 +1,4 @@
+// app/auth/login/page.tsx
 'use client'
 
 import { useState } from 'react'
@@ -17,17 +18,48 @@ export default function Login() {
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (error) {
-      setError(error.message)
-    } else {
-      router.push('/dashboard')
+      if (signInError) {
+        setError(signInError.message)
+        setLoading(false)
+        return
+      }
+
+      if (data?.user) {
+        // Buscar o role do usuário na tabela profiles
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single()
+
+        if (profileError) {
+          console.error('Erro ao buscar perfil:', profileError)
+          // Se não encontrar o perfil, redirecionar para dashboard padrão
+          router.push('/dashboard')
+          return
+        }
+
+        // Redirecionar baseado no role
+        if (profile?.role === 'admin') {
+          router.push('/admin')
+        } else if (profile?.role === 'partner') {
+          router.push('/parceiro/dashboard')
+        } else {
+          router.push('/dashboard')
+        }
+      }
+    } catch (error) {
+      console.error('Erro no login:', error)
+      setError('Erro ao fazer login. Tente novamente.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
