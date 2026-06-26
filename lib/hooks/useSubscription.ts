@@ -21,6 +21,7 @@ export function useSubscription() {
     isExpired: false
   })
   const [loading, setLoading] = useState(true)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     verificarStatus()
@@ -34,6 +35,19 @@ export function useSubscription() {
         return
       }
 
+      // Verificar se é admin
+      const { data: profileRole } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profileRole?.role === 'admin') {
+        setIsAdmin(true)
+        setLoading(false)
+        return
+      }
+
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('subscription_status, trial_end_date')
@@ -41,6 +55,30 @@ export function useSubscription() {
         .single()
 
       if (error) throw error
+
+      // Se não tiver dados de trial, criar
+      if (!profile?.trial_end_date || !profile?.subscription_status) {
+        const startDate = new Date()
+        const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
+        
+        await supabase
+          .from('profiles')
+          .update({
+            trial_start_date: startDate.toISOString(),
+            trial_end_date: endDate.toISOString(),
+            subscription_status: 'trial'
+          })
+          .eq('id', user.id)
+
+        setStatus({
+          status: 'trial',
+          daysLeft: 30,
+          trialEndDate: endDate,
+          isExpired: false
+        })
+        setLoading(false)
+        return
+      }
 
       const trialEndDate = profile.trial_end_date ? new Date(profile.trial_end_date) : null
       const now = new Date()
@@ -66,5 +104,5 @@ export function useSubscription() {
     }
   }
 
-  return { status, loading }
+  return { status, loading, isAdmin }
 }
