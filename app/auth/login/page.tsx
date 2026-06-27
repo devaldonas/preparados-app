@@ -1,4 +1,4 @@
-// app/auth/login/page.tsx (COM LOGS)
+// app/auth/login/page.tsx
 'use client'
 
 import { useState } from 'react'
@@ -19,30 +19,24 @@ export default function Login() {
     setError('')
 
     try {
-      console.log('🔐 Tentando login com:', email)
-
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (signInError) {
-        console.error('❌ Erro no login:', signInError)
         setError(signInError.message)
         setLoading(false)
         return
       }
 
       if (data?.user) {
-        console.log('✅ Login bem-sucedido:', data.user.id)
-        console.log('📦 Redirecionando para página inicial...')
-        router.push('/')
-      } else {
-        console.warn('⚠️ Login sem dados de usuário')
-        setError('Erro ao fazer login. Tente novamente.')
+        // TODOS os usuários vão para o dashboard
+        // O dashboard vai identificar se é admin, parceiro ou usuário comum
+        router.push('/dashboard')
       }
     } catch (error) {
-      console.error('❌ Erro no login:', error)
+      console.error('Erro no login:', error)
       setError('Erro ao fazer login. Tente novamente.')
     } finally {
       setLoading(false)
@@ -59,7 +53,6 @@ export default function Login() {
             src="/logo1.svg" 
             alt="PREPARADO" 
             className="h-16 mx-auto mb-4"
-            onError={(e) => { e.currentTarget.style.display = 'none' }}
           />
           <h2 className="text-3xl font-extrabold text-black">
             Entrar no <span className="text-black">PREPARADO</span>
