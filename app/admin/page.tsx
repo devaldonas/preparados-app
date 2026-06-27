@@ -192,7 +192,7 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Relatórios */}
+          {/* Relatórios 
           <Link href="/admin/relatorios">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
               <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center mb-3">
@@ -201,9 +201,9 @@ export default function AdminDashboard() {
               <h3 className="font-display font-bold text-gray-900">Relatórios</h3>
               <p className="text-sm text-gray-500">Análises e estatísticas</p>
             </div>
-          </Link>
+          </Link> */}
 
-          {/* Configurações */}
+          {/* Configurações 
           <Link href="/admin/configuracoes">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
               <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center mb-3">
@@ -212,7 +212,7 @@ export default function AdminDashboard() {
               <h3 className="font-display font-bold text-gray-900">Configurações</h3>
               <p className="text-sm text-gray-500">Configurações da loja</p>
             </div>
-          </Link>
+          </Link> */}
         </div>
       </div>
     </div>
