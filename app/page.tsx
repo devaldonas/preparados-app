@@ -1,3 +1,4 @@
+// app/page.tsx
 'use client'
 
 import Link from 'next/link'
@@ -6,45 +7,10 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
 export default function HomePage() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // Sempre false para não redirecionar
 
-  useEffect(() => {
-    verificarSessao()
-  }, [])
-
-  const verificarSessao = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
-
-        if (profile?.role === 'admin') {
-          router.push('/admin')
-        } else if (profile?.role === 'partner') {
-          router.push('/parceiro/dashboard')
-        } else {
-          router.push('/dashboard')
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao verificar sessão:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
-      </div>
-    )
-  }
+  // Remover a verificação de sessão que redireciona automaticamente
+  // A página inicial é sempre pública para todos
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FFB800]/10 to-white flex items-center justify-center p-4">
