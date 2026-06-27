@@ -1,17 +1,7 @@
-// app/page.tsx
-'use client'
-
+// app/page.tsx (ESTÁTICO - SEM 'use client')
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
 
 export default function HomePage() {
-  const [loading, setLoading] = useState(false) // Sempre false para não redirecionar
-
-  // Remover a verificação de sessão que redireciona automaticamente
-  // A página inicial é sempre pública para todos
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FFB800]/10 to-white flex items-center justify-center p-4">
       <div className="max-w-md w-full">
