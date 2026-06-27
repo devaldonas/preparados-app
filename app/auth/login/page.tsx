@@ -52,7 +52,7 @@ export default function Login() {
           <img 
             src="/logo1.svg" 
             alt="PREPARADO" 
-            className="h-16 mx-auto mb-4"
+            className="h-32 mx-auto mb-4"
           />
           <h2 className="text-3xl font-extrabold text-black">
             Entrar no <span className="text-black">PREPARADO</span>
