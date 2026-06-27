@@ -1,47 +1,109 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabaseClient'
 
-export default function Home() {
-  const [logoSrc] = useState('/logo1.svg')
+export default function HomePage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    verificarSessao()
+  }, [])
+
+  const verificarSessao = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+
+        if (profile?.role === 'admin') {
+          router.push('/admin')
+        } else if (profile?.role === 'partner') {
+          router.push('/parceiro/dashboard')
+        } else {
+          router.push('/dashboard')
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar sessão:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
-        
-        {/* Logo */}
-        <img 
-          src={logoSrc}
-          alt="PREPARADO" 
-          className="h-28 mx-auto mb-8"
-          onError={(e) => { e.currentTarget.style.display = 'none' }}
-        />
-        
-        {/* Título (opcional - pode remover se a logo já tem o nome) */}
-        {/* <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-          <span className="text-black">PREPARADO</span>
-        </h1> */}
-        
-        {/* Frase motivacional */}
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-12 italic">
-          "A maior arma de todas é a mente humana."
-        </p>
-        
-        {/* Botões */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            href="/auth/cadastro"
-            className="bg-[#FFB800] text-black px-8 py-3 rounded-lg font-semibold hover:bg-[#E5A600] transition shadow-md"
-          >
-            Começar Agora
-          </Link>
-          <Link
-            href="/auth/login"
-            className="bg-black text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition shadow-md"
-          >
-            Já tenho conta
-          </Link>
+    <div className="min-h-screen bg-gradient-to-b from-[#FFB800]/10 to-white flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
+          <div className="bg-gradient-to-r from-[#FFB800] to-[#E5A600] px-6 py-8 text-center">
+            <img 
+              src="/logo1.svg" 
+              alt="PREPARADO" 
+              className="h-16 mx-auto"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
+          </div>
+
+          <div className="p-6 space-y-6">
+            <div className="text-center">
+              <p className="text-gray-600 italic text-sm">
+                "A maior arma de todas é a mente humana."
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Link
+                href="/auth/cadastro"
+                className="block w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-semibold py-3 rounded-lg transition text-center"
+              >
+                Cadastre-se
+              </Link>
+
+              <Link
+                href="/auth/cadastro-parceiro"
+                className="block w-full border-2 border-[#FFB800] text-black font-semibold py-3 rounded-lg hover:bg-[#FFB800]/10 transition text-center"
+              >
+                Seja um parceiro
+              </Link>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">ou</span>
+                </div>
+              </div>
+
+              <Link
+                href="/auth/login"
+                className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-lg transition text-center"
+              >
+                Já tenho conta
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 text-center">
+          <p className="text-xs text-gray-400">
+            Ao continuar, você concorda com nossos termos de uso
+          </p>
         </div>
       </div>
     </div>
