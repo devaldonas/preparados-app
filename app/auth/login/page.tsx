@@ -1,4 +1,4 @@
-// app/auth/login/page.tsx
+// app/auth/login/page.tsx (COM LOGS)
 'use client'
 
 import { useState } from 'react'
@@ -19,24 +19,30 @@ export default function Login() {
     setError('')
 
     try {
+      console.log('🔐 Tentando login com:', email)
+
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (signInError) {
+        console.error('❌ Erro no login:', signInError)
         setError(signInError.message)
         setLoading(false)
         return
       }
 
       if (data?.user) {
-        // Todos os usuários vão para a página inicial
-        // O botão Admin no dashboard vai dar acesso ao painel
+        console.log('✅ Login bem-sucedido:', data.user.id)
+        console.log('📦 Redirecionando para página inicial...')
         router.push('/')
+      } else {
+        console.warn('⚠️ Login sem dados de usuário')
+        setError('Erro ao fazer login. Tente novamente.')
       }
     } catch (error) {
-      console.error('Erro no login:', error)
+      console.error('❌ Erro no login:', error)
       setError('Erro ao fazer login. Tente novamente.')
     } finally {
       setLoading(false)
