@@ -31,28 +31,9 @@ export default function Login() {
       }
 
       if (data?.user) {
-        // Buscar o role do usuário na tabela profiles
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single()
-
-        if (profileError) {
-          console.error('Erro ao buscar perfil:', profileError)
-          // Se não encontrar o perfil, redirecionar para dashboard padrão
-          router.push('/dashboard')
-          return
-        }
-
-        // Redirecionar baseado no role
-        if (profile?.role === 'admin') {
-          router.push('/admin')
-        } else if (profile?.role === 'partner') {
-          router.push('/parceiro/dashboard')
-        } else {
-          router.push('/dashboard')
-        }
+        // Todos os usuários vão para a página inicial
+        // O botão Admin no dashboard vai dar acesso ao painel
+        router.push('/')
       }
     } catch (error) {
       console.error('Erro no login:', error)
