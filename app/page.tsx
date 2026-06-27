@@ -1,5 +1,6 @@
-// app/page.tsx (ESTÁTICO - SEM 'use client')
+// app/page.tsx (ESTÁTICO - CORRIGIDO)
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function HomePage() {
   return (
@@ -11,7 +12,6 @@ export default function HomePage() {
               src="/logo1.svg" 
               alt="PREPARADO" 
               className="h-16 mx-auto"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
           </div>
 
