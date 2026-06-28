@@ -1,4 +1,3 @@
-// app/loja/page.tsx (CORRIGIDO)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -31,7 +30,7 @@ export default function Loja() {
   const productsPerPage = 4
   const router = useRouter()
   
-  const { addItem, getTotalItems, items } = useCart()
+  const { addItem, getTotalItems } = useCart()
   const cartCount = getTotalItems()
 
   useEffect(() => {
@@ -71,7 +70,8 @@ export default function Loja() {
       console.error('Erro ao carregar produtos:', error)
     } else {
       setProducts(data || [])
-      const uniqueCategories = [...new Set(data?.map(p => p.category) || [])]
+      const productCategories = data?.map(p => p.category) || []
+      const uniqueCategories = [...new Set(productCategories)]
       setCategories(uniqueCategories)
     }
   }
@@ -79,15 +79,6 @@ export default function Loja() {
   const adicionarAoCarrinho = (product: Product) => {
     if (!user) return
 
-    // Verificar se o produto já está no carrinho
-    const existingItem = items.find(item => item.product_id === product.id)
-    
-    if (existingItem) {
-      // Se já existe, não adiciona novamente - apenas atualiza a quantidade
-      // O store já faz isso automaticamente
-    }
-    
-    // Adicionar ao carrinho
     addItem({
       product_id: product.id,
       name: product.name,
@@ -96,7 +87,6 @@ export default function Loja() {
       max_stock: product.stock,
     }, 1)
 
-    // Feedback visual
     const btn = document.getElementById(`btn-${product.id}`)
     if (btn) {
       const originalText = btn.textContent
@@ -120,7 +110,6 @@ export default function Loja() {
     }).format(price)
   }
 
-  // Paginação
   const totalPages = Math.ceil(products.length / productsPerPage)
   const indexOfLastProduct = currentPage * productsPerPage
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage
@@ -145,7 +134,7 @@ export default function Loja() {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-black"> Loja Preparado</h1>
+              <h1 className="text-2xl font-bold text-black">🛒 Loja Preparado</h1>
               <p className="text-gray-500 text-sm">Equipamentos essenciais para sua mochila</p>
             </div>
             <Link
@@ -161,7 +150,6 @@ export default function Loja() {
             </Link>
           </div>
 
-          {/* Categorias */}
           <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
             <button
               onClick={() => {
@@ -194,7 +182,6 @@ export default function Loja() {
             ))}
           </div>
 
-          {/* Grid de produtos */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {currentProducts.map((product) => (
               <div 
@@ -204,13 +191,10 @@ export default function Loja() {
               >
                 <div className="relative h-32 sm:h-40 bg-gray-100 overflow-hidden">
                   <img 
-  src={product.image_url || '/images/placeholder.jpg'}  // Adicionar fallback
-  alt={product.name}
-  className="w-full h-full object-contain p-2 sm:p-3 group-hover:scale-105 transition duration-300"
-  onError={(e) => {
-    e.currentTarget.src = '/images/placeholder.jpg'
-  }}
-/>
+                    src={product.image_url || '/images/placeholder.jpg'}
+                    alt={product.name}
+                    className="w-full h-full object-contain p-2 sm:p-3 group-hover:scale-105 transition duration-300"
+                  />
                   {product.featured && (
                     <span className="absolute top-1 right-1 bg-[#FFB800] text-black text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full font-bold">
                       Destaque
@@ -245,7 +229,7 @@ export default function Loja() {
                           : 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
                       }`}
                     >
-                      Adicionar ao Carrinho
+                      Comprar
                     </button>
                   </div>
                 </div>
@@ -253,7 +237,6 @@ export default function Loja() {
             ))}
           </div>
 
-          {/* Paginação */}
           {totalPages > 1 && (
             <div className="flex justify-center gap-2 mt-8">
               <button
@@ -286,7 +269,6 @@ export default function Loja() {
             </div>
           )}
 
-          {/* Mensagem quando não há produtos */}
           {products.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-500">Nenhum produto encontrado nesta categoria.</p>

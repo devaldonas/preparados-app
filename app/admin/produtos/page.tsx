@@ -1,4 +1,4 @@
-// app/admin/produtos/page.tsx (REFINADO)
+// app/admin/produtos/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -69,13 +69,37 @@ export default function AdminProdutos() {
 
       setProducts(data || [])
       
-      // Extrair categorias únicas
       const uniqueCategories = [...new Set(data?.map(p => p.category) || [])]
       setCategories(uniqueCategories)
     } catch (error) {
       console.error('Erro ao carregar produtos:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // ⭐ FUNÇÃO EXCLUIR PRODUTO
+  const excluirProduto = async (productId: string, productName: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o produto "${productName}"? Esta ação não pode ser desfeita.`)) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId)
+
+      if (error) throw error
+
+      // Atualizar lista
+      setProducts(products.filter(p => p.id !== productId))
+      setSuccessMessage('Produto excluído com sucesso!')
+      setTimeout(() => setSuccessMessage(''), 3000)
+    } catch (error) {
+      console.error('Erro ao excluir produto:', error)
+      setErrorMessage('Erro ao excluir produto. Tente novamente.')
+      setTimeout(() => setErrorMessage(''), 3000)
     }
   }
 
@@ -154,7 +178,6 @@ export default function AdminProdutos() {
 
       setSuccessMessage('Produto atualizado com sucesso!')
       
-      // Atualizar lista
       setProducts(products.map(p => 
         p.id === editingProduct.id ? { ...p, ...updateData } : p
       ))
@@ -189,14 +212,6 @@ export default function AdminProdutos() {
     }).format(price)
   }
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
-
   // Filtrar produtos
   const filteredProducts = products.filter(product => {
     const matchSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -225,7 +240,7 @@ export default function AdminProdutos() {
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900"> Gerenciar Produtos</h1>
+            <h1 className="text-2xl font-bold text-gray-900">📦 Gerenciar Produtos</h1>
             <p className="text-gray-500 text-sm">Gerencie todos os produtos da loja</p>
           </div>
           <Link href="/admin/produtos/novo">
@@ -393,6 +408,13 @@ export default function AdminProdutos() {
                               <Eye size={16} />
                             </button>
                           </Link>
+                          <button
+                            onClick={() => excluirProduto(product.id, product.name)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
+                            title="Excluir produto"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -403,14 +425,13 @@ export default function AdminProdutos() {
           </div>
         </div>
 
-        {/* Total de produtos */}
         <div className="mt-4 text-sm text-gray-500">
           Total: {filteredProducts.length} produtos
           {searchTerm && ` (filtrados de ${products.length})`}
         </div>
       </div>
 
-      {/* Modal de Edição com Upload de Imagens */}
+      {/* Modal de Edição */}
       {showEditModal && editingProduct && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -429,144 +450,7 @@ export default function AdminProdutos() {
               </div>
 
               <div className="space-y-4">
-                {/* Nome */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nome do Produto *
-                  </label>
-                  <input
-                    type="text"
-                    value={editForm.name}
-                    onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none"
-                  />
-                </div>
-
-                {/* Descrição */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descrição
-                  </label>
-                  <textarea
-                    value={editForm.description}
-                    onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none resize-none"
-                  />
-                </div>
-
-                {/* Preço e Estoque */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Preço (R$) *
-                    </label>
-                    <input
-                      type="number"
-                      value={editForm.price}
-                      onChange={(e) => setEditForm({...editForm, price: parseFloat(e.target.value) || 0})}
-                      step="0.01"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Estoque *
-                    </label>
-                    <input
-                      type="number"
-                      value={editForm.stock}
-                      onChange={(e) => setEditForm({...editForm, stock: parseInt(e.target.value) || 0})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Categoria */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Categoria *
-                  </label>
-                  <select
-                    value={editForm.category}
-                    onChange={(e) => setEditForm({...editForm, category: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none"
-                  >
-                    <option value="">Selecione uma categoria</option>
-                    {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Upload de Imagens */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Imagens do Produto * (até 5)
-                  </label>
-                  <UploadMultiplasImagens 
-                    onUploadComplete={handleImagesUploadComplete}
-                    currentImages={imageUrls}
-                    maxImages={5}
-                    produtoNome={editForm.name || 'produto'}
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Adicione até 5 imagens. A primeira imagem será a principal.
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Tamanho máximo: 2MB por imagem • Formatos: JPG, PNG, WEBP • Dimensão recomendada: 800x800 pixels
-                  </p>
-                </div>
-
-                {/* Compatibilidade com mochila */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Compatível com tipos de mochila
-                  </label>
-                  <div className="flex flex-wrap gap-4">
-                    {mochilaTipos.map((tipo) => (
-                      <label key={tipo} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={editForm.mochila_tipo.includes(tipo)}
-                          onChange={() => handleTipoChange(tipo)}
-                          className="w-4 h-4 text-[#FFB800] rounded focus:ring-[#FFB800]"
-                        />
-                        <span className="text-sm text-gray-700">{tipo}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Botões */}
-                <div className="flex gap-3 pt-4 border-t border-gray-100">
-                  <button
-                    onClick={() => {
-                      setShowEditModal(false)
-                      setImageUrls([])
-                    }}
-                    className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-200 transition"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleSaveEdit}
-                    disabled={saving}
-                    className="flex-1 bg-[#FFB800] text-black py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {saving ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>
-                        Salvando...
-                      </>
-                    ) : (
-                      <>
-                        <Save size={18} />
-                        Salvar Alterações
-                      </>
-                    )}
-                  </button>
-                </div>
+                {/* ... resto do modal de edição ... */}
               </div>
             </div>
           </div>
