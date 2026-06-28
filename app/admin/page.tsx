@@ -1,8 +1,9 @@
-// app/admin/page.tsx (ATUALIZADO COM TODOS OS BOTÕES)
+// app/admin/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import NavBar from '@/components/NavBar'
 import {
@@ -14,7 +15,8 @@ import {
   Clock,
   BarChart3,
   Settings,
-  ClipboardList
+  ClipboardList,
+  Store
 } from 'lucide-react'
 
 export default function AdminDashboard() {
@@ -24,8 +26,10 @@ export default function AdminDashboard() {
     totalOrders: 0,
     pendingOrders: 0,
     totalUsers: 0,
-    revenue: 0
+    revenue: 0,
+    pendingPartners: 0 // ← NOVO
   })
+  const router = useRouter()
 
   useEffect(() => {
     carregarDados()
@@ -33,10 +37,12 @@ export default function AdminDashboard() {
 
   const carregarDados = async () => {
     try {
+      // Buscar produtos
       const { count: productCount } = await supabase
         .from('products')
         .select('*', { count: 'exact', head: true })
 
+      // Buscar pedidos
       const { data: orders, count: orderCount } = await supabase
         .from('orders')
         .select('*', { count: 'exact' })
@@ -47,16 +53,24 @@ export default function AdminDashboard() {
         ?.filter(o => o.payment_status === 'paid')
         .reduce((sum, o) => sum + o.total_amount, 0) || 0
 
+      // Buscar usuários
       const { count: userCount } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
+
+      // Buscar parceiros pendentes
+      const { count: pendingPartners } = await supabase
+        .from('partners')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending')
 
       setStats({
         totalProducts: productCount || 0,
         totalOrders: orderCount || 0,
         pendingOrders: pendingOrders,
         totalUsers: userCount || 0,
-        revenue: revenue
+        revenue: revenue,
+        pendingPartners: pendingPartners || 0
       })
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
@@ -86,7 +100,7 @@ export default function AdminDashboard() {
       
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900"> Painel Administrativo</h1>
+          <h1 className="text-2xl font-bold text-gray-900">🛠️ Painel Administrativo</h1>
           <p className="text-gray-500 text-sm">Gerencie todos os aspectos da sua loja</p>
         </div>
 
@@ -170,6 +184,22 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
+          {/* Parceiros - NOVO CARD */}
+          <Link href="/admin/parceiros">
+            <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
+              <div className="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center mb-3">
+                <Store size={24} className="text-indigo-600" />
+              </div>
+              <h3 className="font-display font-bold text-gray-900">Parceiros</h3>
+              <p className="text-sm text-gray-500">Gerenciar parceiros vendedores</p>
+              {stats.pendingPartners > 0 && (
+                <span className="inline-block mt-2 bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-1 rounded-full">
+                  {stats.pendingPartners} pendentes
+                </span>
+              )}
+            </div>
+          </Link>
+
           {/* Usuários */}
           <Link href="/admin/usuarios">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
@@ -192,7 +222,7 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Relatórios 
+          {/* Relatórios */}
           <Link href="/admin/relatorios">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
               <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center mb-3">
@@ -201,18 +231,7 @@ export default function AdminDashboard() {
               <h3 className="font-display font-bold text-gray-900">Relatórios</h3>
               <p className="text-sm text-gray-500">Análises e estatísticas</p>
             </div>
-          </Link> */}
-
-          {/* Configurações 
-          <Link href="/admin/configuracoes">
-            <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
-              <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center mb-3">
-                <Settings size={24} className="text-gray-600" />
-              </div>
-              <h3 className="font-display font-bold text-gray-900">Configurações</h3>
-              <p className="text-sm text-gray-500">Configurações da loja</p>
-            </div>
-          </Link> */}
+          </Link>
         </div>
       </div>
     </div>
