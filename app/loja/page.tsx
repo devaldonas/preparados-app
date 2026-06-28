@@ -70,6 +70,8 @@ export default function Loja() {
       console.error('Erro ao carregar produtos:', error)
     } else {
       setProducts(data || [])
+      
+      // Filtrar categorias que têm pelo menos um produto
       const productCategories = data?.map(p => p.category) || []
       const uniqueCategories = [...new Set(productCategories)]
       setCategories(uniqueCategories)
@@ -110,6 +112,7 @@ export default function Loja() {
     }).format(price)
   }
 
+  // Paginação
   const totalPages = Math.ceil(products.length / productsPerPage)
   const indexOfLastProduct = currentPage * productsPerPage
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage
@@ -150,6 +153,7 @@ export default function Loja() {
             </Link>
           </div>
 
+          {/* Categorias */}
           <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
             <button
               onClick={() => {
@@ -182,6 +186,7 @@ export default function Loja() {
             ))}
           </div>
 
+          {/* Grid de produtos */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4">
             {currentProducts.map((product) => (
               <div 
@@ -237,6 +242,7 @@ export default function Loja() {
             ))}
           </div>
 
+          {/* Paginação */}
           {totalPages > 1 && (
             <div className="flex justify-center gap-2 mt-8">
               <button
@@ -269,6 +275,7 @@ export default function Loja() {
             </div>
           )}
 
+          {/* Mensagem quando não há produtos */}
           {products.length === 0 && (
             <div className="text-center py-12">
               <p className="text-gray-500">Nenhum produto encontrado nesta categoria.</p>
