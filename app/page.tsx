@@ -4,14 +4,14 @@ import Image from 'next/image'
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FFB800]/10 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-white/10 to-white flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
           <div className="bg-gradient-to-r from-[#FFB800] to-[#E5A600] px-6 py-8 text-center">
             <img 
               src="/logo1.svg" 
               alt="PREPARADO" 
-              className="h-16 mx-auto"
+              className="h-32 mx-auto"
             />
           </div>
 
