@@ -1,4 +1,4 @@
-// app/parceiro/cadastro/page.tsx
+// app/parceiro/cadastro/page.tsx (CORRIGIDO)
 'use client'
 
 import { useState } from 'react'
@@ -42,7 +42,7 @@ export default function CadastroParceiro() {
         return
       }
 
-      // Verificar se já é parceiro
+      // 🔥 Verificar se já é parceiro
       const { data: existing } = await supabase
         .from('partners')
         .select('id')
@@ -55,7 +55,25 @@ export default function CadastroParceiro() {
         return
       }
 
-      // Cadastrar parceiro
+      // 🔥 CRIAR PERFIL NA TABELA PROFILES (isso estava faltando!)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          full_name: formData.company_name,
+          role: 'partner',
+          created_at: new Date().toISOString()
+        })
+
+      if (profileError) {
+        console.error('Erro ao criar perfil:', profileError)
+        // Se o perfil já existe, continua
+        if (profileError.code !== '23505') { // 23505 = duplicate key
+          throw profileError
+        }
+      }
+
+      // 🔥 Cadastrar parceiro
       const { data, error: insertError } = await supabase
         .from('partners')
         .insert({
