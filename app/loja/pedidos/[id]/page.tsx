@@ -1,10 +1,11 @@
-// app/loja/pedidos/[id]/page.tsx
+// app/loja/pedidos/[id]/page.tsx (CORRIGIDO)
 'use client'
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabaseClient'
+import NavBar from '@/components/NavBar'
 import { ArrowLeft, Package, Clock, CheckCircle, Truck, AlertCircle, Printer } from 'lucide-react'
 
 interface Order {
@@ -18,50 +19,96 @@ interface Order {
   shipping_address: string
   created_at: string
   updated_at: string
-  items: any[]
+  items: OrderItem[]
 }
 
-export default function DetalhePedido({ params }: { params: { id: string } }) {
+interface OrderItem {
+  id: number
+  order_id: number
+  product_id: number
+  quantity: number
+  price: number
+  products?: {
+    name: string
+    image_url: string
+  }
+}
+
+export default function DetalhePedido({ params }: { params: Promise<{ id: string }> }) {
+  // 🔥 DESEMBRULHAR PARAMS COM use()
+  const { id } = use(params)
+  
+  const router = useRouter()
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [user, setUser] = useState<any>(null)
-  const router = useRouter()
 
   useEffect(() => {
     carregarUsuario()
-  }, [])
+  }, [id])
 
   const carregarUsuario = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/auth/login')
-      return
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+      setUser(user)
+      await carregarPedido(user.id)
+    } catch (error) {
+      console.error('Erro ao carregar usuário:', error)
+      setLoading(false)
     }
-    setUser(user)
-    await carregarPedido(user.id)
   }
 
   const carregarPedido = async (userId: string) => {
     try {
+      console.log('🔍 Buscando pedido ID:', id)
+      
+      // 🔥 CONVERTER ID PARA NÚMERO
+      const orderId = parseInt(id)
+      if (isNaN(orderId)) {
+        throw new Error('ID do pedido inválido')
+      }
+
       // Buscar pedido
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .select('*')
-        .eq('id', parseInt(params.id))
+        .eq('id', orderId)
         .eq('user_id', userId)
         .single()
 
-      if (orderError) throw orderError
+      if (orderError) {
+        console.error('❌ Erro ao buscar pedido:', orderError)
+        throw orderError
+      }
 
-      // Buscar itens do pedido
-      const { data: items } = await supabase
+      console.log('✅ Pedido encontrado:', orderData)
+
+      // 🔥 BUSCAR ITENS COM NOME DO PRODUTO
+      const { data: items, error: itemsError } = await supabase
         .from('order_items')
-        .select('*')
+        .select(`
+          *,
+          products:product_id (
+            name,
+            image_url
+          )
+        `)
         .eq('order_id', orderData.id)
+
+      if (itemsError) {
+        console.error('❌ Erro ao buscar itens:', itemsError)
+      }
+
+      console.log('📦 Itens encontrados:', items)
 
       setOrder({ ...orderData, items: items || [] })
     } catch (error) {
-      console.error('Erro ao carregar pedido:', error)
+      console.error('❌ Erro ao carregar pedido:', error)
       router.push('/loja/pedidos')
     } finally {
       setLoading(false)
@@ -87,7 +134,7 @@ export default function DetalhePedido({ params }: { params: { id: string } }) {
 
   const getStatusInfo = (status: string) => {
     const map: Record<string, { label: string; icon: any; color: string }> = {
-      pending: { label: 'Aguardando pagamento', icon: Clock, color: 'text-yellow-600 bg-yellow-50' },
+      pending: { label: 'Pendente', icon: Clock, color: 'text-yellow-600 bg-yellow-50' },
       paid: { label: 'Pago', icon: CheckCircle, color: 'text-blue-600 bg-blue-50' },
       processing: { label: 'Processando', icon: Package, color: 'text-purple-600 bg-purple-50' },
       shipped: { label: 'Enviado', icon: Truck, color: 'text-orange-600 bg-orange-50' },
@@ -98,30 +145,13 @@ export default function DetalhePedido({ params }: { params: { id: string } }) {
   }
 
   const getPaymentStatusLabel = (status: string) => {
-    const map: Record<string, { label: string; color: string }> = {
-      pending: { label: 'Aguardando', color: 'text-yellow-600' },
-      paid: { label: 'Pago', color: 'text-green-600' },
-      failed: { label: 'Falhou', color: 'text-red-600' },
-      refunded: { label: 'Reembolsado', color: 'text-gray-600' }
+    const map: Record<string, string> = {
+      pending: 'Aguardando',
+      paid: 'Pago',
+      failed: 'Falhou',
+      refunded: 'Reembolsado'
     }
-    return map[status] || { label: status, color: 'text-gray-600' }
-  }
-
-  const getStatusSteps = (status: string) => {
-    const steps = [
-      { key: 'pending', label: 'Pedido criado', icon: Package },
-      { key: 'paid', label: 'Pagamento confirmado', icon: CheckCircle },
-      { key: 'processing', label: 'Preparando envio', icon: Package },
-      { key: 'shipped', label: 'Enviado', icon: Truck },
-      { key: 'delivered', label: 'Entregue', icon: CheckCircle },
-    ]
-
-    const currentIndex = steps.findIndex(s => s.key === status)
-    return steps.map((step, index) => ({
-      ...step,
-      completed: index <= currentIndex,
-      active: index === currentIndex
-    }))
+    return map[status] || status
   }
 
   if (loading) {
@@ -132,12 +162,20 @@ export default function DetalhePedido({ params }: { params: { id: string } }) {
     )
   }
 
-  if (!order) {
+  if (error || !order) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-500 mb-4">Pedido não encontrado</p>
-          <Link href="/loja/pedidos" className="text-[#FFB800] hover:underline">
+        <div className="bg-white rounded-2xl border border-gray-100 p-8 max-w-md text-center">
+          <h2 className="font-display text-xl font-bold text-gray-900 mb-2">
+            Pedido não encontrado
+          </h2>
+          <p className="text-sm text-gray-500 mb-6">
+            Não foi possível encontrar o pedido solicitado.
+          </p>
+          <Link
+            href="/loja/pedidos"
+            className="inline-block bg-[#FFB800] hover:bg-[#E5A600] text-black font-display font-bold px-6 py-2 rounded-lg transition-colors"
+          >
             Voltar para meus pedidos
           </Link>
         </div>
@@ -147,26 +185,20 @@ export default function DetalhePedido({ params }: { params: { id: string } }) {
 
   const statusInfo = getStatusInfo(order.status)
   const StatusIcon = statusInfo.icon
-  const paymentInfo = getPaymentStatusLabel(order.payment_status)
-  const steps = getStatusSteps(order.status)
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        {/* Header */}
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <NavBar showBackButton={true} backButtonPath="/loja/pedidos" />
+      
+      <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Link href="/loja/pedidos" className="p-2 hover:bg-gray-100 rounded-lg transition">
-              <ArrowLeft size={20} />
-            </Link>
-            <div>
-              <h1 className="font-display text-2xl font-bold text-gray-900">
-                Pedido #{order.transaction_id?.slice(-8) || order.id}
-              </h1>
-              <p className="text-sm text-gray-500">
-                Realizado em {formatDate(order.created_at)}
-              </p>
-            </div>
+          <div>
+            <h1 className="font-display text-2xl font-bold text-gray-900">
+              Pedido #{order.transaction_id?.slice(-8) || order.id}
+            </h1>
+            <p className="text-sm text-gray-500">
+              Realizado em {formatDate(order.created_at)}
+            </p>
           </div>
           <button
             onClick={() => window.print()}
@@ -178,77 +210,51 @@ export default function DetalhePedido({ params }: { params: { id: string } }) {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Status e informações */}
+          {/* Status e itens */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Status do pedido */}
+            {/* Status */}
             <div className="bg-white rounded-xl border border-gray-100 p-6">
               <h3 className="font-display font-bold text-gray-900 mb-4">
                 Status do Pedido
               </h3>
-              
-              <div className="relative">
-                {steps.map((step, index) => {
-                  const Icon = step.icon
-                  return (
-                    <div key={step.key} className="flex items-start gap-4 mb-4 last:mb-0">
-                      <div className="relative">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          step.completed 
-                            ? 'bg-[#FFB800] text-black' 
-                            : step.active 
-                              ? 'bg-[#FFB800] text-black animate-pulse' 
-                              : 'bg-gray-200 text-gray-400'
-                        }`}>
-                          <Icon size={16} />
-                        </div>
-                        {index < steps.length - 1 && (
-                          <div className={`absolute top-8 left-1/2 w-0.5 h-10 -translate-x-1/2 ${
-                            step.completed ? 'bg-[#FFB800]' : 'bg-gray-200'
-                          }`} />
-                        )}
-                      </div>
-                      <div className="flex-1 pt-1">
-                        <p className={`font-display font-bold text-sm ${
-                          step.completed ? 'text-gray-900' : 'text-gray-400'
-                        }`}>
-                          {step.label}
-                          {step.active && (
-                            <span className="ml-2 text-[0.6rem] text-[#FFB800] font-display tracking-wider">
-                              • ATUAL
-                            </span>
-                          )}
-                        </p>
-                        {step.completed && step.key === 'delivered' && (
-                          <p className="text-xs text-green-600 mt-1">
-                            ✅ Pedido entregue com sucesso!
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
+              <div className="flex items-center gap-3">
+                <div className={`p-3 rounded-full ${statusInfo.color}`}>
+                  <StatusIcon size={24} />
+                </div>
+                <div>
+                  <p className="font-display font-bold text-gray-900">
+                    {statusInfo.label}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Pagamento: {getPaymentStatusLabel(order.payment_status)}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Itens do pedido */}
+            {/* Itens */}
             <div className="bg-white rounded-xl border border-gray-100 p-6">
               <h3 className="font-display font-bold text-gray-900 mb-4">
                 Itens do Pedido
               </h3>
-              
               <div className="space-y-3">
-                {order.items.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                {order.items && order.items.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Package size={20} className="text-gray-400" />
+                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <img
+                          src={item.products?.image_url || '/images/placeholder.jpg'}
+                          alt={item.products?.name || 'Produto'}
+                          className="w-10 h-10 object-contain"
+                          onError={(e) => { e.currentTarget.src = '/images/placeholder.jpg' }}
+                        />
                       </div>
                       <div>
                         <p className="font-medium text-sm text-gray-900">
-                          {item.name || `Produto ${item.product_id}`}
+                          {item.products?.name || `Produto ${item.product_id}`}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {item.quantity} x {formatPrice(item.price)}
+                          {item.quantity}x {formatPrice(item.price)}
                         </p>
                       </div>
                     </div>
@@ -259,13 +265,10 @@ export default function DetalhePedido({ params }: { params: { id: string } }) {
                 ))}
               </div>
 
-              {/* Totais */}
               <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="text-gray-900">
-                    {formatPrice(order.total_amount)}
-                  </span>
+                  <span className="text-gray-900">{formatPrice(order.total_amount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Frete</span>
@@ -273,15 +276,13 @@ export default function DetalhePedido({ params }: { params: { id: string } }) {
                 </div>
                 <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-200">
                   <span className="text-gray-900">Total</span>
-                  <span className="text-[#FFB800]">
-                    {formatPrice(order.total_amount)}
-                  </span>
+                  <span className="text-[#FFB800]">{formatPrice(order.total_amount)}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Sidebar - Informações adicionais */}
+          {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             {/* Pagamento */}
             <div className="bg-white rounded-xl border border-gray-100 p-6">
@@ -297,8 +298,12 @@ export default function DetalhePedido({ params }: { params: { id: string } }) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Status</span>
-                  <span className={`font-medium ${paymentInfo.color}`}>
-                    {paymentInfo.label}
+                  <span className={`font-medium ${
+                    order.payment_status === 'paid' ? 'text-green-600' :
+                    order.payment_status === 'pending' ? 'text-yellow-600' :
+                    'text-red-600'
+                  }`}>
+                    {getPaymentStatusLabel(order.payment_status)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -310,7 +315,7 @@ export default function DetalhePedido({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* Endereço de entrega */}
+            {/* Endereço */}
             {order.shipping_address && (
               <div className="bg-white rounded-xl border border-gray-100 p-6">
                 <h3 className="font-display font-bold text-gray-900 mb-3">
