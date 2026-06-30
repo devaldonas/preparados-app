@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import NavBar from '@/components/NavBar'
+import { formatDate } from '@/lib/utils'
 import {
   Search,
   Eye,
@@ -194,17 +195,7 @@ export default function AdminPedidos() {
       currency: 'BRL'
     }).format(price)
   }
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
+  
   const getStatusInfo = (status: string) => {
     const map: Record<string, { label: string; icon: any; color: string }> = {
       pending: { label: 'Pendente', icon: Clock, color: 'text-yellow-600 bg-yellow-50' },
