@@ -1,4 +1,4 @@
-// app/auth/login/page.tsx
+// app/auth/login/page.tsx (CORRIGIDO)
 'use client'
 
 import { useState } from 'react'
@@ -31,9 +31,29 @@ export default function Login() {
       }
 
       if (data?.user) {
-        // TODOS os usuários vão para o dashboard
-        // O dashboard vai identificar se é admin, parceiro ou usuário comum
-        router.push('/dashboard')
+        // Buscar o role do usuário
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single()
+
+        if (profileError) {
+          console.error('Erro ao buscar perfil:', profileError)
+          router.push('/dashboard')
+          return
+        }
+
+        // Redirecionar baseado no role
+        if (profile?.role === 'admin') {
+          router.push('/admin')
+        } else if (profile?.role === 'partner') {
+          // Parceiro vai APENAS para o dashboard de parceiro
+          router.push('/parceiro/dashboard')
+        } else {
+          // Usuário comum vai APENAS para o dashboard de usuário
+          router.push('/dashboard')
+        }
       }
     } catch (error) {
       console.error('Erro no login:', error)
@@ -46,8 +66,6 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        
-        {/* Logo */}
         <div className="text-center">
           <img 
             src="/logo1.svg" 
@@ -103,7 +121,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Link para recuperar senha */}
           <div className="text-right">
             <Link
               href="/auth/recuperar-senha"

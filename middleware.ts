@@ -1,4 +1,4 @@
-// middleware.ts (CORRIGIDO)
+// middleware.ts (ATUALIZADO)
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { supabase } from './lib/supabaseClient'
@@ -6,10 +6,11 @@ import { supabase } from './lib/supabaseClient'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Rotas públicas que não precisam de autenticação
+  // Rotas públicas
   const publicRoutes = [
     '/auth/login',
     '/auth/cadastro',
+    '/auth/cadastro-parceiro',
     '/auth/recuperar-senha',
     '/auth/atualizar-senha',
     '/auth/welcome',
@@ -21,70 +22,66 @@ export async function middleware(request: NextRequest) {
     '/'
   ]
 
-  // Verificar se é rota pública
   if (publicRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next()
   }
 
   // Verificar autenticação
   const { data: { session } } = await supabase.auth.getSession()
-  
-  // Se não estiver autenticado, redirecionar para login
   if (!session) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  // Buscar perfil do usuário para verificar se é admin
+  // Buscar role do usuário
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('role, subscription_status, trial_end_date')
+    .select('role')
     .eq('id', session.user.id)
     .single()
 
-  // Se não encontrar o perfil, permitir acesso (não bloquear)
   if (error || !profile) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+
+  const role = profile.role || 'user'
+
+  // 🔥 REGRAS DE ACESSO
+
+  // Admin: acesso total
+  if (role === 'admin') {
     return NextResponse.next()
   }
 
-  // ADMIN: acesso total (ignora trial)
-  if (profile.role === 'admin') {
-    return NextResponse.next()
-  }
-
-  // USUÁRIOS COMUNS: verificar trial
-  // Se não tiver dados de trial, criar automaticamente
-  if (!profile.trial_end_date || !profile.subscription_status) {
-    const startDate = new Date()
-    const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
-    
-    await supabase
-      .from('profiles')
-      .update({
-        trial_start_date: startDate.toISOString(),
-        trial_end_date: endDate.toISOString(),
-        subscription_status: 'trial'
-      })
-      .eq('id', session.user.id)
-    
-    return NextResponse.next()
-  }
-
-  // Verificar se o trial expirou
-  if (profile.subscription_status === 'expired' || profile.subscription_status === 'cancelled') {
-    const now = new Date()
-    const endDate = new Date(profile.trial_end_date)
-    
-    if (now > endDate) {
-      // Se expirou, redirecionar para página de welcome/assinatura
-      return NextResponse.redirect(new URL('/auth/welcome', request.url))
+  // Parceiro: acesso APENAS a rotas de parceiro
+  if (role === 'partner') {
+    // Se tentar acessar rotas de usuário comum, redirecionar para parceiro
+    const userRoutes = ['/dashboard', '/checklist', '/mochilas', '/pessoas', '/catastrofes', '/comunicador', '/grupo', '/loja', '/check-in']
+    if (userRoutes.some(route => pathname.startsWith(route))) {
+      return NextResponse.redirect(new URL('/parceiro/dashboard', request.url))
     }
+    // Permitir acesso a rotas de parceiro
+    if (pathname.startsWith('/parceiro')) {
+      return NextResponse.next()
+    }
+    return NextResponse.redirect(new URL('/parceiro/dashboard', request.url))
   }
 
-  // Se chegou até aqui, tem acesso
+  // Usuário comum: acesso APENAS a rotas de usuário
+  if (role === 'user' || !role) {
+    // Se tentar acessar rotas de parceiro, redirecionar para dashboard
+    if (pathname.startsWith('/parceiro')) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    // Se tentar acessar admin, redirecionar para dashboard
+    if (pathname.startsWith('/admin')) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    return NextResponse.next()
+  }
+
   return NextResponse.next()
 }
 
-// Configurar quais rotas o middleware deve verificar
 export const config = {
   matcher: [
     '/dashboard/:path*',

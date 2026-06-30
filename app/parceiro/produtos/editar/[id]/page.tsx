@@ -1,20 +1,25 @@
-// app/parceiro/produtos/novo/page.tsx
+// app/parceiro/produtos/editar/[id]/page.tsx
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import NavBar from '@/components/NavBar'
 import UploadMultiplasImagens from '@/components/UploadMultiplasImagens'
-import { ArrowLeft, Loader2, AlertCircle, Check } from 'lucide-react'
+import { ArrowLeft, Loader2, AlertCircle, Check, Save } from 'lucide-react'
 
-export default function NovoProdutoParceiro() {
+export default function EditarProdutoParceiro() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const params = useParams()
+  const productId = params.id as string
+  
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [imageUrls, setImageUrls] = useState<string[]>([])
+  const [partner, setPartner] = useState<any>(null)
   
   const [formData, setFormData] = useState({
     name: '',
@@ -36,6 +41,65 @@ export default function NovoProdutoParceiro() {
 
   const mochilaTipos = ['EDC', 'BOB', 'BOLT']
 
+  useEffect(() => {
+    carregarDados()
+  }, [])
+
+  const carregarDados = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+
+      // Buscar parceiro
+      const { data: partnerData, error: partnerError } = await supabase
+        .from('partners')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (partnerError || !partnerData) {
+        router.push('/parceiro/cadastro')
+        return
+      }
+
+      setPartner(partnerData)
+
+      // Buscar produto
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .eq('partner_id', partnerData.id)
+        .single()
+
+      if (productError || !product) {
+        setError('Produto não encontrado')
+        setLoading(false)
+        return
+      }
+
+      setFormData({
+        name: product.name,
+        description: product.description || '',
+        price: String(product.price),
+        category: product.category,
+        stock: String(product.stock),
+        mochila_tipo: product.mochila_tipo || []
+      })
+
+      setImageUrls(product.images || (product.image_url ? [product.image_url] : []))
+
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error)
+      setError('Erro ao carregar dados')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
@@ -54,91 +118,68 @@ export default function NovoProdutoParceiro() {
     setImageUrls(urls)
   }
 
- // app/parceiro/produtos/novo/page.tsx - Atualizar a função handleSubmit
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setLoading(true)
-  setError('')
-
-  if (!formData.name || !formData.price || !formData.category) {
-    setError('Preencha todos os campos obrigatórios')
-    setLoading(false)
-    return
-  }
-
-  if (imageUrls.length === 0) {
-    setError('Adicione pelo menos uma imagem do produto')
-    setLoading(false)
-    return
-  }
-
-  try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/auth/login')
+    if (!formData.name || !formData.price || !formData.category) {
+      setError('Preencha todos os campos obrigatórios')
+      setSaving(false)
       return
     }
 
-    // Buscar parceiro
-    const { data: partner, error: partnerError } = await supabase
-      .from('partners')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (partnerError || !partner) {
-      console.error('Erro ao buscar parceiro:', partnerError)
-      setError('Parceiro não encontrado')
-      setLoading(false)
+    if (imageUrls.length === 0) {
+      setError('Adicione pelo menos uma imagem do produto')
+      setSaving(false)
       return
     }
 
-    const productData = {
-      name: formData.name,
-      description: formData.description || null,
-      price: parseFloat(formData.price),
-      category: formData.category,
-      stock: parseInt(formData.stock) || 0,
-      image_url: imageUrls[0],
-      images: imageUrls,
-      mochila_tipo: formData.mochila_tipo,
-      partner_id: partner.id,
-      is_active: true
+    try {
+      const updateData = {
+        name: formData.name,
+        description: formData.description || null,
+        price: parseFloat(formData.price),
+        category: formData.category,
+        stock: parseInt(formData.stock) || 0,
+        image_url: imageUrls[0],
+        images: imageUrls,
+        mochila_tipo: formData.mochila_tipo,
+        updated_at: new Date().toISOString()
+      }
+
+      const { error: updateError } = await supabase
+        .from('products')
+        .update(updateData)
+        .eq('id', productId)
+        .eq('partner_id', partner.id)
+
+      if (updateError) {
+        console.error('Erro ao atualizar produto:', updateError)
+        setError('Erro ao atualizar produto. Tente novamente.')
+        setSaving(false)
+        return
+      }
+
+      setSuccess('Produto atualizado com sucesso!')
+      setTimeout(() => {
+        router.push('/parceiro/produtos')
+      }, 2000)
+
+    } catch (error) {
+      console.error('Erro:', error)
+      setError('Erro ao atualizar produto. Tente novamente.')
+      setSaving(false)
     }
-
-    console.log('📦 Dados do produto:', productData)
-
-    const { data, error: insertError } = await supabase
-      .from('products')
-      .insert(productData)
-      .select()
-
-    if (insertError) {
-      console.error('❌ Erro detalhado do Supabase:', {
-        message: insertError.message,
-        code: insertError.code,
-        details: insertError.details,
-        hint: insertError.hint
-      })
-      setError(`Erro ao criar produto: ${insertError.message || 'Tente novamente.'}`)
-      setLoading(false)
-      return
-    }
-
-    console.log('✅ Produto criado:', data)
-
-    setSuccess('Produto criado com sucesso!')
-    setTimeout(() => {
-      router.push('/parceiro/produtos')
-    }, 2000)
-
-  } catch (error) {
-    console.error('❌ Erro geral:', error)
-    setError('Erro ao criar produto. Tente novamente.')
-    setLoading(false)
   }
-}
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -153,8 +194,8 @@ const handleSubmit = async (e: React.FormEvent) => {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Novo Produto</h1>
-            <p className="text-sm text-gray-500">Crie um novo produto para vender na loja</p>
+            <h1 className="text-2xl font-bold text-gray-900">Editar Produto</h1>
+            <p className="text-sm text-gray-500">Atualize as informações do seu produto</p>
           </div>
         </div>
 
@@ -186,7 +227,6 @@ const handleSubmit = async (e: React.FormEvent) => {
                 onChange={handleChange}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none"
-                placeholder="Ex: Mochila Tática 30L"
               />
             </div>
 
@@ -201,7 +241,6 @@ const handleSubmit = async (e: React.FormEvent) => {
                 onChange={handleChange}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none resize-none"
-                placeholder="Descreva seu produto"
               />
             </div>
 
@@ -219,7 +258,6 @@ const handleSubmit = async (e: React.FormEvent) => {
                   required
                   step="0.01"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none"
-                  placeholder="0.00"
                 />
               </div>
               <div>
@@ -232,7 +270,6 @@ const handleSubmit = async (e: React.FormEvent) => {
                   value={formData.stock}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none"
-                  placeholder="0"
                 />
               </div>
             </div>
@@ -302,16 +339,19 @@ const handleSubmit = async (e: React.FormEvent) => {
               </Link>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={saving}
                 className="flex-1 bg-[#FFB800] hover:bg-[#E5A600] text-black py-2 rounded-lg font-semibold transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {loading ? (
+                {saving ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    Criando...
+                    Salvando...
                   </>
                 ) : (
-                  'Criar Produto'
+                  <>
+                    <Save size={18} />
+                    Salvar Alterações
+                  </>
                 )}
               </button>
             </div>

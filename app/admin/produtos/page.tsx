@@ -126,17 +126,37 @@ export default function AdminProdutos() {
   }
 
   const handleEdit = (product: Product) => {
+    console.log('🖊️ Editando produto:', product)
+    console.log('ID:', product.id)
+    console.log('Nome:', product.name)
+    
+    if (!product) {
+      console.error('❌ Produto inválido')
+      return
+    }
+    
     setEditingProduct(product)
     setEditForm({
-      name: product.name,
+      name: product.name || '',
       description: product.description || '',
-      price: product.price,
-      category: product.category,
-      stock: product.stock,
+      price: product.price || 0,
+      category: product.category || '',
+      stock: product.stock || 0,
       mochila_tipo: product.mochila_tipo || []
     })
-    setImageUrls(product.images || (product.image_url ? [product.image_url] : []))
+
+    // Carregar imagens
+    const images = product.images || []
+    if (product.image_url && !images.includes(product.image_url)) {
+      images.unshift(product.image_url)
+    }
+    setImageUrls(images)
+    
+    console.log('✅ EditForm definido:', editForm)
+    console.log('🖼️ Imagens:', imageUrls)
+    
     setShowEditModal(true)
+    console.log('📂 Modal aberto:', true)
   }
 
   const handleImagesUploadComplete = (urls: string[]) => {
@@ -186,6 +206,7 @@ export default function AdminProdutos() {
         setShowEditModal(false)
         setSuccessMessage('')
         setImageUrls([])
+        setEditingProduct(null)
       }, 1500)
 
     } catch (error) {
@@ -194,15 +215,6 @@ export default function AdminProdutos() {
     } finally {
       setSaving(false)
     }
-  }
-
-  const handleTipoChange = (tipo: string) => {
-    setEditForm(prev => ({
-      ...prev,
-      mochila_tipo: prev.mochila_tipo.includes(tipo)
-        ? prev.mochila_tipo.filter(t => t !== tipo)
-        : [...prev.mochila_tipo, tipo]
-    }))
   }
 
   const formatPrice = (price: number) => {
@@ -431,7 +443,7 @@ export default function AdminProdutos() {
         </div>
       </div>
 
-      {/* Modal de Edição */}
+      {/* Modal de Edição COMPLETO */}
       {showEditModal && editingProduct && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -442,6 +454,7 @@ export default function AdminProdutos() {
                   onClick={() => {
                     setShowEditModal(false)
                     setImageUrls([])
+                    setEditingProduct(null)
                   }}
                   className="p-1 hover:bg-gray-100 rounded-lg transition"
                 >
@@ -450,7 +463,157 @@ export default function AdminProdutos() {
               </div>
 
               <div className="space-y-4">
-                {/* ... resto do modal de edição ... */}
+                {/* Nome do Produto */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome do Produto *
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none"
+                    placeholder="Digite o nome do produto"
+                  />
+                </div>
+
+                {/* Descrição */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Descrição
+                  </label>
+                  <textarea
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none resize-none"
+                    placeholder="Digite a descrição do produto"
+                  />
+                </div>
+
+                {/* Preço e Estoque */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Preço (R$) *
+                    </label>
+                    <input
+                      type="number"
+                      value={editForm.price}
+                      onChange={(e) => setEditForm({...editForm, price: parseFloat(e.target.value) || 0})}
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Estoque *
+                    </label>
+                    <input
+                      type="number"
+                      value={editForm.stock}
+                      onChange={(e) => setEditForm({...editForm, stock: parseInt(e.target.value) || 0})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                {/* Categoria */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Categoria *
+                  </label>
+                  <select
+                    value={editForm.category}
+                    onChange={(e) => setEditForm({...editForm, category: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none"
+                  >
+                    <option value="">Selecione uma categoria</option>
+                    {categories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Upload de Imagens */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Imagens do Produto * (até 5)
+                  </label>
+                  <UploadMultiplasImagens 
+                    onUploadComplete={handleImagesUploadComplete}
+                    currentImages={imageUrls}
+                    maxImages={5}
+                    produtoNome={editForm.name || 'produto'}
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Adicione até 5 imagens. A primeira imagem será a principal.
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Tamanho máximo: 2MB por imagem • Formatos: JPG, PNG, WEBP • Dimensão recomendada: 800x800 pixels
+                  </p>
+                </div>
+
+                {/* Compatibilidade com mochila */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Compatível com tipos de mochila
+                  </label>
+                  <div className="flex flex-wrap gap-4">
+                    {mochilaTipos.map((tipo) => (
+                      <label key={tipo} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editForm.mochila_tipo.includes(tipo)}
+                          onChange={() => {
+                            setEditForm(prev => ({
+                              ...prev,
+                              mochila_tipo: prev.mochila_tipo.includes(tipo)
+                                ? prev.mochila_tipo.filter(t => t !== tipo)
+                                : [...prev.mochila_tipo, tipo]
+                            }))
+                          }}
+                          className="w-4 h-4 text-[#FFB800] rounded focus:ring-[#FFB800]"
+                        />
+                        <span className="text-sm text-gray-700">{tipo}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="flex gap-3 pt-4 border-t border-gray-100">
+                  <button
+                    onClick={() => {
+                      setShowEditModal(false)
+                      setImageUrls([])
+                      setEditingProduct(null)
+                    }}
+                    className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-200 transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={saving}
+                    className="flex-1 bg-[#FFB800] text-black py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {saving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={18} />
+                        Salvar Alterações
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

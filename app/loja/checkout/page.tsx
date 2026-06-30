@@ -1,14 +1,24 @@
-// app/loja/checkout/page.tsx
+// app/loja/checkout/page.tsx (COMPLETO CORRIGIDO)
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import { useCart } from '@/lib/store/cart'
-import { ArrowLeft, Loader2, Check, Copy, Banknote, Coins, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Loader2, Check, Copy, Banknote, Coins, AlertCircle, Truck } from 'lucide-react'
 
-function CheckoutContent() {
+interface OpcaoFrete {
+  transportadora: string
+  servico: string
+  prazo: number
+  prazoString: string
+  preco: number
+  codigo: string
+  imagem: string
+}
+
+export default function CheckoutPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams.get('order')
@@ -22,10 +32,15 @@ function CheckoutContent() {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [bdmError, setBdmError] = useState<string | null>(null)
-  const [cotacaoBDM, setCotacaoBDM] = useState<number | null>(null)
-  const [valorBDM, setValorBDM] = useState<number | null>(null)
-  const [buscandoCotacao, setBuscandoCotacao] = useState(false)
   const { clearCart } = useCart()
+  
+  // Estados para o frete
+  const [freteSelecionado, setFreteSelecionado] = useState<OpcaoFrete | null>(null)
+  const [cepCliente, setCepCliente] = useState('')
+  const [cepParceiro, setCepParceiro] = useState('')
+  const [calculandoFrete, setCalculandoFrete] = useState(false)
+  const [opcoesFrete, setOpcoesFrete] = useState<OpcaoFrete[]>([])
+  const [freteError, setFreteError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!orderId) {
@@ -36,32 +51,80 @@ function CheckoutContent() {
     carregarPedido()
   }, [orderId])
 
+  // 🔥 FUNÇÃO CARREGAR PEDIDO
   const carregarPedido = async () => {
-    try {
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', parseInt(orderId as string))
-        .single()
+  try {
+    console.log('🔍 OrderId recebido:', orderId)
+    
+    // 🔥 Verificar se o orderId é válido
+    if (!orderId || isNaN(parseInt(orderId))) {
+      console.error('❌ OrderId inválido:', orderId)
+      setError('Pedido inválido')
+      setLoading(false)
+      return
+    }
 
-      if (orderError) throw orderError
+    const orderIdNumber = parseInt(orderId)
+    console.log('🔍 Buscando pedido ID:', orderIdNumber)
+    
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderIdNumber)
+      .single()
 
-      const { data: items } = await supabase
+      if (orderError) {
+        console.error('❌ Erro ao buscar pedido:', orderError)
+        throw orderError
+      }
+
+      console.log('✅ Pedido encontrado:', orderData)
+
+      const { data: itemsData, error: itemsError } = await supabase
         .from('order_items')
-        .select('*')
+        .select(`
+          *,
+          products:product_id (
+            id,
+            name,
+            price,
+            image_url,
+            partner_id
+          )
+        `)
         .eq('order_id', orderData.id)
 
-      setOrder({ ...orderData, items: items || [] })
+      if (itemsError) {
+        console.error('❌ Erro ao buscar itens:', itemsError)
+      }
+
+      let partnerCep = null
+      if (itemsData && itemsData.length > 0) {
+        const firstItem = itemsData[0]
+        if (firstItem.products?.partner_id) {
+          const { data: partnerData } = await supabase
+            .from('partners')
+            .select('cep, company_name')
+            .eq('id', firstItem.products.partner_id)
+            .single()
+          
+          if (partnerData) {
+            partnerCep = partnerData.cep
+            console.log('📦 Parceiro encontrado:', partnerData)
+          }
+        }
+      }
+
+      setOrder({ ...orderData, items: itemsData || [] })
+      setCepParceiro(partnerCep || '')
 
       if (orderData.payment_status === 'paid') {
         router.push(`/loja/pedidos/${orderData.id}`)
         return
       }
 
-      // Gerar QR Code PIX com a chave CPF
-      const chavePix = '13132276847' // CPF sem pontuação
+      const chavePix = '13132276847'
       const valor = orderData.total_amount.toFixed(2)
-      
       const qrCodeData = `00020126580014BR.GOV.BCB.PIX0136${chavePix}5204000053039865404${valor}5802BR5913PREPARADO6009SAO PAULO62070503***6304`
       
       setPixData({
@@ -70,51 +133,72 @@ function CheckoutContent() {
       })
 
     } catch (error) {
-      console.error('Erro ao carregar pedido:', error)
+      console.error('❌ Erro ao carregar pedido:', error)
       setError('Erro ao carregar pedido')
     } finally {
       setLoading(false)
     }
   }
 
-  // Função para buscar cotação BDM
-  const buscarCotacaoBDM = async (valorReais: number) => {
-    setBuscandoCotacao(true)
+  // 🔥 FUNÇÃO CALCULAR FRETE
+  const calcularFrete = async () => {
+    if (!cepCliente || cepCliente.replace(/\D/g, '').length !== 8) {
+      setFreteError('Digite um CEP válido com 8 dígitos')
+      return
+    }
+
+    if (!cepParceiro) {
+      setFreteError('CEP do parceiro não encontrado')
+      return
+    }
+
+    setCalculandoFrete(true)
+    setFreteError(null)
+
     try {
-      console.log('📊 Buscando cotação BDM para:', valorReais)
-      
-      const response = await fetch('/api/bdm/quotation')
-      const result = await response.json()
-      
-      console.log('📥 Resposta cotação:', result)
-      
-      if (!result.success || !result.quotation) {
-        throw new Error('Não foi possível obter a cotação BDM')
+      const produtos = order.items?.map((item: any) => ({
+        id: item.product_id,
+        nome: item.products?.name || 'Produto',
+        peso: 1,
+        altura: 20,
+        largura: 20,
+        comprimento: 20,
+        quantidade: item.quantity,
+        valor: item.price
+      })) || []
+
+      const response = await fetch('/api/frete/calcular', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cepDestino: cepCliente.replace(/\D/g, ''),
+          produtos: produtos,
+          cepOrigem: cepParceiro.replace(/\D/g, '')
+        })
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Erro ao calcular frete')
       }
+
+      setOpcoesFrete(data.cotacoes || [])
       
-      const cotacao = result.quotation
-      setCotacaoBDM(cotacao)
-      
-      // Calcular valor em BDM com 2 casas decimais
-      const valorEmBDM = valorReais / cotacao
-      const valorBDMFormatado = parseFloat(valorEmBDM.toFixed(2))
-      
-      setValorBDM(valorBDMFormatado)
-      
-      console.log(`✅ Cotação: 1 BDM = R$ ${cotacao}`)
-      console.log(`🪙 Valor em BDM: ${valorBDMFormatado}`)
-      
-      return cotacao
-      
+      if (data.cotacoes?.length === 0) {
+        setFreteError('Nenhuma opção de frete disponível para este CEP')
+      }
+
     } catch (error) {
-      console.error('❌ Erro ao buscar cotação:', error)
-      setError('Erro ao buscar cotação BDM. Tente novamente mais tarde.')
-      return null
+      console.error('Erro ao calcular frete:', error)
+      setFreteError(error instanceof Error ? error.message : 'Erro ao calcular frete')
+      setOpcoesFrete([])
     } finally {
-      setBuscandoCotacao(false)
+      setCalculandoFrete(false)
     }
   }
 
+  // 🔥 FUNÇÃO GERAR PAGAMENTO BDM
   const gerarPagamentoBDM = async () => {
     if (!order) return
 
@@ -122,33 +206,13 @@ function CheckoutContent() {
     setBdmError(null)
 
     try {
-      // Buscar a cotação atual
-      const cotacao = await buscarCotacaoBDM(order.total_amount)
+      const valorTotal = order.total_amount + (freteSelecionado?.preco || 0)
       
-      if (!cotacao) {
-        throw new Error('Não foi possível obter a cotação BDM')
-      }
-      
-      // Calcular valor em BDM com 2 casas decimais
-      const valorEmBDM = order.total_amount / cotacao
-      const valorBDMFormatado = parseFloat(valorEmBDM.toFixed(2))
-      
-      console.log('🪙 Gerando pagamento BDM:', {
-        valorReais: order.total_amount,
-        cotacao: cotacao,
-        valorBDM: valorBDMFormatado
-      })
-
-      // Salvar no estado
-      setCotacaoBDM(cotacao)
-      setValorBDM(valorBDMFormatado)
-
-      // Enviar o valor em BDM para a API
       const response = await fetch('/api/bdm/payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: valorBDMFormatado,
+          amount: valorTotal,
           orderId: order.id,
           attachment: `#ORDER-${order.id}`
         })
@@ -165,7 +229,6 @@ function CheckoutContent() {
         billingCode: result.billingCode
       })
 
-      // Salvar billingCode no pedido
       await supabase
         .from('orders')
         .update({ 
@@ -175,17 +238,39 @@ function CheckoutContent() {
         .eq('id', order.id)
 
     } catch (error) {
-      console.error('❌ Erro ao gerar BDM:', error)
+      console.error('Erro ao gerar BDM:', error)
       setBdmError(error instanceof Error ? error.message : 'Erro ao gerar pagamento BDM')
     } finally {
       setProcessing(false)
     }
   }
 
-  const confirmarPagamento = async () => {
+  // 🔥 FUNÇÃO CONFIRMAR PAGAMENTO PIX
+  const confirmarPagamentoPIX = async () => {
     if (!order) return
 
+    setProcessing(true)
+    setError(null)
+    
     try {
+      const valorFrete = freteSelecionado?.preco || 0
+      const valorFinal = order.total_amount + valorFrete
+
+      if (valorFrete > 0) {
+        await supabase
+          .from('orders')
+          .update({
+            total_amount: valorFinal,
+            shipping_cost: valorFrete,
+            shipping_service: freteSelecionado?.servico || '',
+            shipping_carrier: freteSelecionado?.transportadora || '',
+            shipping_cep_origem: cepParceiro,
+            shipping_cep_destino: cepCliente,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', order.id)
+      }
+
       const { error: updateError } = await supabase
         .from('orders')
         .update({ 
@@ -203,6 +288,7 @@ function CheckoutContent() {
     } catch (error) {
       console.error('Erro ao confirmar pagamento:', error)
       setError('Erro ao confirmar pagamento. Tente novamente.')
+      setProcessing(false)
     }
   }
 
@@ -222,6 +308,10 @@ function CheckoutContent() {
       minute: '2-digit'
     })
   }
+
+  const subtotal = order?.total_amount || 0
+  const frete = freteSelecionado?.preco || 0
+  const total = subtotal + frete
 
   if (loading) {
     return (
@@ -282,51 +372,140 @@ function CheckoutContent() {
             </p>
           </div>
 
-         <div className="bg-gray-50 rounded-lg p-4 mb-6">
-  <h3 className="font-display font-bold text-gray-900 text-sm mb-3">
-    Resumo do Pedido
-  </h3>
-  
-  <div className="space-y-2">
-    {order.items && order.items.map((item: any, index: number) => (
-      <div key={index} className="flex justify-between text-sm">
-        <span className="text-gray-600">
-          {item.quantity}x {item.name || `Produto ${item.product_id}`}
-        </span>
-        <span className="text-gray-900 font-medium">
-          {formatPrice(item.price * item.quantity)}
-        </span>
-      </div>
-    ))}
-    
-    {/* Calcular subtotal a partir dos itens */}
-    {(() => {
-      const subtotal = order?.items?.reduce((sum: number, item: any) => {
-        return sum + (item.price * item.quantity)
-      }, 0) || 0
-      
-      const shipping = subtotal > 100 ? 0 : 15.90
-      const total = subtotal + shipping
-      
-      return (
-        <div className="border-t border-gray-200 pt-2 mt-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Subtotal</span>
-            <span className="text-gray-900">{formatPrice(subtotal)}</span>
+          {/* Resumo do pedido */}
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <h3 className="font-display font-bold text-gray-900 text-sm mb-3">
+              Resumo do Pedido
+            </h3>
+            
+            <div className="space-y-2">
+              {order.items && order.items.map((item: any, index: number) => (
+                <div key={index} className="flex justify-between text-sm">
+                  <span className="text-gray-600">
+                    {item.quantity}x {item.products?.name || `Produto ${item.product_id}`}
+                  </span>
+                  <span className="text-gray-900 font-medium">
+                    {formatPrice(item.price * item.quantity)}
+                  </span>
+                </div>
+              ))}
+              
+              <div className="border-t border-gray-200 pt-2 mt-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span className="text-gray-900">{formatPrice(subtotal)}</span>
+                </div>
+                
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Frete</span>
+                  <span className="text-gray-900">
+                    {freteSelecionado ? formatPrice(frete) : 'A definir'}
+                  </span>
+                </div>
+
+                <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-200 mt-2">
+                  <span className="text-gray-900">Total</span>
+                  <span className="text-[#FFB800]">{formatPrice(total)}</span>
+                </div>
+              </div>
+            </div>
+
+            {cepParceiro && (
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <p className="text-xs text-gray-500">
+                  <Truck size={14} className="inline mr-1" />
+                  Produto enviado por parceiro
+                </p>
+              </div>
+            )}
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Frete</span>
-            <span className="text-gray-900">{shipping === 0 ? 'Grátis' : formatPrice(shipping)}</span>
+
+          {/* Calculador de Frete */}
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-display font-bold text-gray-900 text-sm mb-3">
+              Calcular Frete
+            </h3>
+            
+            {cepParceiro ? (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">
+                      Seu CEP (destino)
+                    </label>
+                    <input
+                      type="text"
+                      value={cepCliente}
+                      onChange={(e) => setCepCliente(e.target.value)}
+                      placeholder="Digite seu CEP"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-[#FFB800] outline-none"
+                      maxLength={9}
+                    />
+                  </div>
+                  <button
+                    onClick={calcularFrete}
+                    disabled={calculandoFrete}
+                    className="px-4 py-2 bg-[#FFB800] hover:bg-[#E5A600] text-black font-semibold rounded-lg transition disabled:opacity-50 flex items-center gap-2 self-end"
+                  >
+                    {calculandoFrete ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        Calculando...
+                      </>
+                    ) : (
+                      <>
+                        <Truck size={18} />
+                        Calcular
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {freteError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-sm text-red-700">
+                    {freteError}
+                  </div>
+                )}
+
+                {opcoesFrete.length > 0 && (
+                  <div className="space-y-2">
+                    {opcoesFrete.map((opcao) => (
+                      <button
+                        key={opcao.codigo}
+                        onClick={() => setFreteSelecionado(opcao)}
+                        className={`w-full p-3 border-2 rounded-lg transition-all text-left ${
+                          freteSelecionado?.codigo === opcao.codigo
+                            ? 'border-[#FFB800] bg-yellow-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900 text-sm">
+                              {opcao.transportadora}
+                            </p>
+                            <p className="text-xs text-gray-500">{opcao.servico}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-[#FFB800] text-sm">
+                              {formatPrice(opcao.preco)}
+                            </p>
+                            <p className="text-xs text-gray-500">{opcao.prazoString}</p>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                ⚠️ CEP do parceiro não encontrado.
+              </p>
+            )}
           </div>
-          <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-200 mt-2">
-            <span className="text-gray-900">Total</span>
-            <span className="text-[#FFB800]">{formatPrice(total)}</span>
-          </div>
-        </div>
-      )
-    })()}
-  </div>
-</div>
+
+          {/* Escolha do Método de Pagamento */}
           <div className="space-y-6">
             <div>
               <h3 className="font-display font-bold text-gray-900 text-sm mb-3">
@@ -366,6 +545,7 @@ function CheckoutContent() {
               </div>
             </div>
 
+            {/* PIX - Conteúdo */}
             {paymentMethod === 'pix' && pixData && (
               <div className="text-center space-y-4">
                 <p className="text-sm text-gray-600">
@@ -404,25 +584,29 @@ function CheckoutContent() {
                 )}
 
                 <button
-                  onClick={confirmarPagamento}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white font-display font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  onClick={confirmarPagamentoPIX}
+                  disabled={processing}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-display font-bold py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  <Check size={20} />
-                  Já paguei - Confirmar
+                  {processing ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin" />
+                      Confirmando...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={20} />
+                      Finalizar Pedido - {formatPrice(total)}
+                    </>
+                  )}
                 </button>
               </div>
             )}
 
+            {/* BDM Digital - Conteúdo */}
             {paymentMethod === 'bdm' && (
               <div className="text-center space-y-4">
-                {buscandoCotacao && (
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <Loader2 size={40} className="animate-spin text-[#FFB800]" />
-                    <p className="text-sm text-gray-600 mt-4">Buscando cotação BDM...</p>
-                  </div>
-                )}
-
-                {processing && !bdmData && !buscandoCotacao && (
+                {processing && !bdmData && (
                   <div className="flex flex-col items-center justify-center py-8">
                     <Loader2 size={40} className="animate-spin text-[#FFB800]" />
                     <p className="text-sm text-gray-600 mt-4">Gerando pagamento BDM...</p>
@@ -472,30 +656,6 @@ function CheckoutContent() {
                       </button>
                     </div>
 
-                    {/* Conversão BRL -> BDM */}
-                    {cotacaoBDM && valorBDM && (
-                      <div className="bg-gray-50 rounded-lg p-4 mt-4">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Valor em BRL</span>
-                          <span className="text-gray-900 font-medium">
-                            R$ {order.total_amount.toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Cotação BDM</span>
-                          <span className="text-gray-900 font-medium">
-                            1 BDM = R$ {cotacaoBDM.toFixed(4)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-200 mt-2">
-                          <span className="text-gray-900">Valor em BDM</span>
-                          <span className="text-[#FFB800]">
-                            {valorBDM.toFixed(2)} BDM
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
                     <p className="text-xs text-gray-500">
                       O pagamento será confirmado automaticamente após a transação.
                     </p>
@@ -507,17 +667,5 @@ function CheckoutContent() {
         </div>
       </div>
     </div>
-  )
-}
-
-export default function CheckoutPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
-      </div>
-    }>
-      <CheckoutContent />
-    </Suspense>
   )
 }
