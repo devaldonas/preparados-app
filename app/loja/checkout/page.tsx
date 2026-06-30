@@ -1,6 +1,6 @@
 // app/loja/checkout/page.tsx (COMPLETO CORRIGIDO)
 'use client'
-
+import { Suspense } from 'react'
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
