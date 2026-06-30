@@ -396,7 +396,9 @@ export default function AdminPedidos() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-xs text-gray-500">{formatDate(order.created_at)}</span>
+                         <span className="text-xs text-gray-500">
+                        {formatDate(order.created_at)}
+                         </span>
                         </td>
                         <td className="px-4 py-3">
                           <button
