@@ -1,5 +1,6 @@
 // app/loja/checkout/page.tsx (COMPLETO CORRIGIDO)
 'use client'
+
 import { Suspense } from 'react'
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -18,7 +19,8 @@ interface OpcaoFrete {
   imagem: string
 }
 
-export default function CheckoutPage() {
+// 🔥 COMPONENTE INTERNO com useSearchParams
+function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams.get('order')
@@ -53,25 +55,20 @@ export default function CheckoutPage() {
 
   // 🔥 FUNÇÃO CARREGAR PEDIDO
   const carregarPedido = async () => {
-  try {
-    console.log('🔍 OrderId recebido:', orderId)
-    
-    // 🔥 Verificar se o orderId é válido
-    if (!orderId || isNaN(parseInt(orderId))) {
-      console.error('❌ OrderId inválido:', orderId)
-      setError('Pedido inválido')
-      setLoading(false)
-      return
-    }
+    try {
+      console.log('🔍 Buscando pedido ID:', orderId)
+      
+      // 🔥 VALIDAR ORDER ID
+      const orderIdNumber = parseInt(orderId as string)
+      if (isNaN(orderIdNumber)) {
+        throw new Error('ID do pedido inválido')
+      }
 
-    const orderIdNumber = parseInt(orderId)
-    console.log('🔍 Buscando pedido ID:', orderIdNumber)
-    
-    const { data: orderData, error: orderError } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', orderIdNumber)
-      .single()
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderIdNumber)
+        .single()
 
       if (orderError) {
         console.error('❌ Erro ao buscar pedido:', orderError)
@@ -80,6 +77,7 @@ export default function CheckoutPage() {
 
       console.log('✅ Pedido encontrado:', orderData)
 
+      // 🔥 BUSCAR ITENS COM PRODUTOS
       const { data: itemsData, error: itemsError } = await supabase
         .from('order_items')
         .select(`
@@ -98,6 +96,7 @@ export default function CheckoutPage() {
         console.error('❌ Erro ao buscar itens:', itemsError)
       }
 
+      // 🔥 BUSCAR PARCEIRO
       let partnerCep = null
       if (itemsData && itemsData.length > 0) {
         const firstItem = itemsData[0]
@@ -123,6 +122,7 @@ export default function CheckoutPage() {
         return
       }
 
+      // Gerar QR Code PIX
       const chavePix = '13132276847'
       const valor = orderData.total_amount.toFixed(2)
       const qrCodeData = `00020126580014BR.GOV.BCB.PIX0136${chavePix}5204000053039865404${valor}5802BR5913PREPARADO6009SAO PAULO62070503***6304`
@@ -667,5 +667,18 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// 🔥 COMPONENTE PRINCIPAL com Suspense
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
+      </div>
+    }>
+      <CheckoutContent />
+    </Suspense>
   )
 }
