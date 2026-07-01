@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import NavBar from '@/components/NavBar'
+import { formatDate } from '@/lib/utils' 
 import { ArrowLeft, Package, Clock, CheckCircle, Truck, AlertCircle, Printer } from 'lucide-react'
 
 interface Order {
@@ -122,17 +123,7 @@ export default function DetalhePedido({ params }: { params: Promise<{ id: string
     }).format(price)
   }
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  const getStatusInfo = (status: string) => {
+   const getStatusInfo = (status: string) => {
     const map: Record<string, { label: string; icon: any; color: string }> = {
       pending: { label: 'Pendente', icon: Clock, color: 'text-yellow-600 bg-yellow-50' },
       paid: { label: 'Pago', icon: CheckCircle, color: 'text-blue-600 bg-blue-50' },
