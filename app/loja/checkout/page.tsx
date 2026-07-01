@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
 import { useCart } from '@/lib/store/cart'
 import { ArrowLeft, Loader2, Check, Copy, Banknote, Coins, AlertCircle, Truck } from 'lucide-react'
+import { formatDate } from '@/lib/utils'
 
 interface OpcaoFrete {
   transportadora: string
@@ -36,6 +37,7 @@ function CheckoutContent() {
   const [bdmError, setBdmError] = useState<string | null>(null)
   const { clearCart } = useCart()
   
+  
   // Estados para o frete
   const [freteSelecionado, setFreteSelecionado] = useState<OpcaoFrete | null>(null)
   const [cepCliente, setCepCliente] = useState('')
@@ -54,91 +56,95 @@ function CheckoutContent() {
   }, [orderId])
 
   // 🔥 FUNÇÃO CARREGAR PEDIDO
-  const carregarPedido = async () => {
-    try {
-      console.log('🔍 Buscando pedido ID:', orderId)
+ // app/loja/checkout/page.tsx - Função carregarPedido
+
+const carregarPedido = async () => {
+  try {
+    console.log('🔍 Buscando pedido ID:', orderId)
+    
+    const orderIdNumber = parseInt(orderId as string)
+    if (isNaN(orderIdNumber)) {
+      throw new Error('ID do pedido inválido')
+    }
+
+    // 1. Buscar o pedido
+    const { data: orderData, error: orderError } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderIdNumber)
+      .single()
+
+    if (orderError) throw orderError
+    console.log('✅ Pedido encontrado:', orderData)
+
+    // 2. Buscar itens do pedido
+    const { data: itemsData, error: itemsError } = await supabase
+      .from('order_items')
+      .select(`
+        *,
+        products:product_id (
+          id,
+          name,
+          price,
+          image_url,
+          partner_id
+        )
+      `)
+      .eq('order_id', orderData.id)
+
+    if (itemsError) {
+      console.error('❌ Erro ao buscar itens:', itemsError)
+    }
+
+    console.log('📦 Itens encontrados:', itemsData)
+
+    // 3. Buscar parceiro SEPARADAMENTE
+    let partnerZip = null
+    if (itemsData && itemsData.length > 0) {
+      const firstItem = itemsData[0]
+      const partnerId = firstItem.products?.partner_id
       
-      // 🔥 VALIDAR ORDER ID
-      const orderIdNumber = parseInt(orderId as string)
-      if (isNaN(orderIdNumber)) {
-        throw new Error('ID do pedido inválido')
-      }
-
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderIdNumber)
-        .single()
-
-      if (orderError) {
-        console.error('❌ Erro ao buscar pedido:', orderError)
-        throw orderError
-      }
-
-      console.log('✅ Pedido encontrado:', orderData)
-
-      // 🔥 BUSCAR ITENS COM PRODUTOS
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('order_items')
-        .select(`
-          *,
-          products:product_id (
-            id,
-            name,
-            price,
-            image_url,
-            partner_id
-          )
-        `)
-        .eq('order_id', orderData.id)
-
-      if (itemsError) {
-        console.error('❌ Erro ao buscar itens:', itemsError)
-      }
-
-      // 🔥 BUSCAR PARCEIRO
-      let partnerCep = null
-      if (itemsData && itemsData.length > 0) {
-        const firstItem = itemsData[0]
-        if (firstItem.products?.partner_id) {
-          const { data: partnerData } = await supabase
-            .from('partners')
-            .select('cep, company_name')
-            .eq('id', firstItem.products.partner_id)
-            .single()
-          
-          if (partnerData) {
-            partnerCep = partnerData.cep
-            console.log('📦 Parceiro encontrado:', partnerData)
-          }
+      if (partnerId) {
+        const { data: partnerData, error: partnerError } = await supabase
+          .from('partners')
+          .select('zip, company_name')  // ← USAR 'zip' em vez de 'cep'
+          .eq('id', partnerId)
+          .maybeSingle()
+        
+        if (!partnerError && partnerData) {
+          partnerZip = partnerData.zip  // ← USAR 'zip'
+          console.log('📦 Parceiro encontrado:', partnerData)
+        } else {
+          console.log('⚠️ Erro ao buscar parceiro:', partnerError)
         }
       }
-
-      setOrder({ ...orderData, items: itemsData || [] })
-      setCepParceiro(partnerCep || '')
-
-      if (orderData.payment_status === 'paid') {
-        router.push(`/loja/pedidos/${orderData.id}`)
-        return
-      }
-
-      // Gerar QR Code PIX
-      const chavePix = '13132276847'
-      const valor = orderData.total_amount.toFixed(2)
-      const qrCodeData = `00020126580014BR.GOV.BCB.PIX0136${chavePix}5204000053039865404${valor}5802BR5913PREPARADO6009SAO PAULO62070503***6304`
-      
-      setPixData({
-        qrCode: qrCodeData,
-        copyPaste: qrCodeData
-      })
-
-    } catch (error) {
-      console.error('❌ Erro ao carregar pedido:', error)
-      setError('Erro ao carregar pedido')
-    } finally {
-      setLoading(false)
     }
+
+    setOrder({ ...orderData, items: itemsData || [] })
+    setCepParceiro(partnerZip || '')
+
+    if (orderData.payment_status === 'paid') {
+      router.push(`/loja/pedidos/${orderData.id}`)
+      return
+    }
+
+    // Gerar QR Code PIX
+    const chavePix = '13132276847'
+    const valor = orderData.total_amount.toFixed(2)
+    const qrCodeData = `00020126580014BR.GOV.BCB.PIX0136${chavePix}5204000053039865404${valor}5802BR5913PREPARADO6009SAO PAULO62070503***6304`
+    
+    setPixData({
+      qrCode: qrCodeData,
+      copyPaste: qrCodeData
+    })
+
+  } catch (error) {
+    console.error('❌ Erro ao carregar pedido:', error)
+    setError('Erro ao carregar pedido')
+  } finally {
+    setLoading(false)
   }
+}
 
   // 🔥 FUNÇÃO CALCULAR FRETE
   const calcularFrete = async () => {
@@ -299,16 +305,6 @@ function CheckoutContent() {
     }).format(price)
   }
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
   const subtotal = order?.total_amount || 0
   const frete = freteSelecionado?.preco || 0
   const total = subtotal + frete
@@ -368,8 +364,8 @@ function CheckoutContent() {
               Pedido #{order.transaction_id?.slice(-8) || order.id}
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              Realizado em {formatDate(order.created_at)}
-            </p>
+  Realizado em {formatDate(order.created_at)}
+</p>
           </div>
 
           {/* Resumo do pedido */}

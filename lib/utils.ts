@@ -1,5 +1,4 @@
-// lib/utils.ts (VERSÃO FINAL - SEM SUBTRAÇÃO)
-
+// lib/utils.ts (VERSÃO FINAL E DEFINITIVA)
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
@@ -11,18 +10,21 @@ export const formatDate = (date: string | Date, showTime: boolean = true) => {
   if (!date) return 'Data não disponível'
   
   try {
+    // 🔥 CONVERTER PARA DATE
     const data = typeof date === 'string' ? new Date(date) : date
     
     if (isNaN(data.getTime())) {
       return 'Data inválida'
     }
     
-    // 🔥 PEGA OS VALORES DIRETAMENTE (SEM SUBTRAIR NADA)
-    const dia = String(data.getDate()).padStart(2, '0')
-    const mes = String(data.getMonth() + 1).padStart(2, '0')
-    const ano = data.getFullYear()
-    const horas = String(data.getHours()).padStart(2, '0')
-    const minutos = String(data.getMinutes()).padStart(2, '0')
+    // 🔥 SUBTRAIR 3 HORAS (BRASÍLIA)
+    const horaBrasilia = new Date(data.getTime() - 3 * 60 * 60 * 1000)
+    
+    const dia = String(horaBrasilia.getDate()).padStart(2, '0')
+    const mes = String(horaBrasilia.getMonth() + 1).padStart(2, '0')
+    const ano = horaBrasilia.getFullYear()
+    const horas = String(horaBrasilia.getHours()).padStart(2, '0')
+    const minutos = String(horaBrasilia.getMinutes()).padStart(2, '0')
     
     if (showTime) {
       return `${dia}/${mes}/${ano} ${horas}:${minutos}`

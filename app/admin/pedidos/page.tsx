@@ -395,11 +395,30 @@ export default function AdminPedidos() {
                             {statusInfo.label}
                           </div>
                         </td>
+                        
                         <td className="px-4 py-3">
-                         <span className="text-xs text-gray-500">
-                        {formatDate(order.created_at)}
-                         </span>
-                        </td>
+  <span className="text-xs text-gray-500">
+    {(() => {
+      const d = order.created_at
+      if (!d) return 'Data não disponível'
+      
+      // 🔥 CONVERTER PARA DATE
+      const data = new Date(d)
+      
+      // 🔥 SUBTRAIR 3 HORAS (UTC-3)
+      data.setHours(data.getHours() - 3)
+      
+      const dia = String(data.getDate()).padStart(2, '0')
+      const mes = String(data.getMonth() + 1).padStart(2, '0')
+      const ano = data.getFullYear()
+      const horas = String(data.getHours()).padStart(2, '0')
+      const minutos = String(data.getMinutes()).padStart(2, '0')
+      
+      return `${dia}/${mes}/${ano} ${horas}:${minutos}`
+    })()}
+  </span>
+</td>
+
                         <td className="px-4 py-3">
                           <button
                             onClick={() => {
@@ -434,7 +453,25 @@ export default function AdminPedidos() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Pedido #{selectedOrder.transaction_id?.slice(-8) || selectedOrder.id}</h2>
-                  <p className="text-sm text-gray-500">{formatDate(selectedOrder.created_at)}</p>
+                  
+                  <p className="text-sm text-gray-500">
+  {(() => {
+    const d = selectedOrder.created_at
+    if (!d) return 'Data não disponível'
+    
+    const data = new Date(d)
+    data.setHours(data.getHours() - 3)
+    
+    const dia = String(data.getDate()).padStart(2, '0')
+    const mes = String(data.getMonth() + 1).padStart(2, '0')
+    const ano = data.getFullYear()
+    const horas = String(data.getHours()).padStart(2, '0')
+    const minutos = String(data.getMinutes()).padStart(2, '0')
+    
+    return `${dia}/${mes}/${ano} ${horas}:${minutos}`
+  })()}
+</p>
+
                 </div>
                 <button
                   onClick={() => {
