@@ -263,26 +263,30 @@ const checkAdminStatus = async (userId: string) => {
     </h3>
   </Link>
 
-  {/* Rádio */}
-  <Link
-    href="/comunicador/canal/8bfb8c3e-9fb0-4a43-a781-dc96b0a09baf"
-    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
-  >
-    <div className="w-20 h-20 flex items-center justify-center">
-      <img
-        src="/images/comunicador1-icon.png"
-        alt="Comunicador Via Rádio"
-        className="w-16 h-16 object-contain"
-        onError={(e) => {
-          e.currentTarget.style.display = "none"
-        }}
-      />
-    </div>
+ {/* Rádio - EM BREVE */}
+<div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 opacity-60 cursor-not-allowed flex flex-col items-center justify-between text-center min-h-[170px]">
+  <div className="w-20 h-20 flex items-center justify-center relative">
+    <img
+      src="/images/comunicador1-icon.png"
+      alt="Comunicador Via Rádio"
+      className="w-16 h-16 object-contain opacity-50"
+      onError={(e) => {
+        e.currentTarget.style.display = "none"
+      }}
+    />
+    <span className="absolute -top-2 -right-2 bg-gray-500 text-white text-[0.55rem] font-bold px-2 py-0.5 rounded-full">
+      Em breve
+    </span>
+  </div>
 
-    <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
-      Rádio
-    </h3>
-  </Link>
+  <h3 className="font-bold text-gray-400 text-base min-h-[48px] flex items-center justify-center">
+    Rádio
+  </h3>
+  
+  <p className="text-[0.55rem] text-gray-400 mt-1">
+    Em breve
+  </p>
+</div>
 
   {/* Loja */}
   <Link
