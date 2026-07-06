@@ -244,85 +244,84 @@ export default function Cadastro() {
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+  e.preventDefault()
+  setLoading(true)
+  setError('')
 
-    const cleanCep = cep.replace(/\D/g, '')
-    if (cleanCep.length !== 8) {
-      setError('CEP inválido')
-      setLoading(false)
-      return
-    }
+  const cleanCep = cep.replace(/\D/g, '')
+  if (cleanCep.length !== 8) {
+    setError('CEP inválido')
+    setLoading(false)
+    return
+  }
 
-    if (!validatePassword(password)) {
-      setError('A senha deve conter letra maiúscula, número e caractere especial')
-      setLoading(false)
-      return
-    }
+  if (!validatePassword(password)) {
+    setError('A senha deve conter letra maiúscula, número e caractere especial')
+    setLoading(false)
+    return
+  }
 
-    try {
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName } }
-      })
+  try {
+    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName } }
+    })
 
-      if (signUpError) throw signUpError
+    if (signUpError) throw signUpError
 
-      if (authData.user) {
-        const { latitude, longitude } = await getCoordinatesFromCEP(cep)
-        
-        let groupId = null
-        if (latitude && longitude) {
-          try {
-            const { data: grupoIdResult, error: grupoError } = await supabase.rpc(
-              'buscar_ou_criar_grupo',
-              { p_latitude: latitude, p_longitude: longitude, p_nome_usuario: fullName }
-            )
-            if (!grupoError) groupId = grupoIdResult
-          } catch (groupErr) {
-            console.error('Exceção ao criar grupo:', groupErr)
-          }
-        }
-
-        // Determinar papel do usuário
-        const role = tipoCadastro === 'parceiro' ? 'partner' : null
-
-        const { error: profileError } = await supabase.from('profiles').insert([{
-          id: authData.user.id,
-          full_name: fullName,
-          mochila_tipo: 'BOB',
-          cep: cleanCep,
-          latitude: latitude || null,
-          longitude: longitude || null,
-          group_id: groupId,
-          role: role,
-          trial_start_date: new Date().toISOString(),
-          trial_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          subscription_status: 'trial',
-          created_at: new Date().toISOString()
-        }])
-
-        if (profileError) {
-          console.error('Erro ao criar perfil:', profileError)
-          throw new Error('Erro ao criar perfil')
-        }
-
-        // Se for parceiro, redirecionar para o dashboard do parceiro
-        if (tipoCadastro === 'parceiro') {
-          router.push('/parceiro/dashboard')
-        } else {
-          router.push('/auth/welcome')
+    if (authData.user) {
+      const { latitude, longitude } = await getCoordinatesFromCEP(cep)
+      
+      let groupId = null
+      if (latitude && longitude) {
+        try {
+          const { data: grupoIdResult, error: grupoError } = await supabase.rpc(
+            'buscar_ou_criar_grupo',
+            { p_latitude: latitude, p_longitude: longitude, p_nome_usuario: fullName }
+          )
+          if (!grupoError) groupId = grupoIdResult
+        } catch (groupErr) {
+          console.error('Exceção ao criar grupo:', groupErr)
         }
       }
-    } catch (err: any) {
-      console.error('Erro no cadastro:', err)
-      setError(err.message || 'Erro ao criar conta. Tente novamente.')
-    } finally {
-      setLoading(false)
+
+      // 🔥 AQUI É ONDE VOCÊ ADICIONA OS CAMPOS DE ENDEREÇO
+      const { error: profileError } = await supabase.from('profiles').insert([{
+        id: authData.user.id,
+        full_name: fullName,
+        mochila_tipo: 'BOB',
+        cep: cleanCep,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        group_id: groupId,
+        // 🔥 ADICIONAR ESTES CAMPOS
+        street: logradouro,
+        number: numero,
+        complement: complemento,
+        neighborhood: bairro,
+        city: cidade,
+        state: estado,
+        trial_start_date: new Date().toISOString(),
+        trial_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        subscription_status: 'trial',
+        created_at: new Date().toISOString()
+      }])
+
+      if (profileError) {
+        console.error('Erro ao criar perfil:', profileError)
+        throw new Error('Erro ao criar perfil')
+      }
+
+      router.push('/auth/welcome')
     }
+  } catch (err: any) {
+    console.error('Erro no cadastro:', err)
+    setError(err.message || 'Erro ao criar conta. Tente novamente.')
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

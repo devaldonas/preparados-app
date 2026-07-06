@@ -17,6 +17,7 @@ export default function Carrinho() {
   const [processing, setProcessing] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState('pix')
 
   const subtotal = getTotalPrice()
   const totalItems = getTotalItems()
@@ -51,29 +52,52 @@ const processarCheckout = async () => {
       return
     }
 
-    // Calcular valores corretamente
-    const subtotal = getTotalPrice() // Valor sem frete
-    const shipping = subtotal > 100 ? 0 : 15.90
-    const total = subtotal + shipping
+    // 🔥 BUSCAR O PERFIL DA FORMA MAIS SIMPLES POSSÍVEL
+const { data: profile, error: profileError } = await supabase
+  .from('profiles')
+  .select('cep, full_name, street, number, complement, neighborhood, city, state')
+  .eq('id', user.id)
+  .single()
+
+console.log('📦 Perfil:', profile)
+console.log('📦 Perfil retornado:', profile)
+console.log('📦 Street:', profile?.street)
+console.log('📦 Number:', profile?.number)
+console.log('📦 City:', profile?.city)
+
+if (profileError) {
+  console.error('❌ Erro:', profileError)
+}
+
+// 🔥 VERIFICAR CADA CAMPO
+console.log('📦 CEP:', profile?.cep)
+console.log('📦 Street:', profile?.street)
+console.log('📦 Number:', profile?.number)
+console.log('📦 City:', profile?.city)
+
+// 🔥 PREPARAR ENDEREÇO COM OS DADOS DO PERFIL
+const shippingAddress = {
+  zip: profile?.cep || '',
+  street: profile?.street || '',
+  number: profile?.number || '',
+  complement: profile?.complement || '',
+  neighborhood: profile?.neighborhood || '',
+  city: profile?.city || '',
+  state: profile?.state || '',
+}
+
+console.log('📦 Endereço final:', shippingAddress)
 
     const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
     
     const orderData = {
-      user_id: user.id,
-      total_amount: total, // Total com frete
-      payment_method: 'pix',
-      payment_status: 'pending',
-      status: 'pending',
-      transaction_id: orderNumber,
-      shipping_address: JSON.stringify({
-        street: '',
-        number: '',
-        complement: '',
-        neighborhood: '',
-        city: '',
-        state: '',
-        zip: ''
-      })
+  user_id: user.id,
+  total_amount: total,
+  payment_method: paymentMethod,
+  payment_status: 'pending',
+  status: 'pending',
+  transaction_id: orderNumber,
+  shipping_address: JSON.stringify(shippingAddress)
     }
 
     const { data: order, error: orderError } = await supabase
@@ -88,6 +112,8 @@ const processarCheckout = async () => {
       setProcessing(false)
       return
     }
+    console.log('✅ Pedido criado:', order)
+    console.log('📦 Endereço no pedido:', order.shipping_address)
 
     // Inserir itens
     for (const item of items) {
