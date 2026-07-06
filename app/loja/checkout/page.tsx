@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useCart } from '@/lib/store/cart'
 import { ArrowLeft, Loader2, Check, Copy, Banknote, Coins, AlertCircle, Truck } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import { gerarPIX } from '@/lib/pix';
 
 interface OpcaoFrete {
   transportadora: string
@@ -55,10 +56,7 @@ function CheckoutContent() {
     carregarPedido()
   }, [orderId])
 
-  // 🔥 FUNÇÃO CARREGAR PEDIDO
- // app/loja/checkout/page.tsx - Função carregarPedido
-
-const carregarPedido = async () => {
+  const carregarPedido = async () => {
   try {
     console.log('🔍 Buscando pedido ID:', orderId)
     
@@ -107,12 +105,12 @@ const carregarPedido = async () => {
       if (partnerId) {
         const { data: partnerData, error: partnerError } = await supabase
           .from('partners')
-          .select('zip, company_name')  // ← USAR 'zip' em vez de 'cep'
+          .select('zip, company_name')
           .eq('id', partnerId)
           .maybeSingle()
         
         if (!partnerError && partnerData) {
-          partnerZip = partnerData.zip  // ← USAR 'zip'
+          partnerZip = partnerData.zip
           console.log('📦 Parceiro encontrado:', partnerData)
         } else {
           console.log('⚠️ Erro ao buscar parceiro:', partnerError)
@@ -128,15 +126,27 @@ const carregarPedido = async () => {
       return
     }
 
-    // Gerar QR Code PIX
-    const chavePix = '13132276847'
-    const valor = orderData.total_amount.toFixed(2)
-    const qrCodeData = `00020126580014BR.GOV.BCB.PIX0136${chavePix}5204000053039865404${valor}5802BR5913PREPARADO6009SAO PAULO62070503***6304`
-    
-    setPixData({
-      qrCode: qrCodeData,
-      copyPaste: qrCodeData
-    })
+    // 🔥 GERAR QR CODE PIX CORRIGIDO (COM CRC)
+const chavePix = '13132276847'
+
+try {
+  // Usar a função importada do lib/pix
+  const payload = gerarPIX(chavePix, orderData.total_amount)
+  
+  console.log('💰 Valor total:', orderData.total_amount)
+  console.log('📱 Payload PIX gerado:', payload)
+  
+  setPixData({
+    qrCode: payload, // Salvar o payload completo
+    copyPaste: payload
+  })
+  
+  console.log('✅ PIX gerado com sucesso!')
+  
+} catch (error) {
+  console.error('❌ Erro ao gerar PIX:', error)
+  setError('Erro ao gerar código PIX')
+}
 
   } catch (error) {
     console.error('❌ Erro ao carregar pedido:', error)
@@ -204,52 +214,121 @@ const carregarPedido = async () => {
     }
   }
 
-  // 🔥 FUNÇÃO GERAR PAGAMENTO BDM
-  const gerarPagamentoBDM = async () => {
-    if (!order) return
-
-    setProcessing(true)
-    setBdmError(null)
-
-    try {
-      const valorTotal = order.total_amount + (freteSelecionado?.preco || 0)
-      
-      const response = await fetch('/api/bdm/payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: valorTotal,
-          orderId: order.id,
-          attachment: `#ORDER-${order.id}`
-        })
-      })
-
-      const result = await response.json()
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erro ao gerar pagamento BDM')
+  // 🔥 FUNÇÃO PARA BUSCAR COTAÇÃO DO BDM
+const buscarCotacaoBDM = async () => {
+  try {
+    const response = await fetch('/api/bdm/cotacao', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
       }
-
-      setBdmData({
-        qrCode: result.qrCode,
-        billingCode: result.billingCode
-      })
-
-      await supabase
-        .from('orders')
-        .update({ 
-          transaction_id: result.billingCode,
-          payment_method: 'bdm'
-        })
-        .eq('id', order.id)
-
-    } catch (error) {
-      console.error('Erro ao gerar BDM:', error)
-      setBdmError(error instanceof Error ? error.message : 'Erro ao gerar pagamento BDM')
-    } finally {
-      setProcessing(false)
+    });
+    
+    if (!response.ok) {
+      console.warn('⚠️ API de cotação retornou erro, usando valor padrão');
+      return 13.55;
     }
+    
+    const data = await response.json();
+    console.log('📊 Cotação BDM - Resposta:', data);
+    
+    const preco = data.BRL || 13.55;
+    console.log('💰 1 BDM = R$', preco);
+    
+    return preco;
+  } catch (error) {
+    console.error('❌ Erro ao buscar cotação, usando valor padrão:', error);
+    return 13.55; // 🔥 Valor padrão para não quebrar o fluxo
   }
+};
+
+// 🔥 FUNÇÃO GERAR PAGAMENTO BDM (ATUALIZADA)
+const gerarPagamentoBDM = async () => {
+  if (!order) {
+    console.error('❌ Pedido não encontrado');
+    setBdmError('Pedido não encontrado');
+    return;
+  }
+
+  setProcessing(true);
+  setBdmError(null);
+
+  try {
+    const valorTotal = order.total_amount + (freteSelecionado?.preco || 0);
+    console.log('💰 Valor total em Reais:', valorTotal);
+    
+    // 🔥 BUSCAR COTAÇÃO COM FALLBACK
+    let cotacao = 13.55;
+    try {
+      cotacao = await buscarCotacaoBDM();
+    } catch (error) {
+      console.warn('⚠️ Usando cotação padrão (13.55)');
+      cotacao = 13.55;
+    }
+    
+    const valorEmBDM = (valorTotal / cotacao).toFixed(2);
+    
+    console.log(`📊 Cotação: 1 BDM = R$ ${cotacao}`);
+    console.log(`💎 Valor em BDM: ${valorEmBDM}`);
+    
+    // 🔥 VALIDAR SE O VALOR É VÁLIDO
+    if (isNaN(parseFloat(valorEmBDM)) || parseFloat(valorEmBDM) <= 0) {
+      throw new Error('Erro ao calcular valor em BDM');
+    }
+    
+    const response = await fetch('/api/bdm/payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: parseFloat(valorEmBDM),
+        amountBRL: valorTotal,
+        orderId: order.id,
+        attachment: `#ORDER-${order.id}`
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao gerar pagamento BDM');
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || 'Erro ao gerar pagamento BDM');
+    }
+
+    // 🔥 Atualizar pedido
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({ 
+        transaction_id: result.billingCode,
+        payment_method: 'bdm'
+      })
+      .eq('id', order.id);
+
+    if (updateError) {
+      console.warn('⚠️ Erro ao atualizar pedido:', updateError);
+      // Não interrompe o fluxo
+    }
+
+    setBdmData({
+      qrCode: result.qrCode,
+      billingCode: result.billingCode,
+      valorBRL: valorTotal,
+      valorBDM: valorEmBDM,
+      cotacao: cotacao
+    });
+
+    console.log('✅ BDM gerado com sucesso!');
+
+  } catch (error) {
+    console.error('❌ Erro ao gerar BDM:', error);
+    setBdmError(error instanceof Error ? error.message : 'Erro ao gerar pagamento BDM');
+  } finally {
+    setProcessing(false);
+  }
+};
 
   // 🔥 FUNÇÃO CONFIRMAR PAGAMENTO PIX
   const confirmarPagamentoPIX = async () => {
@@ -540,6 +619,7 @@ const carregarPedido = async () => {
                 </button>
               </div>
             </div>
+            
 
             {/* PIX - Conteúdo */}
             {paymentMethod === 'pix' && pixData && (
@@ -549,15 +629,17 @@ const carregarPedido = async () => {
                 </p>
 
                 <div className="bg-white p-4 rounded-xl inline-block mx-auto border border-gray-200">
-                  <img 
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixData.qrCode)}`}
-                    alt="QR Code PIX"
-                    className="w-48 h-48"
-                    onError={(e) => {
-                      e.currentTarget.src = '/images/pix-placeholder.png'
-                    }}
-                  />
-                </div>
+  {pixData.qrCode && (
+    <img 
+      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixData.qrCode)}`}
+      alt="QR Code PIX"
+      className="w-48 h-48"
+      onError={(e) => {
+        e.currentTarget.src = '/images/pix-placeholder.png'
+      }}
+    />
+  )}
+</div>
 
                 <div className="flex items-center justify-center gap-2">
                   <button
@@ -599,66 +681,86 @@ const carregarPedido = async () => {
               </div>
             )}
 
+            
             {/* BDM Digital - Conteúdo */}
-            {paymentMethod === 'bdm' && (
-              <div className="text-center space-y-4">
-                {processing && !bdmData && (
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <Loader2 size={40} className="animate-spin text-[#FFB800]" />
-                    <p className="text-sm text-gray-600 mt-4">Gerando pagamento BDM...</p>
-                  </div>
-                )}
+{paymentMethod === 'bdm' && (
+  <div className="text-center space-y-4">
+    {processing && !bdmData && (
+      <div className="flex flex-col items-center justify-center py-8">
+        <Loader2 size={40} className="animate-spin text-[#FFB800]" />
+        <p className="text-sm text-gray-600 mt-4">Gerando pagamento BDM...</p>
+      </div>
+    )}
 
-                {bdmError && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-left">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-red-800">Erro ao gerar BDM</p>
-                        <p className="text-sm text-red-600">{bdmError}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+    {bdmError && (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-left">
+        <div className="flex items-start gap-3">
+          <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-800">Erro ao gerar BDM</p>
+            <p className="text-sm text-red-600">{bdmError}</p>
+          </div>
+        </div>
+      </div>
+    )}
 
-                {bdmData && (
-                  <>
-                    <p className="text-sm text-gray-600">
-                      Escaneie o QR Code abaixo para pagar com BDM Digital
-                    </p>
+    {bdmData && (
+      <>
+        {/* 🔥 NOVO: Informações da Cotação */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 max-w-sm mx-auto">
+          <p className="text-sm text-blue-800">
+            💰 <strong>1 BDM = R$ {bdmData.cotacao?.toFixed(4) || '13.5500'}</strong>
+          </p>
+          <p className="text-sm text-blue-600 mt-1">
+            Total: <strong>{bdmData.valorBDM || '0.00'} BDM</strong> 
+            <span className="text-gray-500 text-xs ml-2">
+              (R$ {bdmData.valorBRL?.toFixed(2) || '0.00'})
+            </span>
+          </p>
+        </div>
 
-                    <div className="bg-white p-4 rounded-xl inline-block mx-auto border border-gray-200">
-                      <img 
-                        src={bdmData.qrCode}
-                        alt="QR Code BDM"
-                        className="w-48 h-48"
-                        onError={(e) => {
-                          e.currentTarget.src = '/images/pix-placeholder.png'
-                        }}
-                      />
-                    </div>
+        <p className="text-sm text-gray-600">
+          Escaneie o QR Code abaixo para pagar com BDM Digital
+        </p>
 
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(bdmData.billingCode)
-                          setCopied(true)
-                          setTimeout(() => setCopied(false), 3000)
-                        }}
-                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#FFB800] transition-colors"
-                      >
-                        {copied ? <Check size={16} /> : <Copy size={16} />}
-                        {copied ? 'Copiado!' : 'Copiar código BDM'}
-                      </button>
-                    </div>
+        <div className="bg-white p-4 rounded-xl inline-block mx-auto border border-gray-200">
+          {bdmData.qrCode ? (
+            <img 
+              src={bdmData.qrCode}
+              alt="QR Code BDM"
+              className="w-48 h-48"
+              onError={(e) => {
+                e.currentTarget.src = '/images/pix-placeholder.png'
+              }}
+            />
+          ) : (
+            <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+              <span className="text-gray-400 text-sm">QR Code indisponível</span>
+            </div>
+          )}
+        </div>
 
-                    <p className="text-xs text-gray-500">
-                      O pagamento será confirmado automaticamente após a transação.
-                    </p>
-                  </>
-                )}
-              </div>
-            )}
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(bdmData.billingCode)
+              setCopied(true)
+              setTimeout(() => setCopied(false), 3000)
+            }}
+            className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#FFB800] transition-colors"
+          >
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+            {copied ? 'Copiado!' : 'Copiar código BDM'}
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-500">
+          O pagamento será confirmado automaticamente após a transação.
+        </p>
+      </>
+    )}
+  </div>
+)}
           </div>
         </div>
       </div>

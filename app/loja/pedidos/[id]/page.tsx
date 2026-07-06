@@ -307,16 +307,32 @@ export default function DetalhePedido({ params }: { params: Promise<{ id: string
             </div>
 
             {/* Endereço */}
-            {order.shipping_address && (
-              <div className="bg-white rounded-xl border border-gray-100 p-6">
-                <h3 className="font-display font-bold text-gray-900 mb-3">
-                  Endereço de Entrega
-                </h3>
-                <div className="text-sm text-gray-600 whitespace-pre-line">
-                  {order.shipping_address}
-                </div>
-              </div>
-            )}
+{order.shipping_address && (
+  <div className="bg-white rounded-xl border border-gray-100 p-6">
+    <h3 className="font-display font-bold text-gray-900 mb-3">
+      
+      Endereço de Entrega
+    </h3>
+    {(() => {
+      try {
+        const address = typeof order.shipping_address === 'string' 
+          ? JSON.parse(order.shipping_address) 
+          : order.shipping_address
+        
+        return (
+          <div className="text-sm text-gray-700">
+            <p>{address.street}, {address.number} {address.complement}</p>
+            <p>{address.neighborhood}</p>
+            <p>{address.city} - {address.state}</p>
+            <p>CEP: {address.zip}</p>
+          </div>
+        )
+      } catch {
+        return <p className="text-sm text-gray-500">Endereço não disponível</p>
+      }
+    })()}
+  </div>
+)}
 
             {/* Ações */}
             <div className="bg-white rounded-xl border border-gray-100 p-6">
