@@ -1,11 +1,10 @@
-// app/admin/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import NavBar from '@/components/NavBar'
+// ❌ REMOVER: import NavBar from '@/components/NavBar'
 import {
   Package,
   ShoppingBag,
@@ -27,7 +26,7 @@ export default function AdminDashboard() {
     pendingOrders: 0,
     totalUsers: 0,
     revenue: 0,
-    pendingPartners: 0 // ← NOVO
+    pendingPartners: 0
   })
   const router = useRouter()
 
@@ -96,11 +95,11 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <NavBar showBackButton={true} backButtonPath="/dashboard" />
+      {/* ❌ REMOVER: <NavBar showBackButton={true} backButtonPath="/dashboard" /> */}
       
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">🛠️ Painel Administrativo</h1>
+          <h1 className="text-2xl font-bold text-gray-900">👑 Painel Administrativo</h1>
           <p className="text-gray-500 text-sm">Gerencie todos os aspectos da sua loja</p>
         </div>
 
@@ -184,7 +183,7 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Parceiros - NOVO CARD */}
+          {/* Parceiros */}
           <Link href="/admin/parceiros">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
               <div className="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center mb-3">

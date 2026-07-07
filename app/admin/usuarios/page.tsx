@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import NavBar from '@/components/NavBar'
+//import NavBar from '@/components/NavBar'
 import { Search, User, Mail, Calendar, Check, X, MapPin, Package } from 'lucide-react'
 
 interface Profile {
@@ -101,12 +101,12 @@ export default function AdminUsuarios() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <NavBar showBackButton={true} backButtonPath="/admin" />
+      
       
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">👥 Usuários</h1>
+            <h1 className="text-2xl font-bold text-gray-900"> Usuários</h1>
             <p className="text-gray-500 text-sm">Gerencie todos os usuários do aplicativo</p>
           </div>
           <span className="text-sm text-gray-500">Total: {users.length}</span>

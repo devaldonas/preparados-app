@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 import { useRouter } from 'next/navigation'
 
@@ -20,7 +19,7 @@ export default function Catastrofes() {
 
   const router = useRouter()
 
- const cards: CardCatastrofe[] = [
+  const cards: CardCatastrofe[] = [
   {
     id: 'terremoto',
     nome: 'Terremoto',
@@ -55,6 +54,7 @@ export default function Catastrofes() {
   // Card de Terremoto
   if (cardSelecionado === 'terremoto') {
     return (
+      
       <div className="min-h-screen bg-gray-50 flex flex-col">
        
         <div className="flex-1">
