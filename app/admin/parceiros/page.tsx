@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import NavBar from '@/components/NavBar'
 import { Check, X, RefreshCw } from 'lucide-react'
 
 export default function AdminParceiros() {
@@ -151,12 +150,10 @@ export default function AdminParceiros() {
   const pendentes = partners.filter(p => p.status === 'pending').length
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <NavBar showBackButton={true} backButtonPath="/admin" />
-      
+    <div className="min-h-screen bg-gray-50 pb-20">      
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">🤝 Parceiros</h1>
+          <h1 className="text-2xl font-bold text-gray-900"> Parceiros</h1>
           <button onClick={carregar} className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg flex items-center gap-2">
             <RefreshCw size={18} />
             Atualizar

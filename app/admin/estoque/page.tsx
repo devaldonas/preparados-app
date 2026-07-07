@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import NavBar from '@/components/NavBar'
 import AdminGuard from '@/components/AdminGuard'
 
 interface Product {
@@ -82,7 +81,6 @@ function AdminEstoqueContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <NavBar showBackButton={true} backButtonPath="/admin/produtos" />
       <div className="max-w-4xl mx-auto px-4 py-8">
         
         <div className="flex justify-between items-center mb-6">

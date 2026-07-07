@@ -2,15 +2,12 @@
 'use client'
 
 import Link from 'next/link'
-import NavBar from '@/components/NavBar'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
 
 export default function RotasFuga() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <NavBar showBackButton={true} backButtonPath="/catastrofes" />
-      
+    <div className="min-h-screen bg-gray-50 flex flex-col">      
       <div className="flex-1">
         <div className="max-w-4xl mx-auto px-4 py-8">
           {/* Header */}
@@ -39,7 +36,7 @@ export default function RotasFuga() {
 
             {/* Pontos de Alagamento */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-blue-600 mb-3"> Pontos de Alagamento</h3>
+              <h3 className="text-lg font-bold text-black-600 mb-3"> Pontos de Alagamento</h3>
               <p className="text-gray-700 mb-3">Identifique possíveis pontos de alagamento na sua cidade/rota, como baixadas e laterais de córregos ou rios.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                 <img src="/images/catastrofes/alagamento-slide1.png" alt="Alagamento 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" onError={(e) => { e.currentTarget.style.display = 'none' }} />
@@ -50,7 +47,7 @@ export default function RotasFuga() {
 
             {/* Desmoronamento de Terra */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-orange-600 mb-3"> Desmoronamento de Terra</h3>
+              <h3 className="text-lg font-bold text-black-600 mb-3"> Desmoronamento de Terra</h3>
               <p className="text-gray-700 mb-3">Cuidado com estradas em morros altos onde pode haver desmoronamento de terra.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                 <img src="/images/catastrofes/desmoronamento-slide1.png" alt="Desmoronamento 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" onError={(e) => { e.currentTarget.style.display = 'none' }} />
@@ -61,7 +58,7 @@ export default function RotasFuga() {
 
             {/* Pontes e Viadutos */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-red-600 mb-3"> Pontes e Viadutos</h3>
+              <h3 className="text-lg font-bold text-black-600 mb-3"> Pontes e Viadutos</h3>
               <p className="text-gray-700 mb-3">Evite pontes suspensas e viadutos durante a fuga.</p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                 <img src="/images/catastrofes/pontes-slide1.png" alt="Pontes 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" onError={(e) => { e.currentTarget.style.display = 'none' }} />
@@ -73,7 +70,7 @@ export default function RotasFuga() {
 
             {/* Prédios Altos e Antenas */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-purple-600 mb-3"> Prédios Altos e Antenas</h3>
+              <h3 className="text-lg font-bold text-black-600 mb-3"> Prédios Altos e Antenas</h3>
               <p className="text-gray-700 mb-3">Prédios altos e antenas também podem obstruir sua passagem ou cair.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                 <img src="/images/catastrofes/predios-slide1.png" alt="Prédios 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" onError={(e) => { e.currentTarget.style.display = 'none' }} />
@@ -95,7 +92,7 @@ export default function RotasFuga() {
 
             {/* Recursos Valiosos na Rota */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-purple-600 mb-3"> Recursos Valiosos na Rota</h3>
+              <h3 className="text-lg font-bold text-black-600 mb-3"> Recursos Valiosos na Rota</h3>
               <p className="text-gray-700 mb-3">Mesmo em deslocamento na rota de fuga, você ainda pode adquirir recursos valiosos.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                 <img src="/images/catastrofes/recursos-slide1.png" alt="Recursos 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" onError={(e) => { e.currentTarget.style.display = 'none' }} />
@@ -121,7 +118,7 @@ export default function RotasFuga() {
 
             {/* Mapear Fontes de Água */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-bold text-blue-600 mb-3"> Mapear Fontes de Água</h3>
+              <h3 className="text-lg font-bold text-black-600 mb-3"> Mapear Fontes de Água</h3>
               <p className="text-gray-700 mb-3">Mapear fontes de água na sua região também é uma estratégia inteligente, pois é um recurso indispensável que pouca gente armazena.</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                 <img src="/images/catastrofes/fontesdeagua-slide1.png" alt="Fontes de Água 1" className="rounded-lg w-full h-auto object-cover border border-gray-200" onError={(e) => { e.currentTarget.style.display = 'none' }} />
@@ -142,14 +139,14 @@ export default function RotasFuga() {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold text-blue-700 mb-2"> Passos Subsequentes</h4>
+                  <h4 className="font-bold text-black-700 mb-2"> Passos Subsequentes</h4>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                     <li>Informar-se sobre rotas de evacuação e abrigos disponíveis</li>
                     <li>Seguir orientações da Defesa Civil, Corpo de Bombeiros</li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold text-orange-700 mb-2"> Kit de Emergência</h4>
+                  <h4 className="font-bold text-black-700 mb-2"> Kit de Emergência</h4>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                     <li>Água potável e alimentos não perecíveis</li>
                     <li>Lanterna, pilhas, rádio portátil</li>
@@ -158,21 +155,21 @@ export default function RotasFuga() {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold text-purple-700 mb-2"> Comunicação Alternativa</h4>
+                  <h4 className="font-bold text-black-700 mb-2"> Comunicação Alternativa</h4>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                     <li>Mensagens de texto, aplicativos de emergência, rádio comunitário</li>
                     <li>Anotar contatos de emergência em papel (não só no celular)</li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold text-red-700 mb-2"> Cuidados com a Saúde</h4>
+                  <h4 className="font-bold text-black-700 mb-2"> Cuidados com a Saúde</h4>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                     <li>Levar medicamentos de uso contínuo</li>
                     <li>Manter itens de higiene pessoal</li>
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-bold text-yellow-700 mb-2"> Retorno à Residência</h4>
+                  <h4 className="font-bold text-black-700 mb-2"> Retorno à Residência</h4>
                   <ul className="list-disc list-inside text-gray-700 space-y-1 text-sm">
                     <li>Somente retornar após liberação oficial das autoridades</li>
                     <li>Verificar integridade da estrutura do imóvel</li>
@@ -187,7 +184,7 @@ export default function RotasFuga() {
               <p className="text-gray-800 font-semibold text-lg">
                 "Seja mestre de si mesmo e busquem conhecimentos."
               </p>
-              <p className="text-gray-600 text-sm mt-2">Escola de Guerreiros</p>
+              
             </div>
 
             <div className="bg-gradient-to-r from-gray-50 to-emerald-50 rounded-xl p-6 border border-gray-100 text-center">

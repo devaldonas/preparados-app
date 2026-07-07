@@ -8,7 +8,7 @@ import Link from 'next/link'
 import RadioPlayer from '@/components/RadioPlayer'
 import MapaMonitoramentoCompleto from '@/components/MapaMonitoramentoCompleto'
 import GuiaPreparacaoCard from '@/components/GuiaPreparacaoCard'
-import NavBar from '@/components/NavBar'
+
 
 
 export default function Dashboard() {
@@ -275,7 +275,7 @@ const checkAdminStatus = async (userId: string) => {
       }}
     />
     <span className="absolute -top-2 -right-2 bg-gray-500 text-white text-[0.55rem] font-bold px-2 py-0.5 rounded-full">
-      Em breve
+      Em Construção
     </span>
   </div>
 

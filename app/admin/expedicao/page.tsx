@@ -4,7 +4,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
-import NavBar from '@/components/NavBar'
 import { Package, Truck, CheckCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react'
 
 interface Order {
@@ -167,9 +166,7 @@ export default function AdminExpedicao() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <NavBar showBackButton={true} backButtonPath="/admin" />
-      
+    <div className="min-h-screen bg-gray-50 pb-20">      
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>

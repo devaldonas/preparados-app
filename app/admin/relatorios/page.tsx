@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
-import NavBar from '@/components/NavBar'
 import { ArrowLeft, BarChart3, Users, ShoppingBag, DollarSign, TrendingUp } from 'lucide-react'
 
 export default function AdminRelatorios() {
@@ -92,7 +91,6 @@ export default function AdminRelatorios() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <NavBar showBackButton={true} backButtonPath="/admin" />
       
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-6">
@@ -103,7 +101,7 @@ export default function AdminRelatorios() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">📊 Relatórios</h1>
+            <h1 className="text-2xl font-bold text-gray-900"> Relatórios</h1>
             <p className="text-sm text-gray-500">Visão geral do desempenho da loja</p>
           </div>
         </div>
