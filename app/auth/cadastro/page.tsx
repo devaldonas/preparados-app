@@ -295,7 +295,6 @@ export default function Cadastro() {
         latitude: latitude || null,
         longitude: longitude || null,
         group_id: groupId,
-        // 🔥 ADICIONAR ESTES CAMPOS
         street: logradouro,
         number: numero,
         complement: complemento,
@@ -303,7 +302,7 @@ export default function Cadastro() {
         city: cidade,
         state: estado,
         trial_start_date: new Date().toISOString(),
-        trial_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 🔥 7 DIAS
         subscription_status: 'trial',
         created_at: new Date().toISOString()
       }])
@@ -719,7 +718,7 @@ export default function Cadastro() {
                     </div>
                     <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
                       <span className="text-gray-500">Teste grátis</span>
-                      <span className="text-green-600 font-medium">30 dias</span>
+                      <span className="text-green-600 font-medium">7 dias</span>
                     </div>
                   </div>
 

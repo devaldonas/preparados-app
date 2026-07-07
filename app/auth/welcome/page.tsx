@@ -137,7 +137,7 @@ export default function WelcomePage() {
               </div>
               
               <h2 className="text-lg font-bold text-gray-900">
-                Experimente Grátis por 30 Dias
+                Experimente Grátis por 7 Dias
               </h2>
               
               <div className="mt-4 grid grid-cols-3 gap-3 max-w-xs mx-auto">
