@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
+import { ArrowLeft, BarChart3, Users, ShoppingBag, TrendingUp } from 'lucide-react'
 import {
   Search,
   Eye,
@@ -247,10 +248,18 @@ export default function AdminPedidos() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div>
+          
+          <div className="max-w-6xl mx-auto px-4 py-8">
+    
+            <div className="flex items-center gap-3 mb-6">
+              <Link
+                href="/admin"
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <ArrowLeft size={20} />
+              </Link>
+              <div>
+
             <h1 className="text-2xl font-bold text-gray-900"> Gerenciar Pedidos</h1>
             <p className="text-gray-500 text-sm">Acompanhe e gerencie todos os pedidos da loja</p>
           </div>

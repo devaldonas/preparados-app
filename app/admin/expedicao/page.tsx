@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 import { Package, Truck, CheckCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react'
+import { ArrowLeft, BarChart3, Users, ShoppingBag, DollarSign, TrendingUp } from 'lucide-react'
 
 interface Order {
   id: number
@@ -169,10 +170,22 @@ export default function AdminExpedicao() {
     <div className="min-h-screen bg-gray-50 pb-20">      
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3 mb-6">
+          <Link
+            href="/admin"
+            className="p-2 hover:bg-gray-100 rounded-lg transition"
+          >
+            <ArrowLeft size={20} />
+          </Link>
+        <div>  
+      </div>
+    </div>  
+    
           <div>
             <h1 className="text-2xl font-bold text-gray-900"> Central de Expedição</h1>
             <p className="text-gray-500 text-sm">Gerencie os pedidos pagos e aguardando envio</p>
           </div>
+          
           <button
             onClick={carregarPedidos}
             className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-display font-bold px-4 py-2 rounded-lg transition flex items-center gap-2"
