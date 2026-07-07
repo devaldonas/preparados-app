@@ -16,7 +16,7 @@ export function useSubscription() {
   const router = useRouter()
   const [status, setStatus] = useState<SubscriptionStatus>({
     status: 'trial',
-    daysLeft: 30,
+    daysLeft: 7,
     trialEndDate: null,
     isExpired: false
   })
@@ -59,7 +59,7 @@ export function useSubscription() {
       // Se não tiver dados de trial, criar
       if (!profile?.trial_end_date || !profile?.subscription_status) {
         const startDate = new Date()
-        const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
+        const endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000)
         
         await supabase
           .from('profiles')
@@ -72,7 +72,7 @@ export function useSubscription() {
 
         setStatus({
           status: 'trial',
-          daysLeft: 30,
+          daysLeft: 7,
           trialEndDate: endDate,
           isExpired: false
         })
