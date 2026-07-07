@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-// ❌ REMOVER: import NavBar from '@/components/NavBar'
 import {
   Package,
   ShoppingBag,
@@ -13,9 +12,9 @@ import {
   DollarSign,
   Clock,
   BarChart3,
-  Settings,
   ClipboardList,
-  Store
+  Store,
+  Home
 } from 'lucide-react'
 
 export default function AdminDashboard() {
@@ -36,12 +35,10 @@ export default function AdminDashboard() {
 
   const carregarDados = async () => {
     try {
-      // Buscar produtos
       const { count: productCount } = await supabase
         .from('products')
         .select('*', { count: 'exact', head: true })
 
-      // Buscar pedidos
       const { data: orders, count: orderCount } = await supabase
         .from('orders')
         .select('*', { count: 'exact' })
@@ -52,12 +49,10 @@ export default function AdminDashboard() {
         ?.filter(o => o.payment_status === 'paid')
         .reduce((sum, o) => sum + o.total_amount, 0) || 0
 
-      // Buscar usuários
       const { count: userCount } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
 
-      // Buscar parceiros pendentes
       const { count: pendingPartners } = await supabase
         .from('partners')
         .select('*', { count: 'exact', head: true })
@@ -92,11 +87,8 @@ export default function AdminDashboard() {
       </div>
     )
   }
-
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* ❌ REMOVER: <NavBar showBackButton={true} backButtonPath="/dashboard" /> */}
-      
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Painel Administrativo</h1>
@@ -156,7 +148,6 @@ export default function AdminDashboard() {
 
         {/* Cards de Acesso Rápido */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {/* Produtos */}
           <Link href="/admin/produtos">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
               <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-3">
@@ -167,7 +158,6 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Pedidos */}
           <Link href="/admin/pedidos">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
               <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center mb-3">
@@ -183,7 +173,6 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Parceiros */}
           <Link href="/admin/parceiros">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
               <div className="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center mb-3">
@@ -199,7 +188,6 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Usuários */}
           <Link href="/admin/usuarios">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
               <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center mb-3">
@@ -210,7 +198,6 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Expedição */}
           <Link href="/admin/expedicao">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
               <div className="w-12 h-12 bg-teal-50 rounded-lg flex items-center justify-center mb-3">
@@ -221,7 +208,6 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-          {/* Relatórios */}
           <Link href="/admin/relatorios">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
               <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center mb-3">
@@ -232,6 +218,18 @@ export default function AdminDashboard() {
             </div>
           </Link>
         </div>
+
+        {/* 🔥 BOTÃO VOLTAR AO INÍCIO - CORRIGIDO */}
+        <div className="mt-10 flex justify-center">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg transition"
+          >
+            <Home size={18} />
+            Entrar no App
+          </Link>
+        </div>
+
       </div>
     </div>
   )
