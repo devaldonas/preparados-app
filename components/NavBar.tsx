@@ -5,14 +5,14 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useCart } from '@/lib/store/cart'
-import { ShoppingBag, Package, User, LogOut, Menu, X, LayoutDashboard, Store } from 'lucide-react'
+import { ShoppingBag, Package, User, LogOut, Menu, X, LayoutDashboard, Store, ChevronDown } from 'lucide-react'
 
 interface NavBarProps {
   showBackButton?: boolean
   backButtonPath?: string
   showCart?: boolean
   title?: string
-  hideNavLinks?: boolean // 🔥 NOVO: para esconder links em algumas páginas
+  hideNavLinks?: boolean
 }
 
 export default function NavBar({ 
@@ -20,7 +20,7 @@ export default function NavBar({
   backButtonPath,
   showCart = true,
   title,
-  hideNavLinks = false // 🔥 NOVO
+  hideNavLinks = false
 }: NavBarProps) {
   const router = useRouter()
   const { getTotalItems } = useCart()
@@ -64,7 +64,6 @@ export default function NavBar({
     router.push('/auth/login')
   }
 
-  // 🔥 Links dinâmicos baseados na role
   const getNavLinks = () => {
     const links = [
       { href: '/loja', label: 'Loja', icon: Store }
@@ -98,12 +97,9 @@ export default function NavBar({
                 <span className="text-sm hidden sm:inline">Voltar</span>
               </button>
             ) : (
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-1 hover:bg-gray-100 rounded-lg transition lg:hidden"
-              >
-                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
+              // ❌ REMOVER BOTÃO SANDUÍCHE
+              // O menu agora abre APENAS pelo ícone do usuário
+              <div className="lg:hidden w-8" /> // Espaçamento para manter alinhamento
             )}
           </div>
 
@@ -153,107 +149,106 @@ export default function NavBar({
               </Link>
             )}
 
-            {/* Menu do Usuário - Desktop */}
-            <div className="hidden lg:flex items-center gap-2">
-              <Link
-                href="/loja/pedidos"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-              >
-                <Package size={16} />
-                <span>Pedidos</span>
-              </Link>
-              
-              {user && (
-                <>
-                  <Link
-                    href="/perfil"
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-                  >
-                    <User size={16} />
-                    <span>Perfil</span>
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
-                  >
-                    <LogOut size={16} />
-                    <span>Sair</span>
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Menu Mobile - Botão do usuário */}
+            {/* 🔥 ÍCONE DO USUÁRIO - ÚNICO BOTÃO PARA ABRIR O MENU */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition lg:hidden"
+              className="p-2 hover:bg-gray-100 rounded-lg transition flex items-center gap-2"
             >
-              <User size={20} className="text-gray-700" />
+              <div className="w-8 h-8 rounded-full bg-[#FFB800]/20 flex items-center justify-center text-[#FFB800] font-bold text-sm">
+                {user?.email?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+              <ChevronDown 
+                size={16} 
+                className={`text-gray-400 transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`}
+              />
             </button>
           </div>
         </div>
 
-        {/* Menu Mobile - Dropdown */}
+        {/* 🔥 MENU MOBILE/DESKTOP - Dropdown unificado */}
         {isMenuOpen && (
-          <div className="lg:hidden mt-3 pt-3 border-t border-gray-100 space-y-2">
-            {/* Links de navegação no mobile */}
-            {!hideNavLinks && user && navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition"
-              >
-                <link.icon size={18} />
-                {link.label}
-              </Link>
-            ))}
-
-            <Link
-              href="/loja/pedidos"
+          <>
+            {/* Overlay para fechar ao clicar fora */}
+            <div 
+              className="fixed inset-0 z-40"
               onClick={() => setIsMenuOpen(false)}
-              className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition"
-            >
-              <Package size={18} />
-              Meus Pedidos
-            </Link>
+            />
             
-            <Link
-              href="/perfil"
-              onClick={() => setIsMenuOpen(false)}
-              className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition"
-            >
-              <User size={18} />
-              Meu Perfil
-            </Link>
-
-            <Link
-              href="/loja/carrinho"
-              onClick={() => setIsMenuOpen(false)}
-              className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition"
-            >
-              <ShoppingBag size={18} />
-              Carrinho
-              {cartCount > 0 && (
-                <span className="ml-auto bg-[#FFB800] text-black text-[0.55rem] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {cartCount}
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+              {/* Cabeçalho do usuário */}
+              <div className="px-4 py-3 border-b border-gray-100">
+                <p className="text-sm font-medium text-gray-900">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}</p>
+                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <span className="inline-block mt-1 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                  {userProfile?.role === 'admin' ? 'Administrador' : 
+                   userProfile?.role === 'partner' ? 'Parceiro' : 'Usuário'}
                 </span>
-              )}
-            </Link>
+              </div>
 
-            {user && (
+              {/* Links de navegação - Mobile/Desktop */}
+              {!hideNavLinks && user && (
+                <div className="lg:hidden">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      <link.icon size={18} />
+                      {link.label}
+                    </Link>
+                  ))}
+                  <div className="border-t border-gray-100 my-1" />
+                </div>
+              )}
+
+              <Link
+                href="/loja/pedidos"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+              >
+                <Package size={18} />
+                Meus Pedidos
+              </Link>
+              
+              <Link
+                href="/perfil"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+              >
+                <User size={18} />
+                Meu Perfil
+              </Link>
+
+              <Link
+                href="/loja/carrinho"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+              >
+                <ShoppingBag size={18} />
+                Carrinho
+                {cartCount > 0 && (
+                  <span className="ml-auto bg-[#FFB800] text-black text-[0.55rem] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+
+              <div className="border-t border-gray-100 my-1" />
+
               <button
                 onClick={() => {
                   setIsMenuOpen(false)
                   handleLogout()
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
               >
                 <LogOut size={18} />
                 Sair
               </button>
-            )}
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>
