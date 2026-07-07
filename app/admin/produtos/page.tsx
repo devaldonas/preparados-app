@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import UploadMultiplasImagens from '@/components/UploadMultiplasImagens'
+import { ArrowLeft, BarChart3, Users, ShoppingBag, TrendingUp } from 'lucide-react'
+
 import { 
   Plus, Edit, Trash2, Eye, Package, 
   Search, Filter, ChevronDown, ChevronUp,
@@ -245,12 +247,18 @@ export default function AdminProdutos() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-
-      
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div>
+          
+          <div className="max-w-6xl mx-auto px-4 py-8">
+    
+            <div className="flex items-center gap-3 mb-6">
+              <Link
+                href="/admin"
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <ArrowLeft size={20} />
+              </Link>
+              <div>
+                
             <h1 className="text-2xl font-bold text-gray-900"> Gerenciar Produtos</h1>
             <p className="text-gray-500 text-sm">Gerencie todos os produtos da loja</p>
           </div>

@@ -93,6 +93,7 @@ export default function AdminRelatorios() {
     <div className="min-h-screen bg-gray-50 pb-20">
       
       <div className="max-w-6xl mx-auto px-4 py-8">
+
         <div className="flex items-center gap-3 mb-6">
           <Link
             href="/admin"
@@ -101,6 +102,7 @@ export default function AdminRelatorios() {
             <ArrowLeft size={20} />
           </Link>
           <div>
+            
             <h1 className="text-2xl font-bold text-gray-900"> Relatórios</h1>
             <p className="text-sm text-gray-500">Visão geral do desempenho da loja</p>
           </div>
