@@ -5,7 +5,18 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useCart } from '@/lib/store/cart'
-import { ShoppingBag, Package, User, LogOut, Menu, X, LayoutDashboard, Store, ChevronDown } from 'lucide-react'
+import { 
+  ShoppingBag, 
+  Package, 
+  User, 
+  LogOut, 
+  Menu, 
+  X, 
+  LayoutDashboard, 
+  Store, 
+  ChevronDown,
+  Crown  // 🔥 ADICIONAR Crown
+} from 'lucide-react'
 
 interface NavBarProps {
   showBackButton?: boolean
@@ -41,7 +52,7 @@ export default function NavBar({
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, subscription_status')  // 🔥 ADICIONAR subscription_status
           .eq('id', user.id)
           .single()
         setUserProfile(profile)
@@ -82,6 +93,9 @@ export default function NavBar({
 
   const navLinks = getNavLinks()
 
+  // 🔥 VERIFICAR SE ESTÁ EM TRIAL
+  const isTrial = userProfile?.subscription_status === 'trial'
+
   return (
     <div className="bg-white border-b border-gray-100 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-3">
@@ -97,9 +111,7 @@ export default function NavBar({
                 <span className="text-sm hidden sm:inline">Voltar</span>
               </button>
             ) : (
-              // ❌ REMOVER BOTÃO SANDUÍCHE
-              // O menu agora abre APENAS pelo ícone do usuário
-              <div className="lg:hidden w-8" /> // Espaçamento para manter alinhamento
+              <div className="lg:hidden w-8" />
             )}
           </div>
 
@@ -149,7 +161,7 @@ export default function NavBar({
               </Link>
             )}
 
-            {/* 🔥 ÍCONE DO USUÁRIO - ÚNICO BOTÃO PARA ABRIR O MENU */}
+            {/* 🔥 ÍCONE DO USUÁRIO */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 hover:bg-gray-100 rounded-lg transition flex items-center gap-2"
@@ -165,10 +177,9 @@ export default function NavBar({
           </div>
         </div>
 
-        {/* 🔥 MENU MOBILE/DESKTOP - Dropdown unificado */}
+        {/* 🔥 MENU DROPDOWN */}
         {isMenuOpen && (
           <>
-            {/* Overlay para fechar ao clicar fora */}
             <div 
               className="fixed inset-0 z-40"
               onClick={() => setIsMenuOpen(false)}
@@ -177,7 +188,9 @@ export default function NavBar({
             <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
               {/* Cabeçalho do usuário */}
               <div className="px-4 py-3 border-b border-gray-100">
-                <p className="text-sm font-medium text-gray-900">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}
+                </p>
                 <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                 <span className="inline-block mt-1 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                   {userProfile?.role === 'admin' ? 'Administrador' : 
@@ -185,7 +198,7 @@ export default function NavBar({
                 </span>
               </div>
 
-              {/* Links de navegação - Mobile/Desktop */}
+              {/* Links de navegação - Mobile */}
               {!hideNavLinks && user && (
                 <div className="lg:hidden">
                   {navLinks.map((link) => (
@@ -201,6 +214,24 @@ export default function NavBar({
                   ))}
                   <div className="border-t border-gray-100 my-1" />
                 </div>
+              )}
+
+              {/* 🔥 LINK ASSINAR PREMIUM - APENAS PARA TRIAL */}
+              {isTrial && (
+                <>
+                  <Link
+                    href="/planos"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
+                  >
+                    <Crown size={18} />
+                    Assinar Premium
+                    <span className="ml-auto text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full font-bold">
+                      Oferta
+                    </span>
+                  </Link>
+                  <div className="border-t border-gray-100 my-1" />
+                </>
               )}
 
               <Link

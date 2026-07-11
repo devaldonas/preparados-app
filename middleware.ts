@@ -1,4 +1,4 @@
-// middleware.ts (ATUALIZADO)
+// middleware.ts
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { supabase } from './lib/supabaseClient'
@@ -14,6 +14,7 @@ export async function middleware(request: NextRequest) {
     '/auth/recuperar-senha',
     '/auth/atualizar-senha',
     '/auth/welcome',
+    '/planos',
     '/api',
     '/_next',
     '/favicon.ico',
@@ -22,6 +23,7 @@ export async function middleware(request: NextRequest) {
     '/'
   ]
 
+  // 🔥 VERIFICAR SE É ROTA PÚBLICA PRIMEIRO
   if (publicRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next()
   }
@@ -35,7 +37,7 @@ export async function middleware(request: NextRequest) {
   // Buscar role do usuário
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, subscription_status, trial_end_date, subscription_end_date')
     .eq('id', session.user.id)
     .single()
 
@@ -43,9 +45,29 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
+  // 🔥 AGORA SIM, DECLARAR role DEPOIS DE BUSCAR
   const role = profile.role || 'user'
 
-  // 🔥 REGRAS DE ACESSO
+  // 🔥 VERIFICAR STATUS DA ASSINATURA (apenas para não-admin)
+  if (role !== 'admin') {
+    const now = new Date()
+    const trialEnd = profile.trial_end_date ? new Date(profile.trial_end_date) : null
+    const subscriptionEnd = profile.subscription_end_date ? new Date(profile.subscription_end_date) : null
+
+    const isTrialActive = trialEnd && now < trialEnd
+    const isSubscriptionActive = profile.subscription_status === 'active' && subscriptionEnd && now < subscriptionEnd
+
+    // Se não estiver em trial e não tiver assinatura ativa
+    if (!isTrialActive && !isSubscriptionActive) {
+      // Rotas permitidas mesmo sem assinatura
+      const allowedWithoutSubscription = ['/planos', '/auth', '/api', '/perfil']
+      if (!allowedWithoutSubscription.some(route => pathname.startsWith(route))) {
+        return NextResponse.redirect(new URL('/planos', request.url))
+      }
+    }
+  }
+
+  // 🔥 REGRAS DE ACESSO POR ROLE
 
   // Admin: acesso total
   if (role === 'admin') {
@@ -54,12 +76,10 @@ export async function middleware(request: NextRequest) {
 
   // Parceiro: acesso APENAS a rotas de parceiro
   if (role === 'partner') {
-    // Se tentar acessar rotas de usuário comum, redirecionar para parceiro
     const userRoutes = ['/dashboard', '/checklist', '/mochilas', '/pessoas', '/catastrofes', '/comunicador', '/grupo', '/loja', '/check-in']
     if (userRoutes.some(route => pathname.startsWith(route))) {
       return NextResponse.redirect(new URL('/parceiro/dashboard', request.url))
     }
-    // Permitir acesso a rotas de parceiro
     if (pathname.startsWith('/parceiro')) {
       return NextResponse.next()
     }
@@ -68,11 +88,9 @@ export async function middleware(request: NextRequest) {
 
   // Usuário comum: acesso APENAS a rotas de usuário
   if (role === 'user' || !role) {
-    // Se tentar acessar rotas de parceiro, redirecionar para dashboard
     if (pathname.startsWith('/parceiro')) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
-    // Se tentar acessar admin, redirecionar para dashboard
     if (pathname.startsWith('/admin')) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
@@ -96,5 +114,6 @@ export const config = {
     '/parceiro/:path*',
     '/check-in/:path*',
     '/perfil/:path*',
+    '/planos/:path*',
   ]
 }
