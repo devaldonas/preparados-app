@@ -75,12 +75,6 @@ export default function Login() {
           <h2 className="text-3xl font-extrabold text-black">
             Entrar no <span className="text-black">PREPARADO</span>
           </h2>
-          <p className="mt-2 text-sm text-black">
-            Ou{' '}
-            <Link href="/auth/cadastro" className="font-medium text-black hover:text-gray-600 underline">
-              crie sua conta gratuitamente
-            </Link>
-          </p>
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
