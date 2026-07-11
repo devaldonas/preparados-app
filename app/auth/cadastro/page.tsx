@@ -169,25 +169,35 @@ export default function CadastroPage() {
     }
   }
 
-  // Preços dos planos
-  const planos = {
-    mensal: {
-      nome: 'Mensal',
-      preco: 49.90,
-      periodo: 'mês',
-      icon: Zap,
-      destaque: false
-    },
-    anual: {
-      nome: 'Anual',
-      preco: 358.80,
-      periodo: 'ano',
-      icon: Crown,
-      destaque: true,
-      desconto: 'Economize 40%'
-    }
-  }
+  // 🔥 TIPO DOS PLANOS
+interface Plano {
+  nome: string
+  preco: number
+  periodo: string
+  icon: any
+  destaque: boolean
+  desconto?: string // 🔥 TORNA OPCIONAL
+}
 
+// Preços dos planos
+const planos: Record<string, Plano> = {
+  mensal: {
+    nome: 'Mensal',
+    preco: 49.90,
+    periodo: 'mês',
+    icon: Zap,
+    destaque: false
+    // desconto é opcional, não precisa definir
+  },
+  anual: {
+    nome: 'Anual',
+    preco: 358.80,
+    periodo: 'ano',
+    icon: Crown,
+    destaque: true,
+    desconto: 'Economize 40%'
+  }
+}
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -403,48 +413,47 @@ export default function CadastroPage() {
               />
             </div>
 
-            {/* 🔥 SELEÇÃO DE PLANO - NOVO */}
-            <div className="pt-2">
-              <p className="text-sm font-medium text-gray-700 mb-2">
-                Escolha seu plano após o teste gratuito
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                {Object.entries(planos).map(([key, plano]) => {
-                  const Icon = plano.icon
-                  const isSelected = planoSelecionado === key
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setPlanoSelecionado(key as 'mensal' | 'anual')}
-                      className={`p-3 rounded-lg border-2 text-left transition ${
-                        isSelected
-                          ? 'border-[#FFB800] bg-yellow-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      } ${plano.destaque ? 'relative' : ''}`}
-                    >
-                      {plano.destaque && (
-                        <span className="absolute -top-2 -right-2 bg-[#FFB800] text-black text-[0.5rem] font-bold px-2 py-0.5 rounded-full">
-                          {plano.desconto}
-                        </span>
-                      )}
-                      <div className="flex items-center gap-2 mb-1">
-                        <Icon size={16} className={isSelected ? 'text-[#FFB800]' : 'text-gray-400'} />
-                        <span className="font-semibold text-sm text-gray-900">{plano.nome}</span>
-                      </div>
-                      <p className="text-lg font-bold text-gray-900">
-                        R$ {plano.preco.toFixed(2).replace('.', ',')}
-                        <span className="text-xs font-normal text-gray-500 ml-1">/{plano.periodo}</span>
-                      </p>
-                    </button>
-                  )
-                })}
-              </div>
-              <p className="text-xs text-gray-400 mt-2 text-center">
-                ✅ 7 dias de teste gratuito. Cancele quando quiser.
-              </p>
-            </div>
-
+            {/* 🔥 SELEÇÃO DE PLANO */}
+<div className="pt-2">
+  <p className="text-sm font-medium text-gray-700 mb-2">
+    Escolha seu plano após o teste gratuito
+  </p>
+  <div className="grid grid-cols-2 gap-3">
+    {Object.entries(planos).map(([key, plano]) => {
+      const Icon = plano.icon
+      const isSelected = planoSelecionado === key
+      return (
+        <button
+          key={key}
+          type="button"
+          onClick={() => setPlanoSelecionado(key as 'mensal' | 'anual')}
+          className={`p-3 rounded-lg border-2 text-left transition ${
+            isSelected
+              ? 'border-[#FFB800] bg-yellow-50'
+              : 'border-gray-200 hover:border-gray-300'
+          } ${plano.destaque ? 'relative' : ''}`}
+        >
+          {plano.destaque && plano.desconto && (
+            <span className="absolute -top-2 -right-2 bg-[#FFB800] text-black text-[0.5rem] font-bold px-2 py-0.5 rounded-full">
+              {plano.desconto}
+            </span>
+          )}
+          <div className="flex items-center gap-2 mb-1">
+            <Icon size={16} className={isSelected ? 'text-[#FFB800]' : 'text-gray-400'} />
+            <span className="font-semibold text-sm text-gray-900">{plano.nome}</span>
+          </div>
+          <p className="text-lg font-bold text-gray-900">
+            R$ {plano.preco.toFixed(2).replace('.', ',')}
+            <span className="text-xs font-normal text-gray-500 ml-1">/{plano.periodo}</span>
+          </p>
+        </button>
+      )
+    })}
+  </div>
+  <p className="text-xs text-gray-400 mt-2 text-center">
+    ✅ 7 dias de teste gratuito. Cancele quando quiser.
+  </p>
+</div>
             <button
               type="submit"
               disabled={loading || success}
