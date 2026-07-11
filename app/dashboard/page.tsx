@@ -311,40 +311,48 @@ const checkAdminStatus = async (userId: string) => {
 
   {/* Compartilhar */}
   <button
-    onClick={() => {
-      const mensagem = encodeURIComponent(
-        `Olá,\n\n` +
-          `Estou usando o app PREPARADO e quero compartilhar com você.\n\n` +
-          `É um aplicativo que auxilia na preparação para emergencias.\n\n` +
-          `O que você encontra no PREPARADO:\n` +
-          `• Checklist completo para sua mochila de emergencia\n` +
-          `• Conexão com pessoas próximas e formação de grupos\n` +
-          `• Chat em tempo real com sua comunidade\n` +
-          `• Guia completo para catástrofes (terremoto, tsunami, frio extremo)\n` +
-          `• Dicas diárias de preparação\n\n` +
-          `Acesse: https://preparado.vercel.app\n\n` +
-          `Vamos nos preparar juntos.`
-      )
+  onClick={() => {
+    const mensagem = encodeURIComponent(
+      `Olá! \n\n` +
+      `Estou usando o app PREPARADO e quero compartilhar com você.\n\n` +
+      ` O PREPARADO é um aplicativo que auxilia na preparação para emergências.\n\n` +
+      `O que você encontra no PREPARADO:\n` +
+      ` Checklist completo para sua mochila de emergência\n` +
+      ` Conexão com pessoas próximas e formação de grupos\n` +
+      ` Chat em tempo real com sua comunidade\n` +
+      ` Guia completo para catástrofes (terremoto, tsunami, frio extremo)\n` +
+      ` Dicas diárias de preparação\n\n` +
+      ` Acesse: https://eaepreparado.vercel.app/\n\n` +
+      `Vamos nos preparar juntos!`
+    )
 
-      window.open(`https://wa.me/?text=${mensagem}`, "_blank")
-    }}
-    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
-  >
-    <div className="w-20 h-20 flex items-center justify-center">
-      <img
-        src="/images/indicar-amigo-icon.png"
-        alt="Indicar Amigo"
-        className="w-16 h-16 object-contain"
-        onError={(e) => {
-          e.currentTarget.style.display = "none"
-        }}
-      />
-    </div>
+    // 🔥 DETECTAR SE É IPHONE
+    const isIphone = /iPhone|iPad|iPod/.test(navigator.userAgent)
+    
+    // 🔥 ABRIR COM WA.ME (IPHONE) OU API.WHATSAPP.COM (ANDROID/DESKTOP)
+    if (isIphone) {
+      window.location.href = `https://wa.me/?text=${mensagem}`
+    } else {
+      window.open(`https://api.whatsapp.com/send?text=${mensagem}`, '_blank')
+    }
+  }}
+  className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px] cursor-pointer hover:border-[#FFB800]"
+>
+  <div className="w-20 h-20 flex items-center justify-center">
+    <img
+      src="/images/indicar-amigo-icon.png"
+      alt="Indicar Amigo"
+      className="w-16 h-16 object-contain"
+      onError={(e) => {
+        e.currentTarget.style.display = "none"
+      }}
+    />
+  </div>
 
-    <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
-      Compartilhe
-    </h3>
-  </button>
+  <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
+    Compartilhe
+  </h3>
+</button>
 
 </div>
 
