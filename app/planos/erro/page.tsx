@@ -17,7 +17,7 @@ export default function PlanoErroPage() {
             <XCircle size={48} className="text-red-600" />
           </div>
           <div className="absolute -top-1 -right-1">
-            <span className="text-2xl">😕</span>
+            <span className="text-2xl"></span>
           </div>
         </div>
 
@@ -34,10 +34,10 @@ export default function PlanoErroPage() {
             Possíveis motivos:
           </p>
           <ul className="text-sm text-red-600 mt-2 space-y-1">
-            <li>• • Cartão recusado ou dados incorretos</li>
-            <li>• • Saldo insuficiente</li>
-            <li>• • Problema temporário no processador de pagamento</li>
-            <li>• • Transação não autorizada pelo banco</li>
+            <li>•  Cartão recusado ou dados incorretos</li>
+            <li>•  Saldo insuficiente</li>
+            <li>•  Problema temporário no processador de pagamento</li>
+            <li>•  Transação não autorizada pelo banco</li>
           </ul>
         </div>
 
@@ -60,7 +60,7 @@ export default function PlanoErroPage() {
 
         <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-xs text-yellow-700">
-            💡 Se o problema persistir, entre em contato com nosso suporte:
+             Se o problema persistir, entre em contato com nosso suporte:
             <br />
             <a href="mailto:suporte@eaepreparado.com" className="text-[#FFB800] hover:underline">
               suporte@eaepreparado.com

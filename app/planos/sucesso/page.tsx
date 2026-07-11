@@ -34,7 +34,7 @@ export default function PlanoSucessoPage() {
             <CheckCircle size={48} className="text-green-600" />
           </div>
           <div className="absolute -top-1 -right-1">
-            <span className="text-2xl">🎉</span>
+            <span className="text-2xl"></span>
           </div>
         </div>
 
@@ -47,7 +47,7 @@ export default function PlanoSucessoPage() {
 
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
           <p className="text-sm text-green-700">
-            ✅ Acesso liberado imediatamente
+             Acesso liberado imediatamente
           </p>
           <p className="text-sm text-green-600 mt-1">
             Você será redirecionado em {countdown} segundos...

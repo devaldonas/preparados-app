@@ -7,17 +7,17 @@ export default function BotaoIndicarAmigo() {
   const [copied, setCopied] = useState(false)
 
   const mensagemCompleta = 
-    `Olá! 👋\n\n` +
+    `Olá! \n\n` +
     `Estou usando o app PREPARADO e quero compartilhar com você.\n\n` +
-    `📱 O PREPARADO é um aplicativo que auxilia na preparação para emergências.\n\n` +
+    ` O PREPARADO é um aplicativo que auxilia na preparação para emergências.\n\n` +
     `O que você encontra no PREPARADO:\n` +
-    `✅ Checklist completo para sua mochila de emergência\n` +
-    `✅ Conexão com pessoas próximas e formação de grupos\n` +
-    `✅ Chat em tempo real com sua comunidade\n` +
-    `✅ Guia completo para catástrofes (terremoto, tsunami, frio extremo)\n` +
-    `✅ Dicas diárias de preparação\n\n` +
-    `🔗 Acesse: https://eaepreparado.vercel.app/\n\n` +
-    `Vamos nos preparar juntos! 🚀`
+    ` Checklist completo para sua mochila de emergência\n` +
+    ` Conexão com pessoas próximas e formação de grupos\n` +
+    ` Chat em tempo real com sua comunidade\n` +
+    ` Guia completo para catástrofes (terremoto, tsunami, frio extremo)\n` +
+    ` Dicas diárias de preparação\n\n` +
+    ` Acesse: https://eaepreparado.vercel.app/\n\n` +
+    `Vamos nos preparar juntos! `
 
   const handleCompartilharWhatsApp = () => {
     // 🔥 MÉTODO 1: Tentar com api.whatsapp.com (funciona na maioria dos casos)
