@@ -84,24 +84,6 @@ export default function BotaoIndicarAmigo() {
         />
         Indique um Amigo
       </button>
-
-      {/* 🔥 BOTÃO SECUNDÁRIO - COPIAR LINK */}
-      <button
-        onClick={handleCompartilharCopiar}
-        className="w-full flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg font-medium transition text-sm"
-      >
-        {copied ? (
-          <>
-            <Check size={16} className="text-green-600" />
-            Link copiado!
-          </>
-        ) : (
-          <>
-            <Copy size={16} />
-            Copiar link para compartilhar
-          </>
-        )}
-      </button>
     </div>
   )
 }
