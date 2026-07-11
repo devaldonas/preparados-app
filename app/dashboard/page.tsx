@@ -309,40 +309,21 @@ const checkAdminStatus = async (userId: string) => {
     </h3>
   </Link>
 
-  {/* Compartilhar */}
-  <button
-  onClick={() => {
-    const mensagem = encodeURIComponent(
-      `Olá! \n\n` +
-      `Estou usando o app PREPARADO e quero compartilhar com você.\n\n` +
-      ` O PREPARADO é um aplicativo que auxilia na preparação para emergências.\n\n` +
-      `O que você encontra no PREPARADO:\n` +
-      ` Checklist completo para sua mochila de emergência\n` +
-      ` Conexão com pessoas próximas e formação de grupos\n` +
-      ` Chat em tempo real com sua comunidade\n` +
-      ` Guia completo para catástrofes (terremoto, tsunami, frio extremo)\n` +
-      ` Dicas diárias de preparação\n\n` +
-      ` Acesse: https://eaepreparado.vercel.app/\n\n` +
-      `Vamos nos preparar juntos!`
-    )
-
-    // 🔥 DETECTAR SE É IPHONE
-    const isIphone = /iPhone|iPad|iPod/.test(navigator.userAgent)
-    
-    // 🔥 ABRIR COM WA.ME (IPHONE) OU API.WHATSAPP.COM (ANDROID/DESKTOP)
-    if (isIphone) {
-      window.location.href = `https://wa.me/?text=${mensagem}`
-    } else {
-      window.open(`https://api.whatsapp.com/send?text=${mensagem}`, '_blank')
-    }
-  }}
-  className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px] cursor-pointer hover:border-[#FFB800]"
+  {/* Primeiros Socorros */}
+<Link
+  href="/primeiros-socorros"
+  className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px] cursor-pointer hover:border-[#FFB800] group relative overflow-hidden"
 >
+  {/* Badge "Novo" */}
+  <div className="absolute top-2 right-2 bg-[#FFB800] text-black text-[0.55rem] font-bold px-2 py-0.5 rounded-full z-10">
+    NOVO
+  </div>
+  
   <div className="w-20 h-20 flex items-center justify-center">
     <img
-      src="/images/indicar-amigo-icon.png"
-      alt="Indicar Amigo"
-      className="w-16 h-16 object-contain"
+      src="/images/socorro.jpeg"
+      alt="Primeiros Socorros"
+      className="w-16 h-16 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
       onError={(e) => {
         e.currentTarget.style.display = "none"
       }}
@@ -350,9 +331,13 @@ const checkAdminStatus = async (userId: string) => {
   </div>
 
   <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
-    Compartilhe
+    Primeiros Socorros
   </h3>
-</button>
+  
+  <p className="text-[0.55rem] text-gray-400 mt-1">
+    Guia rápido de emergência
+  </p>
+</Link>
 
 </div>
 
