@@ -74,7 +74,7 @@ export default function BotaoIndicarAmigo() {
       {/* 🔥 BOTÃO PRINCIPAL - WHATSAPP */}
       <button
         onClick={handleCompartilhar}
-        className="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1da851] text-white py-2.5 px-4 rounded-lg font-medium transition text-sm"
+        className="w-full flex items-center justify-center gap-2 bg-black hover:bg-[#1da851] text-white py-2.5 px-4 rounded-lg font-medium transition text-sm"
       >
         <img 
           src="/images/whatsapp-icon.svg" 
@@ -82,7 +82,7 @@ export default function BotaoIndicarAmigo() {
           className="w-5 h-5"
           onError={(e) => { e.currentTarget.style.display = 'none' }}
         />
-        Compartilhar no WhatsApp
+        Indique um Amigo
       </button>
 
       {/* 🔥 BOTÃO SECUNDÁRIO - COPIAR LINK */}
