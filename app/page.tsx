@@ -1,13 +1,13 @@
-// app/page.tsx (ESTÁTICO - CORRIGIDO)
 import Link from 'next/link'
 import Image from 'next/image'
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white/10 to-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-[#FFB800]/5 to-white flex items-center justify-center p-4">
       <div className="max-w-md w-full">
+        {/* Card Principal */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
-          <div className="bg-gradient-to-r from-white to-white px-6 py-8 text-center">
+          <div className="bg-gradient-to-r from-[#FFB800]/10 to-white px-6 py-8 text-center">
             <img 
               src="/logo1.svg" 
               alt="PREPARADO" 
@@ -30,13 +30,6 @@ export default function HomePage() {
                 Cadastre-se
               </Link>
 
-              <Link
-                href="/auth/cadastro-parceiro"
-                className="block w-full border-2 border-[#FFB800] text-black font-semibold py-3 rounded-lg hover:bg-[#FFB800]/10 transition text-center"
-              >
-                Seja um parceiro
-              </Link>
-
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-200"></div>
@@ -50,8 +43,38 @@ export default function HomePage() {
                 href="/auth/login"
                 className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-lg transition text-center"
               >
-                Já tenho conta
+                Entre com seu Login e Senha
               </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* 🔥 NOVO CARD - Seja um Parceiro */}
+        <div className="mt-6 bg-white rounded-2xl border-2 border-[#FFB800]/30 shadow-lg overflow-hidden hover:shadow-xl transition">
+          <div className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-lg">
+                  Seja um Parceiro
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Como parceiro você pode vender seus produtos em nossa loja e alcançar milhares de clientes preparados.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <Link
+                    href="/auth/cadastro-parceiro"
+                    className="inline-block bg-[#FFB800] hover:bg-[#E5A600] text-black font-semibold px-6 py-2 rounded-lg transition text-sm"
+                  >
+                    Quero ser parceiro
+                  </Link>
+                  <span className="text-xs text-gray-400">
+                    ✅ Cadastro gratuito
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

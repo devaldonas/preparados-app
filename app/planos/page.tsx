@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { Check, Loader2, Crown, Zap, Calendar } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 interface Plan {
   id: number
@@ -11,7 +11,6 @@ interface Plan {
   description: string
   price: number
   interval: 'month' | 'year'
-  features: string[]
   is_active: boolean
 }
 
@@ -28,7 +27,6 @@ export default function PlanosPage() {
 
   const carregarDados = async () => {
     try {
-      // Verificar usuário
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/auth/login')
@@ -36,7 +34,6 @@ export default function PlanosPage() {
       }
       setUser(user)
 
-      // Buscar planos
       const { data, error } = await supabase
         .from('plans')
         .select('*')
@@ -56,7 +53,6 @@ export default function PlanosPage() {
     setProcessing(plan.id)
 
     try {
-      // Criar assinatura no Mercado Pago
       const response = await fetch('/api/assinatura/criar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,11 +72,9 @@ export default function PlanosPage() {
         throw new Error(data.error || 'Erro ao criar assinatura')
       }
 
-      // 🔥 Redirecionar para o checkout do Mercado Pago
       if (data.initPoint) {
         window.location.href = data.initPoint
       } else {
-        // Se não tiver initPoint, usar QR Code
         router.push(`/planos/pagamento?payment_id=${data.paymentId}`)
       }
 
@@ -122,83 +116,89 @@ export default function PlanosPage() {
 
         {/* Planos */}
         <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`bg-white rounded-2xl border-2 p-6 hover:shadow-lg transition ${
-                plan.interval === 'year' 
-                  ? 'border-[#FFB800] relative' 
-                  : 'border-gray-100'
-              }`}
-            >
-              {plan.interval === 'year' && (
-                <div className="absolute -top-3 right-6 bg-[#FFB800] text-black text-xs font-bold px-3 py-1 rounded-full">
-                  MELHOR PLANO
-                </div>
-              )}
-
-              <div className="flex items-center gap-2 mb-2">
-                {plan.interval === 'month' ? (
-                  <Zap size={20} className="text-blue-500" />
-                ) : (
-                  <Crown size={20} className="text-[#FFB800]" />
+          {plans.map((plan) => {
+            const isAnual = plan.interval === 'year'
+            const precoMensal = isAnual ? (plan.price / 12) : plan.price
+            
+            return (
+              <div
+                key={plan.id}
+                className={`bg-white rounded-2xl border-2 p-6 hover:shadow-lg transition ${
+                  isAnual 
+                    ? 'border-[#FFB800] relative ring-2 ring-[#FFB800]/30' 
+                    : 'border-gray-100'
+                }`}
+              >
+                {/* Badge de desconto */}
+                {isAnual && (
+                  <div className="absolute -top-3 right-6 bg-[#FFB800] text-black text-xs font-bold px-3 py-1 rounded-full">
+                    40% OFF
+                  </div>
                 )}
-                <h2 className="text-xl font-bold text-gray-900">
+
+                {/* Nome do plano */}
+                <h2 className={`text-xl font-bold mb-2 ${isAnual ? 'text-[#FFB800]' : 'text-gray-900'}`}>
                   {plan.name}
                 </h2>
-              </div>
 
-              <p className="text-gray-500 text-sm mb-4">{plan.description}</p>
+                {/* 🔥 PREÇO COM DESTAQUE - MENSAL */}
+                {!isAnual && (
+                  <div className="mb-1">
+                    <span className="text-3xl font-bold text-gray-900">
+                      {formatPrice(plan.price)}
+                    </span>
+                    <span className="text-sm text-gray-500 ml-1">/mês</span>
+                  </div>
+                )}
 
-              <div className="mb-4">
-                <span className="text-3xl font-bold text-gray-900">
-                  {formatPrice(plan.price)}
-                </span>
-                <span className="text-gray-500 text-sm ml-1">
-                  / {plan.interval === 'month' ? 'mês' : 'ano'}
-                </span>
-                {plan.interval === 'year' && (
-                  <p className="text-sm text-green-600 font-medium mt-1">
-                    Economize 40%!
+                {/* 🔥 PLANO ANUAL - DESTAQUE NO VALOR MENSAL */}
+                {isAnual && (
+                  <>
+                    <div className="mb-1">
+                      <span className="text-4xl font-bold text-[#FFB800]">
+                        {formatPrice(precoMensal)}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-600 ml-1">/mês</span>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      Total: {formatPrice(plan.price)}/ano
+                    </p>
+                  </>
+                )}
+
+                {/* Acesso completo */}
+                <p className="text-xs text-gray-400 mt-3">
+                   Acesso completo a todas as funcionalidades
+                </p>
+
+                {/* Botão Assinar */}
+                <button
+                  onClick={() => handleAssinar(plan)}
+                  disabled={processing === plan.id}
+                  className={`w-full mt-4 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+                    isAnual
+                      ? 'bg-[#FFB800] hover:bg-[#E5A600] text-black'
+                      : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                  } disabled:opacity-50`}
+                >
+                  {processing === plan.id ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    'Assinar agora'
+                  )}
+                </button>
+
+                {isAnual && (
+                  <p className="text-xs text-center text-gray-400 mt-3">
+                    Cancele quando quiser
                   </p>
                 )}
               </div>
-
-              <ul className="space-y-2 mb-6">
-                {plan.features.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
-                    <Check size={16} className="text-green-500 flex-shrink-0 mt-0.5" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => handleAssinar(plan)}
-                disabled={processing === plan.id}
-                className={`w-full py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                  plan.interval === 'year'
-                    ? 'bg-[#FFB800] hover:bg-[#E5A600] text-black'
-                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                } disabled:opacity-50`}
-              >
-                {processing === plan.id ? (
-                  <>
-                    <Loader2 size={20} className="animate-spin" />
-                    Processando...
-                  </>
-                ) : (
-                  'Assinar agora'
-                )}
-              </button>
-
-              {plan.interval === 'year' && (
-                <p className="text-xs text-center text-gray-400 mt-3">
-                  Cancele quando quiser
-                </p>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Rodapé */}

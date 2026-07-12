@@ -1,9 +1,9 @@
-// middleware.ts
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { supabase } from './lib/supabaseClient'
 
-export async function middleware(request: NextRequest) {
+// 🔥 RENOMEAR A FUNÇÃO PARA "proxy"
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Rotas públicas
@@ -23,7 +23,7 @@ export async function middleware(request: NextRequest) {
     '/'
   ]
 
-  // 🔥 VERIFICAR SE É ROTA PÚBLICA PRIMEIRO
+  // Verificar se é rota pública
   if (publicRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next()
   }
@@ -45,10 +45,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  // 🔥 AGORA SIM, DECLARAR role DEPOIS DE BUSCAR
   const role = profile.role || 'user'
 
-  // 🔥 VERIFICAR STATUS DA ASSINATURA (apenas para não-admin)
+  // Verificar status da assinatura (apenas para não-admin)
   if (role !== 'admin') {
     const now = new Date()
     const trialEnd = profile.trial_end_date ? new Date(profile.trial_end_date) : null
@@ -59,7 +58,6 @@ export async function middleware(request: NextRequest) {
 
     // Se não estiver em trial e não tiver assinatura ativa
     if (!isTrialActive && !isSubscriptionActive) {
-      // Rotas permitidas mesmo sem assinatura
       const allowedWithoutSubscription = ['/planos', '/auth', '/api', '/perfil']
       if (!allowedWithoutSubscription.some(route => pathname.startsWith(route))) {
         return NextResponse.redirect(new URL('/planos', request.url))
@@ -67,14 +65,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 🔥 REGRAS DE ACESSO POR ROLE
-
-  // Admin: acesso total
+  // Regras de acesso por role
   if (role === 'admin') {
     return NextResponse.next()
   }
 
-  // Parceiro: acesso APENAS a rotas de parceiro
   if (role === 'partner') {
     const userRoutes = ['/dashboard', '/checklist', '/mochilas', '/pessoas', '/catastrofes', '/comunicador', '/grupo', '/loja', '/check-in']
     if (userRoutes.some(route => pathname.startsWith(route))) {
@@ -86,7 +81,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/parceiro/dashboard', request.url))
   }
 
-  // Usuário comum: acesso APENAS a rotas de usuário
   if (role === 'user' || !role) {
     if (pathname.startsWith('/parceiro')) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
