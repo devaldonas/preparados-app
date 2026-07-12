@@ -1,62 +1,120 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
 
-const MERCADO_PAGO_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN
-
 export async function POST(request: Request) {
   try {
     const { planId, planName, price, interval, userId, userEmail } = await request.json()
 
     console.log('💰 Criando assinatura:', { planId, planName, price, interval, userId })
 
-    // 🔥 Criar preferência no Mercado Pago
-    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${MERCADO_PAGO_ACCESS_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        items: [{
-          id: `plan-${planId}`,
-          title: planName,
-          description: `Assinatura ${planName} - PREPARADO`,
-          quantity: 1,
-          currency_id: 'BRL',
-          unit_price: price
-        }],
-        payer: {
-          email: userEmail
+    // 🔥 VERIFICAR SE TEM TOKEN REAL
+    const hasRealToken = process.env.MERCADO_PAGO_ACCESS_TOKEN && 
+                         process.env.MERCADO_PAGO_ACCESS_TOKEN !== 'seu_token'
+
+    if (hasRealToken) {
+      // 🔥 USAR MERCADO PAGO REAL
+      const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json'
         },
-        back_urls: {
-          success: `${process.env.NEXT_PUBLIC_APP_URL}/planos/sucesso`,
-          failure: `${process.env.NEXT_PUBLIC_APP_URL}/planos/erro`,
-          pending: `${process.env.NEXT_PUBLIC_APP_URL}/planos/pendente`
-        },
-        auto_return: 'approved',
-        notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/assinatura/webhook`,
-        metadata: {
-          plan_id: planId,
-          user_id: userId,
-          plan_name: planName,
-          interval: interval
-        }
+        body: JSON.stringify({
+          items: [{
+            id: `plan-${planId}`,
+            title: planName,
+            description: `Assinatura ${planName} - PREPARADO`,
+            quantity: 1,
+            currency_id: 'BRL',
+            unit_price: price
+          }],
+          payer: {
+            email: userEmail
+          },
+          back_urls: {
+            success: `${process.env.NEXT_PUBLIC_APP_URL}/planos/sucesso`,
+            failure: `${process.env.NEXT_PUBLIC_APP_URL}/planos/erro`,
+            pending: `${process.env.NEXT_PUBLIC_APP_URL}/planos/pendente`
+          },
+          auto_return: 'approved',
+          notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/assinatura/webhook`,
+          metadata: {
+            plan_id: planId,
+            user_id: userId,
+            plan_name: planName,
+            interval: interval
+          }
+        })
       })
-    })
 
-    const data = await response.json()
+      const data = await response.json()
 
-    if (!response.ok) {
-      console.error('Erro Mercado Pago:', data)
-      throw new Error(data.message || 'Erro ao criar preferência')
+      if (!response.ok) {
+        console.error('Erro Mercado Pago:', data)
+        throw new Error(data.message || 'Erro ao criar preferência')
+      }
+
+      console.log('✅ Preferência criada:', data.id)
+
+      return NextResponse.json({
+        success: true,
+        initPoint: data.init_point,
+        preferenceId: data.id
+      })
     }
 
-    console.log('✅ Preferência criada:', data.id)
+    // 🔥 MOCK: Simular resposta (quando não tem token real)
+    console.log('📦 [MOCK] Usando modo de teste sem Mercado Pago')
+    
+    // Buscar dados do plano
+    const { data: plan } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('id', planId)
+      .single()
+
+    if (!plan) {
+      throw new Error('Plano não encontrado')
+    }
+
+    // 🔥 Atualizar perfil do usuário (simular pagamento aprovado)
+    const now = new Date()
+    let endDate = new Date()
+    
+    if (interval === 'year') {
+      endDate.setFullYear(endDate.getFullYear() + 1)
+    } else {
+      endDate.setMonth(endDate.getMonth() + 1)
+    }
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        plan_id: planId,
+        subscription_status: 'active',
+        subscription_id: `mock_${Date.now()}`,
+        payment_method: 'mock',
+        subscription_end_date: endDate.toISOString(),
+        trial_end_date: null
+      })
+      .eq('id', userId)
+
+    if (updateError) {
+      console.error('❌ Erro ao atualizar perfil:', updateError)
+      throw new Error('Erro ao atualizar assinatura')
+    }
+
+    const mockData = {
+      id: `mock_${Date.now()}`,
+      init_point: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/planos/sucesso?mock=true`
+    }
+
+    console.log('✅ [MOCK] Assinatura criada:', mockData.id)
 
     return NextResponse.json({
       success: true,
-      initPoint: data.init_point,
-      preferenceId: data.id
+      initPoint: mockData.init_point,
+      preferenceId: mockData.id
     })
 
   } catch (error) {
