@@ -41,9 +41,9 @@ export default function HomePage() {
 
               <Link
                 href="/auth/login"
-                className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-lg transition text-center"
+                className="block w-full bg-black hover:bg-gray-900 text-[#FFB800] font-semibold py-3 rounded-lg transition text-center"
               >
-                Entre com seu Login e Senha
+                Entre
               </Link>
             </div>
           </div>
@@ -52,9 +52,16 @@ export default function HomePage() {
         {/* 🔥 NOVO CARD - Seja um Parceiro */}
         <div className="mt-6 bg-white rounded-2xl border-2 border-[#FFB800]/30 shadow-lg overflow-hidden hover:shadow-xl transition">
           <div className="p-6">
-            <div className="flex items-start gap-4">
+            <div className="flex flex-col items-start gap-4">
               <div className="flex-shrink-0">
-                
+                <div className="w-12 h-12 bg-[#FFB800]/20 rounded-full flex items-center justify-center">
+                  <img 
+                    src="/images/parceiro-icon.png" 
+                    alt="Parceiro" 
+                    className="w-7 h-7 object-contain"
+                    onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  />
+                </div>
               </div>
               <div>
                 <h3 className="font-bold text-gray-900 text-lg">
@@ -63,16 +70,13 @@ export default function HomePage() {
                 <p className="text-sm text-gray-600 mt-1">
                   Como parceiro você pode vender seus produtos em nossa loja e alcançar milhares de clientes preparados.
                 </p>
-                <div className="mt-3 flex flex-wrap items-center gap-3">
+                <div className="mt-3">
                   <Link
                     href="/auth/cadastro-parceiro"
-                    className="inline-block bg-[#FFB800] hover:bg-[#E5A600] text-black font-semibold px-6 py-2 rounded-lg transition text-sm"
+                    className="inline-block w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-semibold py-2.5 rounded-lg transition text-center"
                   >
                     Quero ser parceiro
                   </Link>
-                  <span className="text-xs text-gray-400">
-                    ✅ Cadastro gratuito
-                  </span>
                 </div>
               </div>
             </div>

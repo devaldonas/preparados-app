@@ -15,7 +15,7 @@ import {
   LayoutDashboard, 
   Store, 
   ChevronDown,
-  Crown  // 🔥 ADICIONAR Crown
+  Crown
 } from 'lucide-react'
 
 interface NavBarProps {
@@ -52,7 +52,7 @@ export default function NavBar({
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, subscription_status')  // 🔥 ADICIONAR subscription_status
+          .select('role, subscription_status')
           .eq('id', user.id)
           .single()
         setUserProfile(profile)
@@ -93,15 +93,14 @@ export default function NavBar({
 
   const navLinks = getNavLinks()
 
-  // 🔥 VERIFICAR SE ESTÁ EM TRIAL
   const isTrial = userProfile?.subscription_status === 'trial'
 
   return (
     <div className="bg-white border-b border-gray-100 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          {/* Lado esquerdo */}
-          <div className="flex items-center gap-3">
+          {/* 🔥 Lado esquerdo com a LOGO */}
+          <div className="flex items-center gap-3 flex-1">
             {showBackButton ? (
               <button
                 onClick={handleGoBack}
@@ -113,22 +112,22 @@ export default function NavBar({
             ) : (
               <div className="lg:hidden w-8" />
             )}
+            
+            {/* 🔥 LOGO AQUI - mais à esquerda e maior */}
+            <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2">
+              <img 
+                src="/logo1.svg" 
+                alt="PREPARADO" 
+                className="h-10 w-auto"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
+              />
+              <span className="font-display font-bold text-gray-900 text-base hidden sm:block">
+                {title || 'PREPARADO'}
+              </span>
+            </Link>
           </div>
 
-          {/* Logo - Central */}
-          <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2">
-            <img 
-              src="/logo1.svg" 
-              alt="PREPARADO" 
-              className="h-7 w-auto"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
-            <span className="font-display font-bold text-gray-900 text-base hidden sm:block">
-              {title || 'PREPARADO'}
-            </span>
-          </Link>
-
-          {/* Lado direito - Ações */}
+          {/* 🔥 Lado direito - Ações */}
           <div className="flex items-center gap-2">
             {/* Links de navegação - Desktop */}
             {!hideNavLinks && user && (
@@ -161,7 +160,7 @@ export default function NavBar({
               </Link>
             )}
 
-            {/* 🔥 ÍCONE DO USUÁRIO */}
+            {/* Ícone do Usuário */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 hover:bg-gray-100 rounded-lg transition flex items-center gap-2"
@@ -177,7 +176,7 @@ export default function NavBar({
           </div>
         </div>
 
-        {/* 🔥 MENU DROPDOWN */}
+        {/* MENU DROPDOWN */}
         {isMenuOpen && (
           <>
             <div 
@@ -216,7 +215,7 @@ export default function NavBar({
                 </div>
               )}
 
-              {/* 🔥 LINK ASSINAR PREMIUM - APENAS PARA TRIAL */}
+              {/* Link Assinar Premium - apenas para trial */}
               {isTrial && (
                 <>
                   <Link
@@ -224,7 +223,8 @@ export default function NavBar({
                     onClick={() => setIsMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
                   >
-                     Assinar Premium
+                    <Crown size={18} />
+                    Assinar Premium
                     <span className="ml-auto text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full font-bold">
                       Oferta
                     </span>
