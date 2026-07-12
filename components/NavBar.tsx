@@ -224,8 +224,7 @@ export default function NavBar({
                     onClick={() => setIsMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
                   >
-                    <Crown size={18} />
-                    Assinar Premium
+                     Assinar Premium
                     <span className="ml-auto text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full font-bold">
                       Oferta
                     </span>

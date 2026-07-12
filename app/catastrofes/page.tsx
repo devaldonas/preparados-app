@@ -697,7 +697,6 @@ export default function Catastrofes() {
               
 
               <div className="bg-gradient-to-r from-gray-50 to-emerald-50 rounded-xl p-6 border border-gray-100 text-center">
-                <p className="text-gray-800 font-semibold">Busquem conhecimento!<br />www.dakilapesquisas.com.br</p>
               </div>
             </div>
           </div>

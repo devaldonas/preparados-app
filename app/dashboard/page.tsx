@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 import Link from 'next/link'
 import RadioPlayer from '@/components/RadioPlayer'
 import MapaMonitoramentoCompleto from '@/components/MapaMonitoramentoCompleto'
@@ -321,7 +322,7 @@ const checkAdminStatus = async (userId: string) => {
   
   <div className="w-20 h-20 flex items-center justify-center">
     <img
-      src="/images/socorro.jpeg"
+      src="/images/primeiros-socorros.jpeg"
       alt="Primeiros Socorros"
       className="w-16 h-16 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
       onError={(e) => {
@@ -333,10 +334,7 @@ const checkAdminStatus = async (userId: string) => {
   <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
     Primeiros Socorros
   </h3>
-  
-  <p className="text-[0.55rem] text-gray-400 mt-1">
-    Guia rápido de emergência
-  </p>
+
 </Link>
 
 </div>
@@ -381,6 +379,9 @@ const checkAdminStatus = async (userId: string) => {
               </p>
             </div>
           </div>
+          <div>
+              <BotaoIndicarAmigo />
+            </div>
         </div>
       </div>
     </div>
