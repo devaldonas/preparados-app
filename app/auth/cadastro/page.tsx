@@ -173,6 +173,7 @@ export default function CadastroPage() {
 interface Plano {
   nome: string
   preco: number
+  precoMensal?: number
   periodo: string
   icon: any
   destaque: boolean
@@ -198,6 +199,7 @@ const planos: Record<string, Plano> = {
     desconto: 'Economize 40%'
   }
 }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -413,46 +415,70 @@ const planos: Record<string, Plano> = {
               />
             </div>
 
-            {/* 🔥 SELEÇÃO DE PLANO */}
+            {/* 🔥 SELEÇÃO DE PLANO - VERSÃO MELHORADA */}
 <div className="pt-2">
-  <p className="text-sm font-medium text-gray-700 mb-2">
-    Escolha seu plano após o teste gratuito
+  <p className="text-sm font-medium text-gray-700 mb-3 text-center">
+    Escolha seu plano. Teste grátis por 7 dias!
   </p>
   <div className="grid grid-cols-2 gap-3">
     {Object.entries(planos).map(([key, plano]) => {
-      const Icon = plano.icon
       const isSelected = planoSelecionado === key
       return (
         <button
           key={key}
           type="button"
           onClick={() => setPlanoSelecionado(key as 'mensal' | 'anual')}
-          className={`p-3 rounded-lg border-2 text-left transition ${
+          className={`p-4 rounded-xl border-2 text-left transition relative ${
             isSelected
-              ? 'border-[#FFB800] bg-yellow-50'
-              : 'border-gray-200 hover:border-gray-300'
-          } ${plano.destaque ? 'relative' : ''}`}
+              ? 'border-[#FFB800] bg-yellow-50 shadow-md'
+              : 'border-gray-200 hover:border-gray-300 bg-white'
+          } ${plano.destaque ? 'ring-2 ring-[#FFB800]/30' : ''}`}
         >
+          {/* 🔥 BADGE DE DESCONTO DESTACADO */}
           {plano.destaque && plano.desconto && (
-            <span className="absolute -top-2 -right-2 bg-[#FFB800] text-black text-[0.5rem] font-bold px-2 py-0.5 rounded-full">
+            <div className="absolute -top-3 -right-3 bg-[#FFB800] text-black font-bold px-3 py-1 rounded-full text-sm shadow-md">
               {plano.desconto}
-            </span>
+            </div>
           )}
-          <div className="flex items-center gap-2 mb-1">
-            <Icon size={16} className={isSelected ? 'text-[#FFB800]' : 'text-gray-400'} />
-            <span className="font-semibold text-sm text-gray-900">{plano.nome}</span>
+
+          {/* Nome do plano */}
+          <div className="mb-2">
+            <span className={`font-bold text-base ${plano.destaque ? 'text-[#FFB800]' : 'text-gray-900'}`}>
+              {plano.nome}
+            </span>
           </div>
-          <p className="text-lg font-bold text-gray-900">
-            R$ {plano.preco.toFixed(2).replace('.', ',')}
-            <span className="text-xs font-normal text-gray-500 ml-1">/{plano.periodo}</span>
+
+          {/* 🔥 PREÇO COM DESTAQUE */}
+          <div className="mb-1">
+            <span className="text-2xl font-bold text-gray-900">
+              R$ {plano.preco.toFixed(2).replace('.', ',')}
+            </span>
+            <span className="text-xs text-gray-500 ml-1">/{plano.periodo}</span>
+          </div>
+
+          {/* 🔥 PREÇO MENSAL (apenas para plano anual) */}
+          {plano.destaque && plano.precoMensal && (
+            <p className="text-sm text-green-600 font-semibold">
+              🎯 R$ {plano.precoMensal.toFixed(2).replace('.', ',')}/mês
+            </p>
+          )}
+
+          {/* Descrição do período */}
+          <p className="text-xs text-gray-400 mt-1">
+            {plano.destaque ? 'Melhor custo-benefício' : 'Flexibilidade mensal'}
           </p>
         </button>
       )
     })}
   </div>
-  <p className="text-xs text-gray-400 mt-2 text-center">
-    ✅ 7 dias de teste gratuito. Cancele quando quiser.
-  </p>
+  
+  {/* Informação do teste gratuito */}
+  <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+    <p className="text-xs text-gray-600 text-center">
+      🔹 Teste gratuito por <span className="font-bold text-[#FFB800]">7 dias</span> · 
+      Cancele quando quiser · Sem fidelidade
+    </p>
+  </div>
 </div>
             <button
               type="submit"
