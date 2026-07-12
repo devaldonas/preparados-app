@@ -415,7 +415,7 @@ const planos: Record<string, Plano> = {
               />
             </div>
 
-            {/* 🔥 SELEÇÃO DE PLANO - VERSÃO MELHORADA */}
+            {/* 🔥 SELEÇÃO DE PLANO - VERSÃO MELHORADA COM VALOR MENSAL DESTACADO */}
 <div className="pt-2">
   <p className="text-sm font-medium text-gray-700 mb-3 text-center">
     Escolha seu plano. Teste grátis por 7 dias!
@@ -456,11 +456,16 @@ const planos: Record<string, Plano> = {
             <span className="text-xs text-gray-500 ml-1">/{plano.periodo}</span>
           </div>
 
-          {/* 🔥 PREÇO MENSAL (apenas para plano anual) */}
+          {/* 🔥 VALOR MENSAL DO PLANO ANUAL - DESTACADO */}
           {plano.destaque && plano.precoMensal && (
-            <p className="text-sm text-green-600 font-semibold">
-              🎯 R$ {plano.precoMensal.toFixed(2).replace('.', ',')}/mês
-            </p>
+            <div className="mt-1">
+              <p className="text-sm text-green-600 font-bold">
+                🎯 R$ {plano.precoMensal.toFixed(2).replace('.', ',')} <span className="font-normal text-gray-500">por mês</span>
+              </p>
+              <p className="text-xs text-gray-400">
+                Total: R$ {plano.preco.toFixed(2).replace('.', ',')}
+              </p>
+            </div>
           )}
 
           {/* Descrição do período */}
@@ -472,12 +477,48 @@ const planos: Record<string, Plano> = {
     })}
   </div>
   
-  {/* Informação do teste gratuito */}
-  <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-    <p className="text-xs text-gray-600 text-center">
-      🔹 Teste gratuito por <span className="font-bold text-[#FFB800]">7 dias</span> · 
-      Cancele quando quiser · Sem fidelidade
-    </p>
+  {/* 🔥 INFORMAÇÃO DO TESTE GRATUITO E CARTÃO */}
+  <div className="mt-4 space-y-2">
+    <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+      <p className="text-xs text-gray-600 text-center">
+        🔹 Teste gratuito por <span className="font-bold text-[#FFB800]">7 dias</span>
+      </p>
+      <p className="text-xs text-gray-500 text-center mt-1">
+        Seu cartão será cobrado apenas após o período de teste
+      </p>
+    </div>
+    
+    {/* 🔥 CAMPOS DO CARTÃO DE CRÉDITO (PREPARADO PARA IMPLEMENTAÇÃO) */}
+    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <p className="text-xs font-medium text-gray-700 mb-2">
+        Dados do cartão de crédito <span className="text-gray-400">(opcional)</span>
+      </p>
+      <div className="space-y-2">
+        <input
+          type="text"
+          placeholder="Número do cartão"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
+          disabled
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            type="text"
+            placeholder="Validade (MM/AA)"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
+            disabled
+          />
+          <input
+            type="text"
+            placeholder="CVV"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
+            disabled
+          />
+        </div>
+        <p className="text-[0.55rem] text-gray-400 text-center">
+          🔒 Seus dados estão seguros. O cartão será cobrado após o teste grátis.
+        </p>
+      </div>
+    </div>
   </div>
 </div>
             <button
