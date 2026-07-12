@@ -415,7 +415,7 @@ const planos: Record<string, Plano> = {
               />
             </div>
 
-            {/* 🔥 SELEÇÃO DE PLANO - VERSÃO MELHORADA COM VALOR MENSAL DESTACADO */}
+            {/* 🔥 SELEÇÃO DE PLANO - VERSÃO CORRIGIDA */}
 <div className="pt-2">
   <p className="text-sm font-medium text-gray-700 mb-3 text-center">
     Escolha seu plano. Teste grátis por 7 dias!
@@ -448,29 +448,34 @@ const planos: Record<string, Plano> = {
             </span>
           </div>
 
-          {/* 🔥 PREÇO COM DESTAQUE */}
-          <div className="mb-1">
-            <span className="text-2xl font-bold text-gray-900">
-              R$ {plano.preco.toFixed(2).replace('.', ',')}
-            </span>
-            <span className="text-xs text-gray-500 ml-1">/{plano.periodo}</span>
-          </div>
-
-          {/* 🔥 VALOR MENSAL DO PLANO ANUAL - DESTACADO */}
-          {plano.destaque && plano.precoMensal && (
-            <div className="mt-1">
-              <p className="text-sm text-green-600 font-bold">
-                🎯 R$ {plano.precoMensal.toFixed(2).replace('.', ',')} <span className="font-normal text-gray-500">por mês</span>
-              </p>
-              <p className="text-xs text-gray-400">
-                Total: R$ {plano.preco.toFixed(2).replace('.', ',')}
-              </p>
+          {/* 🔥 PLANO MENSAL - PREÇO ÚNICO */}
+          {!plano.destaque && (
+            <div className="mb-1">
+              <span className="text-2xl font-bold text-gray-900">
+                R$ 49,90
+              </span>
+              <span className="text-xs text-gray-500 ml-1">/mês</span>
             </div>
           )}
 
-          {/* Descrição do período */}
-          <p className="text-xs text-gray-400 mt-1">
-            {plano.destaque ? 'Melhor custo-benefício' : 'Flexibilidade mensal'}
+          {/* 🔥 PLANO ANUAL - DESTAQUE NO VALOR MENSAL */}
+          {plano.destaque && (
+            <>
+              <div className="mb-1">
+                <span className="text-3xl font-bold text-[#FFB800]">
+                  R$ 29,90
+                </span>
+                <span className="text-sm font-semibold text-gray-600 ml-1">/mês</span>
+              </div>
+              <p className="text-sm text-gray-500">
+                Total: R$ 358,80/ano
+              </p>
+            </>
+          )}
+
+          {/* Acesso completo - ambos os planos */}
+          <p className="text-xs text-gray-400 mt-2">
+             Acesso completo a todas as funcionalidades
           </p>
         </button>
       )
