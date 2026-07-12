@@ -190,7 +190,7 @@ const checkAdminStatus = async (userId: string) => {
 >
   <div className="text-center">
     <p className="font-bold text-black text-xl">
-      FIQUE 100%
+      PREPARÔMETRO 
     </p>
     
   </div>

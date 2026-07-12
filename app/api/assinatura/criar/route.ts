@@ -7,7 +7,7 @@ export async function POST(request: Request) {
 
     console.log('💰 Criando assinatura:', { planId, planName, price, interval, userId })
 
-    // 🔥 VERIFICAR SE TEM TOKEN REAL
+    // 🔥 VERIFICAR SE TEM TOKEN REAL DO MERCADO PAGO
     const hasRealToken = process.env.MERCADO_PAGO_ACCESS_TOKEN && 
                          process.env.MERCADO_PAGO_ACCESS_TOKEN !== 'seu_token'
 
@@ -63,21 +63,9 @@ export async function POST(request: Request) {
       })
     }
 
-    // 🔥 MOCK: Simular resposta (quando não tem token real)
+    // 🔥 MOCK: Usar quando não tem token real
     console.log('📦 [MOCK] Usando modo de teste sem Mercado Pago')
     
-    // Buscar dados do plano
-    const { data: plan } = await supabase
-      .from('plans')
-      .select('*')
-      .eq('id', planId)
-      .single()
-
-    if (!plan) {
-      throw new Error('Plano não encontrado')
-    }
-
-    // 🔥 Atualizar perfil do usuário (simular pagamento aprovado)
     const now = new Date()
     let endDate = new Date()
     
@@ -87,6 +75,7 @@ export async function POST(request: Request) {
       endDate.setMonth(endDate.getMonth() + 1)
     }
 
+    // 🔥 ATUALIZAR APENAS COLUNAS QUE EXISTEM
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
@@ -101,15 +90,15 @@ export async function POST(request: Request) {
 
     if (updateError) {
       console.error('❌ Erro ao atualizar perfil:', updateError)
-      throw new Error('Erro ao atualizar assinatura')
+      throw new Error(`Erro ao atualizar assinatura: ${updateError.message}`)
     }
+
+    console.log('✅ [MOCK] Perfil atualizado para usuário:', userId)
 
     const mockData = {
       id: `mock_${Date.now()}`,
-      init_point: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/planos/sucesso?mock=true`
+      init_point: `${process.env.NEXT_PUBLIC_APP_URL || 'https://eaepreparado.vercel.app'}/planos/sucesso?mock=true`
     }
-
-    console.log('✅ [MOCK] Assinatura criada:', mockData.id)
 
     return NextResponse.json({
       success: true,
