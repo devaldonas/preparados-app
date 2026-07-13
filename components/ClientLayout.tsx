@@ -41,10 +41,10 @@ export default function ClientLayout({
         />
       )}
       
-      {/* 🔥 Conteúdo principal */}
-      <main className={!shouldHideNavBar ? 'min-h-screen bg-gray-50' : ''}>
-        {children}
-      </main>
+      {/* 🔥 Conteúdo principal - sem margem extra */}
+      <main className={!shouldHideNavBar ? 'bg-gray-50' : ''}>
+  {children}
+</main>
       
       {/* 🔥 Footer (desabilitado) */}
       {showCarousel && <CarouselFooter />}

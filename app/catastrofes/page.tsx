@@ -63,13 +63,13 @@ export default function Catastrofes() {
             
             <div className="flex items-center gap-4 mb-6">
               <img 
-                src="/images/catastrofes/terremoto.jpeg" 
-                alt="Terremoto" 
-                width={64}
-                height={64}
-                className="w-20 h-20 mx-auto mb-2 object-contain block"
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
-                />
+  src="/images/catastrofes/terremoto.jpeg" 
+  alt="Terremoto" 
+  width={64}
+  height={64}
+  className="w-20 h-20 mx-auto mb-2 object-contain"
+  onError={(e) => { e.currentTarget.style.display = 'none' }}
+/>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Terremoto</h1>
                 <p className="text-gray-500">Saiba como agir durante e após um terremoto</p>
@@ -206,7 +206,7 @@ export default function Catastrofes() {
                 alt="Tsunami" 
                 width={64}
      height={64}
-     className="w-20 h-20 mx-auto mb-2 object-contain block"
+     className="w-20 h-20 mx-auto mb-2 object-contain"
      onError={(e) => { e.currentTarget.style.display = 'none' }}
    />
               <div>
@@ -747,11 +747,11 @@ export default function Catastrofes() {
         </div>
          <div className="mt-8 space-y-4">
   <Link
-    href="/dashboard"
-    className="block text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
-  >
-    Voltar ao Início
-  </Link>
+  href="/dashboard"
+  className="text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
+>
+  Voltar ao Início
+</Link>
 
   <div>
     <BotaoIndicarAmigo />
