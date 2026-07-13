@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 
 export default function HomePage() {
   return (
@@ -11,7 +10,7 @@ export default function HomePage() {
             <img 
               src="/logo1.svg" 
               alt="PREPARADO" 
-              className="h-32 mx-auto"
+              className="h-40 mx-auto" // 🔥 AUMENTADO de h-32 para h-40
             />
           </div>
 
@@ -49,7 +48,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* 🔥 NOVO CARD - Seja um Parceiro */}
+        {/* Card - Seja um Parceiro */}
         <div className="mt-6 bg-white rounded-2xl border-2 border-[#FFB800]/30 shadow-lg overflow-hidden hover:shadow-xl transition">
           <div className="p-6">
             <div className="flex flex-col items-start gap-4">
@@ -59,7 +58,6 @@ export default function HomePage() {
                     src="/images/parceiro-icon.png" 
                     alt="Parceiro" 
                     className="w-7 h-7 object-contain"
-                    onError={(e) => { e.currentTarget.style.display = 'none' }}
                   />
                 </div>
               </div>

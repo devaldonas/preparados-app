@@ -99,7 +99,7 @@ export default function NavBar({
     <div className="bg-white border-b border-gray-100 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          {/* 🔥 Lado esquerdo com a LOGO */}
+          {/* Lado esquerdo com a LOGO */}
           <div className="flex items-center gap-3 flex-1">
             {showBackButton ? (
               <button
@@ -113,13 +113,12 @@ export default function NavBar({
               <div className="lg:hidden w-8" />
             )}
             
-            {/* 🔥 LOGO AQUI - mais à esquerda e maior */}
+            {/* LOGO - sem onError */}
             <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2">
               <img 
                 src="/logo1.svg" 
                 alt="PREPARADO" 
                 className="h-10 w-auto"
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
               />
               <span className="font-display font-bold text-gray-900 text-base hidden sm:block">
                 {title || 'PREPARADO'}
@@ -127,7 +126,7 @@ export default function NavBar({
             </Link>
           </div>
 
-          {/* 🔥 Lado direito - Ações */}
+          {/* Lado direito - Ações */}
           <div className="flex items-center gap-2">
             {/* Links de navegação - Desktop */}
             {!hideNavLinks && user && (

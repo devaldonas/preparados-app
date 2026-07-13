@@ -30,9 +30,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className="bg-gray-50 text-gray-900">
-        <ClientLayout>{children}</ClientLayout>
-      </body>
+      <body className="bg-gray-50 text-gray-900 h-full">
+  <ClientLayout>{children}</ClientLayout>
+</body>
     </html>
   )
 }

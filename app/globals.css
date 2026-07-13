@@ -5,7 +5,7 @@
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900;
-    padding-bottom: 90px;
+    /* padding-bottom: 90px;  🔥 REMOVIDO - não precisa mais */
   }
 }
 
