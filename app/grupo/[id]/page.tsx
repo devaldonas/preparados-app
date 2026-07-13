@@ -54,17 +54,30 @@ export default function GrupoChat() {
       setProfile(profileData)
 
       const { data: groupData } = await supabase
-        .from('groups')
-        .select('*')
-        .eq('id', grupoId)
-        .single()
+  .from('groups')
+  .select('*')
+  .eq('id', grupoId)
+  .single()
 
-      if (groupData) {
-        setGroupInfo(groupData)
-        setGroupName(groupData.name)
-      } else {
-        setGroupName('Chat do Grupo')
-      }
+if (groupData) {
+  setGroupInfo(groupData)
+  // 🔥 Usar city_name se existir, senão usar o nome do grupo
+  const nomeExibicao = groupData.city_name || groupData.name || 'Chat do Grupo'
+  setGroupName(`Grupo ${nomeExibicao}`)
+} else {
+  // 🔥 Se não encontrar o grupo, buscar a cidade do usuário
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('city')
+    .eq('id', user.id)
+    .single()
+  
+  if (userProfile?.city) {
+    setGroupName(`Grupo ${userProfile.city}`)
+  } else {
+    setGroupName('Chat do Grupo')
+  }
+}
 
       setLoading(false)
     }

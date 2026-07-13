@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import GroupMap from '@/components/GroupMap'
+import MapaComClusters from '@/components/MapaComClusters'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
 interface UserLocation {
@@ -15,6 +15,8 @@ interface UserLocation {
   groupId: number | null
   cep: string
   mochila_tipo: string
+  city: string | null
+  state: string | null
 }
 
 export default function PessoasProximas() {
@@ -23,77 +25,161 @@ export default function PessoasProximas() {
   const [userLocations, setUserLocations] = useState<UserLocation[]>([])
   const [totalPreparados, setTotalPreparados] = useState(0)
   const [userCep, setUserCep] = useState('')
-  const [showGroupsList, setShowGroupsList] = useState(false)  // ← NOVO ESTADO
+  const [showGroupsList, setShowGroupsList] = useState(false)
   const router = useRouter()
-  const [redirecting, setRedirecting] = useState(false)
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
-      } else {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/auth/login')
+          return
+        }
         setUser(user)
         await loadUserData(user.id)
         await loadUserLocations()
         await loadTotalPreparados()
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     getUser()
   }, [])
 
   const loadUserData = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('full_name, cep, latitude, longitude, mochila_tipo')
-      .eq('id', userId)
-      .single()
-    
-    if (data) {
-      setUserCep(data.cep || '')
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, cep, latitude, longitude, mochila_tipo, city, state')
+        .eq('id', userId)
+        .single()
+      
+      if (data) {
+        setUserCep(data.cep || '')
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados do usuário:', error)
     }
   }
 
   const loadUserLocations = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name, cep, latitude, longitude, mochila_tipo')
-      .not('latitude', 'is', null)
-      .not('longitude', 'is', null)
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, cep, latitude, longitude, mochila_tipo, group_id, city, state')
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null)
 
-    if (data) {
-      setUserLocations(data.map(p => ({
-        userId: p.id,
-        userName: p.full_name,
-        latitude: p.latitude,
-        longitude: p.longitude,
-        groupId: null,
-        cep: p.cep || '',
-        mochila_tipo: p.mochila_tipo || 'BOB'
-      })))
+      if (error) {
+        console.error('Erro ao buscar localizações:', error)
+        setUserLocations([])
+        return
+      }
+
+      if (data && data.length > 0) {
+        setUserLocations(data.map(p => ({
+          userId: p.id,
+          userName: p.full_name,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          groupId: p.group_id,
+          cep: p.cep || '',
+          mochila_tipo: p.mochila_tipo || 'BOB',
+          city: p.city || null,
+          state: p.state || null
+        })))
+      } else {
+        setUserLocations([])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar localizações:', error)
+      setUserLocations([])
     }
   }
 
   const loadTotalPreparados = async () => {
-    const { count } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-    
-    if (count !== null) {
-      setTotalPreparados(count)
+    try {
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+      
+      if (error) {
+        console.error('Erro ao contar preparados:', error)
+        setTotalPreparados(0)
+        return
+      }
+      
+      if (count !== null) {
+        setTotalPreparados(count)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar total:', error)
+      setTotalPreparados(0)
     }
   }
 
   const atualizarCep = async () => {
     const novoCep = prompt('Digite seu CEP para encontrar pessoas próximas:', userCep)
     if (novoCep && novoCep.length >= 8) {
-      await supabase
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${novoCep.replace(/\D/g, '')}/json/`)
+        const data = await response.json()
+        
+        if (!data.erro) {
+          await supabase
+            .from('profiles')
+            .update({ 
+              cep: novoCep,
+              city: data.localidade,
+              state: data.uf
+            })
+            .eq('id', user.id)
+          setUserCep(novoCep)
+          await loadUserLocations()
+        } else {
+          alert('CEP não encontrado')
+        }
+      } catch (error) {
+        alert('Erro ao buscar CEP')
+      }
+    }
+  }
+
+  // 🔥 FUNÇÃO PARA ABRIR O CHAT DO GRUPO DO USUÁRIO - VERSÃO CORRIGIDA
+  const abrirChatDoGrupo = async (userId: string) => {
+    try {
+      console.log('🔍 Abrindo chat para usuário:', userId)
+      
+      // 🔥 Buscar o group_id do usuário
+      const { data: profile, error } = await supabase
         .from('profiles')
-        .update({ cep: novoCep })
-        .eq('id', user.id)
-      setUserCep(novoCep)
-      await loadUserLocations()
+        .select('group_id')
+        .eq('id', userId)
+        .single()
+
+      if (error) {
+        console.error('❌ Erro ao buscar grupo do usuário:', error)
+        alert('Erro ao buscar informações do usuário')
+        return
+      }
+
+      console.log('📊 Perfil encontrado:', profile)
+
+      if (profile?.group_id) {
+        // 🔥 Redirecionar para o chat do grupo
+        console.log('✅ Redirecionando para grupo:', profile.group_id)
+        router.push(`/grupo/${profile.group_id}`)
+      } else {
+        // 🔥 Se não tiver grupo, redirecionar para a página de grupos
+        console.log('⚠️ Usuário sem grupo, redirecionando para grupos')
+        router.push('/grupo')
+      }
+    } catch (error) {
+      console.error('❌ Erro ao abrir chat:', error)
+      alert('Erro ao abrir o chat. Tente novamente.')
     }
   }
 
@@ -108,7 +194,6 @@ export default function PessoasProximas() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        
         <div className="text-center mb-8">
           <img 
             src="/images/pessoas-icon.png" 
@@ -121,7 +206,6 @@ export default function PessoasProximas() {
           </p>
         </div>
 
-        {/* Contadores e botão Ver Todos Grupos */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
             <div className="text-3xl font-bold text-[#FFB800]">{userLocations.length}</div>
@@ -135,27 +219,20 @@ export default function PessoasProximas() {
             onClick={() => setShowGroupsList(!showGroupsList)}
             className="bg-[#FFB800] rounded-xl shadow-sm border border-gray-100 p-4 text-center hover:shadow-md transition flex flex-col items-center justify-center"
           >
-            <div className="text-3xl font-bold text-black"></div>
             <p className="text-sm text-black font-medium">
-              {showGroupsList ? 'Ocultar Grupos' : 'Ver Todos Grupos'}
+              {showGroupsList ? 'Ocultar Grupos' : 'Ver Grupos'}
             </p>
           </button>
         </div>
 
-        {/* Mapa */}
         <div className="mb-6">
-          <GroupMap 
+          <MapaComClusters 
             userLocations={userLocations}
-            showGroupsList={showGroupsList}           // ← PASSAR ESTADO
-            setShowGroupsList={setShowGroupsList}     // ← PASSAR FUNÇÃO
-            onGroupSelect={(groupId) => {
-              const targetGroup = groupId || 1
-              router.push(`/grupo/${targetGroup}`)
-            }}
+            showGroupsList={showGroupsList}
+            onUserSelect={abrirChatDoGrupo}
           />
         </div>
 
-        {/* Controles */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
@@ -174,7 +251,7 @@ export default function PessoasProximas() {
         <div className="mt-8 space-y-4">
           <Link
             href="/dashboard"
-            className="block text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
+            className="text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
           >
             Voltar ao Início
           </Link>
