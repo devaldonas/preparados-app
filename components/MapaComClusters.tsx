@@ -1,17 +1,41 @@
 'use client'
 
-import { useEffect, useRef, useState, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap } from 'react-leaflet'
+import { useEffect, useState, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
-// 🔥 CORRIGIR ÍCONES DO LEAFLET
-delete (L.Icon.Default.prototype as any)._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-})
+// 🔥 CORRIGIR ÍCONES DO LEAFLET (apenas no cliente)
+if (typeof window !== 'undefined') {
+  delete (L.Icon.Default.prototype as any)._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  })
+}
+
+// 🔥 IMPORTS DINÂMICOS DO REACT-LEAFLET
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+)
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+)
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+)
+const Popup = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+)
+const CircleMarker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.CircleMarker),
+  { ssr: false }
+)
 
 interface UserLocation {
   userId: string
@@ -47,12 +71,21 @@ const getCityColor = (city: string | null): string => {
   return colors[Math.abs(hash) % colors.length]
 }
 
-// 🔥 COMPONENTE PARA AJUSTAR O MAPA
+// 🔥 COMPONENTE MAP CONTROLLER
 function MapController({ center, zoom }: { center: [number, number], zoom: number }) {
-  const map = useMap()
+  const [map, setMap] = useState<any>(null)
   
   useEffect(() => {
-    map.setView(center, zoom)
+    import('react-leaflet').then((mod) => {
+      const mapInstance = mod.useMap()
+      setMap(mapInstance)
+    })
+  }, [])
+  
+  useEffect(() => {
+    if (map) {
+      map.setView(center, zoom)
+    }
   }, [center, zoom, map])
   
   return null
@@ -119,8 +152,6 @@ export default function MapaComClusters({
         zoomControl={false}
         attributionControl={false}
       >
-        <MapController center={center} zoom={zoom} />
-        
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -135,7 +166,6 @@ export default function MapaComClusters({
               key={loc.userId}
               position={[loc.latitude, loc.longitude]}
               icon={customIcon}
-              // 🔥 REMOVER eventHandlers.click para não abrir automaticamente
             >
               <Popup>
                 <div className="p-1 min-w-[150px]">
@@ -174,6 +204,7 @@ export default function MapaComClusters({
               const centerLng = locations.reduce((sum, l) => sum + l.longitude, 0) / locations.length
               const color = getCityColor(city)
               const size = Math.min(40 + locations.length * 2, 60)
+              const displayName = city === 'Sem cidade' ? 'Sem cidade definida' : city
               
               return (
                 <CircleMarker
@@ -189,7 +220,7 @@ export default function MapaComClusters({
                 >
                   <Popup>
                     <div className="p-1 text-center">
-                      <p className="font-bold text-sm text-gray-900">{city}</p>
+                      <p className="font-bold text-sm text-gray-900">{displayName}</p>
                       <p className="text-xs text-gray-500">{locations.length} pessoas</p>
                     </div>
                   </Popup>
