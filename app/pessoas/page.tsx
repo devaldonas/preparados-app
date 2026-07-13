@@ -4,7 +4,21 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import MapaComClusters from '@/components/MapaComClusters'
+import dynamic from 'next/dynamic'
+
+// 🔥 CARREGAR O MAPA DINAMICAMENTE
+const MapaComClusters = dynamic(
+  () => import('@/components/MapaComClusters'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[500px] rounded-xl overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
+      </div>
+    )
+  }
+)
+
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
 interface UserLocation {
@@ -148,12 +162,8 @@ export default function PessoasProximas() {
     }
   }
 
-  // 🔥 FUNÇÃO PARA ABRIR O CHAT DO GRUPO DO USUÁRIO - VERSÃO CORRIGIDA
   const abrirChatDoGrupo = async (userId: string) => {
     try {
-      console.log('🔍 Abrindo chat para usuário:', userId)
-      
-      // 🔥 Buscar o group_id do usuário
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('group_id')
@@ -161,24 +171,18 @@ export default function PessoasProximas() {
         .single()
 
       if (error) {
-        console.error('❌ Erro ao buscar grupo do usuário:', error)
+        console.error('Erro ao buscar grupo do usuário:', error)
         alert('Erro ao buscar informações do usuário')
         return
       }
 
-      console.log('📊 Perfil encontrado:', profile)
-
       if (profile?.group_id) {
-        // 🔥 Redirecionar para o chat do grupo
-        console.log('✅ Redirecionando para grupo:', profile.group_id)
         router.push(`/grupo/${profile.group_id}`)
       } else {
-        // 🔥 Se não tiver grupo, redirecionar para a página de grupos
-        console.log('⚠️ Usuário sem grupo, redirecionando para grupos')
         router.push('/grupo')
       }
     } catch (error) {
-      console.error('❌ Erro ao abrir chat:', error)
+      console.error('Erro ao abrir chat:', error)
       alert('Erro ao abrir o chat. Tente novamente.')
     }
   }
@@ -186,7 +190,7 @@ export default function PessoasProximas() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
       </div>
     )
   }
@@ -196,7 +200,7 @@ export default function PessoasProximas() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <img 
-            src="/images/pessoas1-icon.png" 
+            src="/images/pessoas-icon.png" 
             alt="Pessoas Próximas" 
             className="w-16 h-16 mx-auto mb-4 object-contain"
           />

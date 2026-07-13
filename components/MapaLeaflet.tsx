@@ -1,17 +1,44 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap } from 'react-leaflet'
+import { useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 // 🔥 CORRIGIR ÍCONES DO LEAFLET
-delete (L.Icon.Default.prototype as any)._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-})
+if (typeof window !== 'undefined') {
+  delete (L.Icon.Default.prototype as any)._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  })
+}
+
+// 🔥 IMPORTS DINÂMICOS DOS COMPONENTES DO REACT-LEAFLET
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+)
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+)
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+)
+const Popup = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+)
+const CircleMarker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.CircleMarker),
+  { ssr: false }
+)
+
+// 🔥 useMap NÃO PODE SER IMPORTADO DINAMICAMENTE DESSA FORMA
+// Vamos criar um componente separado para o MapController
 
 interface UserLocation {
   userId: string
@@ -47,12 +74,17 @@ const getCityColor = (city: string | null): string => {
   return colors[Math.abs(hash) % colors.length]
 }
 
-// 🔥 COMPONENTE PARA AJUSTAR O MAPA
+// 🔥 COMPONENTE MAP CONTROLLER (usa useMap diretamente, sem dynamic)
+// 🔥 OBS: Este componente só será renderizado no cliente
 function MapController({ center, zoom }: { center: [number, number], zoom: number }) {
+  // 🔥 Importar useMap diretamente (só funciona no cliente)
+  const { useMap } = require('react-leaflet')
   const map = useMap()
   
-  useEffect(() => {
-    map.setView(center, zoom)
+  useMemo(() => {
+    if (map) {
+      map.setView(center, zoom)
+    }
   }, [center, zoom, map])
   
   return null
