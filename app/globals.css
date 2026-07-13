@@ -1,3 +1,6 @@
+/* 🔥 IMPORT DO LEAFLET - DEVE ESTAR NO TOPO */
+@import 'leaflet/dist/leaflet.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,7 +8,6 @@
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900;
-    /* padding-bottom: 90px;  🔥 REMOVIDO - não precisa mais */
   }
 }
 
@@ -35,4 +37,21 @@
 
 .border-preparados-yellow {
   border-color: var(--preparados-yellow);
+}
+
+/* 🔥 CORRIGIR BORDAS DOS MARCADORES DO LEAFLET */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.leaflet-popup-tip {
+  display: none;
+}
+
+/* 🔥 MARCADOR PERSONALIZADO */
+.custom-marker {
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
