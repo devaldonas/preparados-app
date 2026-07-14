@@ -116,12 +116,12 @@ export default function NavBar({
             {/* LOGO - sem onError */}
             <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2">
               <img 
-                src="/logo1.svg" 
+                src="/logo.svg" 
                 alt="PREPARADO" 
                 className="h-10 w-auto"
               />
               <span className="font-display font-bold text-gray-900 text-base hidden sm:block">
-                {title || 'PREPARADO'}
+                {title || ''}
               </span>
             </Link>
           </div>

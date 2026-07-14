@@ -2,15 +2,15 @@ import Link from 'next/link'
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FFB800]/5 to-white flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
+    <div className="min-h-screen bg-gradient-to-b from-[#FFB800]/5 to-white flex items-center justify-center">
+      <div className="max-w-md w-full px-4">
         {/* Card Principal */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden">
           <div className="bg-gradient-to-r from-[#FFB800]/10 to-white px-6 py-8 text-center">
             <img 
               src="/logo1.svg" 
               alt="PREPARADO" 
-              className="h-40 mx-auto" // 🔥 AUMENTADO de h-32 para h-40
+              className="h-32 mx-auto"
             />
           </div>
 
@@ -51,19 +51,22 @@ export default function HomePage() {
         {/* Card - Seja um Parceiro */}
         <div className="mt-6 bg-white rounded-2xl border-2 border-[#FFB800]/30 shadow-lg overflow-hidden hover:shadow-xl transition">
           <div className="p-6">
-            <div className="flex flex-col items-start gap-4">
+            <div className="flex flex-col items-center gap-4">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-[#FFB800]/20 rounded-full flex items-center justify-center">
+                <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center">
                   <img 
                     src="/images/parceiro-icon.png" 
                     alt="Parceiro" 
-                    className="w-7 h-7 object-contain"
+                    className="w-16 h-16 object-contain"
                   />
                 </div>
               </div>
-              <div>
+              <div className="text-center">
+                <h3 className="font-bold text-gray-900 text-lg">
+                  Seja um Parceiro
+                </h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  Como parceiro você pode vender seus produtos em nossa loja e alcançar milhares de clientes preparados.
+                  Venda seus produtos em nossa loja.
                 </p>
                 <div className="mt-3">
                   <Link
