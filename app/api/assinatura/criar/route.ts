@@ -9,7 +9,7 @@ export async function POST(request: Request) {
 
     // 🔥 VERIFICAR SE TEM TOKEN REAL DO MERCADO PAGO
     const hasRealToken = process.env.MERCADO_PAGO_ACCESS_TOKEN && 
-                         process.env.MERCADO_PAGO_ACCESS_TOKEN !== 'seu_token'
+                         process.env.MERCADO_PAGO_ACCESS_TOKEN !== 'APP_USR-2656840852002581-052123-c1e0f7a02215a40e14fd4991c7088170-226064690'
 
     if (hasRealToken) {
       // 🔥 USAR MERCADO PAGO REAL
