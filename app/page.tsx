@@ -63,7 +63,7 @@ export default function HomePage() {
               </div>
               <div className="text-center">
                 <h3 className="font-bold text-gray-900 text-lg">
-                  Seja um Parceiro
+                   
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
                   Venda seus produtos em nossa loja.

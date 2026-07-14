@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
-import { Eye, EyeOff, CheckCircle, AlertCircle, ArrowRight, Crown, Zap } from 'lucide-react'
-import Image from 'next/image'
+import { Eye, EyeOff, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react'
 
 export default function CadastroPage() {
   const router = useRouter()
@@ -13,7 +12,6 @@ export default function CadastroPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [planoSelecionado, setPlanoSelecionado] = useState<'mensal' | 'anual'>('mensal')
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -123,12 +121,11 @@ export default function CadastroPage() {
       }
 
       // 2. Buscar grupo_id do usuário
-      const groupId = 18 // grupo padrão
+      const groupId = 18
 
       // 3. Criar perfil do usuário
       const cleanCep = formData.cep.replace(/\D/g, '')
       
-      // 🔥 DEFINIR PLANO (7 dias de trial)
       const trialEndDate = new Date()
       trialEndDate.setDate(trialEndDate.getDate() + 7)
 
@@ -156,10 +153,10 @@ export default function CadastroPage() {
 
       setSuccess(true)
       
-      // Redirecionar após 2 segundos
+      // 🔥 REDIRECIONAR PARA A PÁGINA DE PLANOS
       setTimeout(() => {
-        router.push('/auth/login')
-      }, 2000)
+        router.push('/planos')
+      }, 1500)
 
     } catch (error: any) {
       console.error('Erro no cadastro:', error)
@@ -169,57 +166,21 @@ export default function CadastroPage() {
     }
   }
 
-  // 🔥 TIPO DOS PLANOS
-interface Plano {
-  nome: string
-  preco: number
-  precoMensal?: number
-  periodo: string
-  icon: any
-  destaque: boolean
-  desconto?: string // 🔥 TORNA OPCIONAL
-}
-
-// Preços dos planos
-const planos: Record<string, Plano> = {
-  mensal: {
-    nome: 'Mensal',
-    preco: 49.90,
-    periodo: 'mês',
-    icon: Zap,
-    destaque: false
-    // desconto é opcional, não precisa definir
-  },
-  anual: {
-    nome: 'Anual',
-    preco: 358.80,
-    periodo: 'ano',
-    icon: Crown,
-    destaque: true,
-    desconto: 'Economize 40%'
-  }
-}
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        {/* Logo */}
-        <div className="flex justify-center mb-6">
+        {/* Logo - AUMENTADA EM 50% */}
+        <div className="flex justify-center mb-8">
           <img
-            src="/logo1.svg"
+            src="/logo.svg"
             alt="PREPARADO"
-            className="h-12 w-auto"
+            className="h-24 w-auto" // 🔥 AUMENTADO de h-16 para h-24
             onError={(e) => { e.currentTarget.style.display = 'none' }}
           />
         </div>
 
         <div className="bg-white py-8 px-4 shadow-sm border border-gray-100 rounded-xl sm:px-10">
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Crie sua conta</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Comece seu teste gratuito de 7 dias
-            </p>
-          </div>
+          {/* 🔥 TÍTULO REMOVIDO */}
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
@@ -233,7 +194,7 @@ const planos: Record<string, Plano> = {
               <CheckCircle size={18} className="text-green-500 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm text-green-600 font-medium">Conta criada com sucesso!</p>
-                <p className="text-sm text-green-500">Você será redirecionado para o login...</p>
+                <p className="text-sm text-green-500">Redirecionando para escolha do plano...</p>
               </div>
             </div>
           )}
@@ -415,117 +376,8 @@ const planos: Record<string, Plano> = {
               />
             </div>
 
-            {/* 🔥 SELEÇÃO DE PLANO - VERSÃO CORRIGIDA */}
-<div className="pt-2">
-  <p className="text-sm font-medium text-gray-700 mb-3 text-center">
-    Escolha seu plano. Teste grátis por 7 dias!
-  </p>
-  <div className="grid grid-cols-2 gap-3">
-    {Object.entries(planos).map(([key, plano]) => {
-      const isSelected = planoSelecionado === key
-      return (
-        <button
-          key={key}
-          type="button"
-          onClick={() => setPlanoSelecionado(key as 'mensal' | 'anual')}
-          className={`p-4 rounded-xl border-2 text-left transition relative ${
-            isSelected
-              ? 'border-[#FFB800] bg-yellow-50 shadow-md'
-              : 'border-gray-200 hover:border-gray-300 bg-white'
-          } ${plano.destaque ? 'ring-2 ring-[#FFB800]/30' : ''}`}
-        >
-          {/* 🔥 BADGE DE DESCONTO DESTACADO */}
-          {plano.destaque && plano.desconto && (
-            <div className="absolute -top-3 -right-3 bg-[#FFB800] text-black font-bold px-3 py-1 rounded-full text-sm shadow-md">
-              {plano.desconto}
-            </div>
-          )}
+            {/* 🔥 PLANOS E CARTÃO REMOVIDOS */}
 
-          {/* Nome do plano */}
-          <div className="mb-2">
-            <span className={`font-bold text-base ${plano.destaque ? 'text-[#FFB800]' : 'text-gray-900'}`}>
-              {plano.nome}
-            </span>
-          </div>
-
-          {/* 🔥 PLANO MENSAL - PREÇO ÚNICO */}
-          {!plano.destaque && (
-            <div className="mb-1">
-              <span className="text-2xl font-bold text-gray-900">
-                R$ 49,90
-              </span>
-              <span className="text-xs text-gray-500 ml-1">/mês</span>
-            </div>
-          )}
-
-          {/* 🔥 PLANO ANUAL - DESTAQUE NO VALOR MENSAL */}
-          {plano.destaque && (
-            <>
-              <div className="mb-1">
-                <span className="text-3xl font-bold text-[#FFB800]">
-                  R$ 29,90
-                </span>
-                <span className="text-sm font-semibold text-gray-600 ml-1">/mês</span>
-              </div>
-              <p className="text-sm text-gray-500">
-                Total: R$ 358,80/ano
-              </p>
-            </>
-          )}
-
-          {/* Acesso completo - ambos os planos */}
-          <p className="text-xs text-gray-400 mt-2">
-             Acesso completo a todas as funcionalidades
-          </p>
-        </button>
-      )
-    })}
-  </div>
-  
-  {/* 🔥 INFORMAÇÃO DO TESTE GRATUITO E CARTÃO */}
-  <div className="mt-4 space-y-2">
-    <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-      <p className="text-xs text-gray-600 text-center">
-        🔹 Teste gratuito por <span className="font-bold text-[#FFB800]">7 dias</span>
-      </p>
-      <p className="text-xs text-gray-500 text-center mt-1">
-        Seu cartão será cobrado apenas após o período de teste
-      </p>
-    </div>
-    
-    {/* 🔥 CAMPOS DO CARTÃO DE CRÉDITO (PREPARADO PARA IMPLEMENTAÇÃO) */}
-    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-      <p className="text-xs font-medium text-gray-700 mb-2">
-        Dados do cartão de crédito <span className="text-gray-400">(opcional)</span>
-      </p>
-      <div className="space-y-2">
-        <input
-          type="text"
-          placeholder="Número do cartão"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-          disabled
-        />
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            type="text"
-            placeholder="Validade (MM/AA)"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-            disabled
-          />
-          <input
-            type="text"
-            placeholder="CVV"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-            disabled
-          />
-        </div>
-        <p className="text-[0.55rem] text-gray-400 text-center">
-          🔒 Seus dados estão seguros. O cartão será cobrado após o teste grátis.
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
             <button
               type="submit"
               disabled={loading || success}
@@ -555,13 +407,6 @@ const planos: Record<string, Plano> = {
               </Link>
             </p>
           </div>
-
-          {/* 🔥 REMOVIDO: Link para cadastro de parceiro */}
-          {/* <div className="mt-2 text-center">
-            <Link href="/auth/cadastro-parceiro" className="text-xs text-gray-400 hover:text-gray-600">
-              Cadastrar como parceiro
-            </Link>
-          </div> */}
         </div>
 
         <div className="mt-4 text-center">
