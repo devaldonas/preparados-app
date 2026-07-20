@@ -316,9 +316,7 @@ const checkAdminStatus = async (userId: string) => {
   className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px] cursor-pointer hover:border-[#FFB800] group relative overflow-hidden"
 >
   {/* Badge "Novo" */}
-  <div className="absolute top-2 right-2 bg-[#FFB800] text-black text-[0.55rem] font-bold px-2 py-0.5 rounded-full z-10">
-    NOVO
-  </div>
+
   
   <div className="w-20 h-20 flex items-center justify-center">
     <img
