@@ -46,6 +46,14 @@ function CheckoutContent() {
   const [calculandoFrete, setCalculandoFrete] = useState(false)
   const [opcoesFrete, setOpcoesFrete] = useState<OpcaoFrete[]>([])
   const [freteError, setFreteError] = useState<string | null>(null)
+  const todosDigitais = order.items?.every((item: any) => item.products?.is_digital) || false
+
+  if (todosDigitais) {
+  // Pular cálculo de frete
+  setFreteSelecionado(null)
+  setOpcoesFrete([])
+  setFreteError(null)
+}
 
   useEffect(() => {
     if (!orderId) {

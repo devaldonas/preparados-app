@@ -29,6 +29,7 @@
     "react-icons": "^5.6.0",
     "react-leaflet": "^5.0.0",
     "react-swipeable": "^7.0.2",
+    "resend": "^6.17.2",
     "supercluster": "^8.0.1",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^3.4.19",

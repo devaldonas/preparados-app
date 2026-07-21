@@ -19,6 +19,8 @@ interface Product {
   images: string[]
   stock: number
   mochila_tipo: string[]
+  is_digital?: boolean      // 🔥 ADICIONAR
+  free_shipping?: boolean   // 🔥 ADICIONAR
 }
 
 export default function DetalheProduto() {
@@ -72,6 +74,8 @@ export default function DetalheProduto() {
       price: product.price,
       image: product.image_url || product.images?.[0] || '/images/placeholder.jpg',
       max_stock: product.stock,
+      is_digital: product.is_digital || false,  // 🔥 ADICIONAR
+      free_shipping: product.free_shipping || false,  // 🔥 ADICIONAR
     }, quantity)
 
     setAdding(false)

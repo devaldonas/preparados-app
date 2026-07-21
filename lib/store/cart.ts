@@ -9,6 +9,8 @@ export interface CartItem {
   image: string;
   quantity: number;
   max_stock: number;
+  is_digital?: boolean  // 🔥 ADICIONAR
+  free_shipping?: boolean  // 🔥 ADICIONAR (opcional)
 }
 
 interface CartStore {
