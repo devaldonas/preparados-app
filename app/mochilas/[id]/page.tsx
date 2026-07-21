@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import NavBar from '@/components/NavBar'
+import InfoTooltip from '@/components/InfoTooltip'
+import { getDescricaoItem } from '@/lib/descricoesMochila'
 
 interface ChecklistItem {
   id: number
@@ -54,7 +55,6 @@ export default function MochilaChecklist() {
       return
     }
 
-    // Carregar informações da mochila
     const { data: backpackData } = await supabase
       .from('user_backpacks')
       .select('*')
@@ -65,7 +65,6 @@ export default function MochilaChecklist() {
       setBackpack(backpackData)
     }
 
-    // Carregar categorias e itens
     await loadCategories()
     await loadItems(backpackData?.tipo || 'BOB')
     await loadUserProgress(user.id, parseInt(backpackId))
@@ -289,37 +288,43 @@ export default function MochilaChecklist() {
                 </div>
 
                 <div className="divide-y divide-gray-100">
-                  {categoryItems.map((item) => (
-                    <div key={item.id} className="flex items-start p-4 hover:bg-gray-50 transition">
-                      <button
-                        onClick={() => toggleItem(item.id, userProgress[item.id] || false)}
-                        disabled={saving === item.id}
-                        className="flex-shrink-0 mt-0.5"
-                      >
-                        <div
-                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
-                            userProgress[item.id]
-                              ? 'bg-[#FFB800] border-[#FFB800]'
-                              : 'border-gray-300 hover:border-[#FFB800]'
-                          }`}
+                  {categoryItems.map((item) => {
+                    // 🔥 BUSCA A DESCRIÇÃO NO MAPEAMENTO CENTRALIZADO
+                    const descricao = getDescricaoItem(item.name)
+                    
+                    return (
+                      <div key={item.id} className="flex items-center p-4 hover:bg-gray-50 transition">
+                        <button
+                          onClick={() => toggleItem(item.id, userProgress[item.id] || false)}
+                          disabled={saving === item.id}
+                          className="flex-shrink-0"
                         >
-                          {userProgress[item.id] && (
-                            <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
+                          <div
+                            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
+                              userProgress[item.id]
+                                ? 'bg-[#FFB800] border-[#FFB800]'
+                                : 'border-gray-300 hover:border-[#FFB800]'
+                            }`}
+                          >
+                            {userProgress[item.id] && (
+                              <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                        </button>
+                        <div className="ml-3 flex-1 flex items-center justify-between">
+                          <p className={`text-sm ${userProgress[item.id] ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                            {item.name}
+                          </p>
+                          {/* 🔥 ÍCONE DE INFORMAÇÃO COM DESCRIÇÃO DO PDF */}
+                          {descricao && (
+                            <InfoTooltip descricao={descricao} />
                           )}
                         </div>
-                      </button>
-                      <div className="ml-3 flex-1">
-                        <p className={`text-sm ${userProgress[item.id] ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                          {item.name}
-                        </p>
-                        {item.description && (
-                          <p className="text-xs text-gray-400 mt-0.5">{item.description}</p>
-                        )}
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )
