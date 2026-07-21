@@ -1,25 +1,27 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
+// 🔥 MAPEAMENTO DOS E-BOOKS
 const ebookMap: Record<string, string> = {
   'aph-primeiros-socorros': 'https://svzaaiwxdgswnttrzvgp.supabase.co/storage/v1/object/public/produtos/EBOOK_APH_NOCOES_DE_PRMEIROS_SOCORROS%20.pdf',
+  // Adicione outros e-books aqui
 }
 
 export async function GET(
-  request: Request,
-  context: { params: { slug: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = context.params
+  try {
+    const { slug } = await params
 
-  const fileUrl = ebookMap[slug]
+    const fileUrl = ebookMap[slug]
 
-  if (!fileUrl) {
-    return new Response('Arquivo não encontrado', { status: 404 })
+    if (!fileUrl) {
+      return new NextResponse('Arquivo não encontrado', { status: 404 })
+    }
+
+    return NextResponse.redirect(fileUrl)
+  } catch (error) {
+    console.error('Erro no download:', error)
+    return new NextResponse('Erro ao processar download', { status: 500 })
   }
-
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: fileUrl,
-    },
-  })
 }
