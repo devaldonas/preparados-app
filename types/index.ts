@@ -32,4 +32,7 @@ export interface Product {
   price: number
   image_url?: string
   category: string
+  is_digital?: boolean      // 🔥 ADICIONAR
+  free_shipping?: boolean   // 🔥 ADICIONAR
+  file_url?: string         // 🔥 ADICIONAR
 }

@@ -1,4 +1,3 @@
-// app/loja/carrinho/page.tsx (SIMPLIFICADO - SEM MODAL)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -21,7 +20,12 @@ export default function Carrinho() {
 
   const subtotal = getTotalPrice()
   const totalItems = getTotalItems()
-  const shipping = subtotal > 100 ? 0 : 15.90
+  
+  // 🔥 VERIFICAR SE TODOS OS ITENS SÃO DIGITAIS
+  const todosDigitais = items.every(item => item.is_digital === true)
+  
+  // 🔥 CALCULAR FRETE: GRÁTIS PARA DIGITAIS, 15.90 PARA FÍSICOS
+  const shipping = todosDigitais ? 0 : 15.90
   const total = subtotal + shipping
 
   useEffect(() => {
@@ -37,105 +41,85 @@ export default function Carrinho() {
     setUser(user)
     setLoading(false)
   }
-// app/loja/carrinho/page.tsx - Função processarCheckout
 
-const processarCheckout = async () => {
-  if (items.length === 0) return
+  const processarCheckout = async () => {
+    if (items.length === 0) return
 
-  setProcessing(true)
-  setError(null)
-  
-  try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/auth/login')
-      return
-    }
-
-    // 🔥 BUSCAR O PERFIL DA FORMA MAIS SIMPLES POSSÍVEL
-const { data: profile, error: profileError } = await supabase
-  .from('profiles')
-  .select('cep, full_name, street, number, complement, neighborhood, city, state')
-  .eq('id', user.id)
-  .single()
-
-console.log('📦 Perfil:', profile)
-console.log('📦 Perfil retornado:', profile)
-console.log('📦 Street:', profile?.street)
-console.log('📦 Number:', profile?.number)
-console.log('📦 City:', profile?.city)
-
-if (profileError) {
-  console.error('❌ Erro:', profileError)
-}
-
-// 🔥 VERIFICAR CADA CAMPO
-console.log('📦 CEP:', profile?.cep)
-console.log('📦 Street:', profile?.street)
-console.log('📦 Number:', profile?.number)
-console.log('📦 City:', profile?.city)
-
-// 🔥 PREPARAR ENDEREÇO COM OS DADOS DO PERFIL
-const shippingAddress = {
-  zip: profile?.cep || '',
-  street: profile?.street || '',
-  number: profile?.number || '',
-  complement: profile?.complement || '',
-  neighborhood: profile?.neighborhood || '',
-  city: profile?.city || '',
-  state: profile?.state || '',
-}
-
-console.log('📦 Endereço final:', shippingAddress)
-
-    const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+    setProcessing(true)
+    setError(null)
     
-    const orderData = {
-  user_id: user.id,
-  total_amount: total,
-  payment_method: paymentMethod,
-  payment_status: 'pending',
-  status: 'pending',
-  transaction_id: orderNumber,
-  shipping_address: JSON.stringify(shippingAddress)
-    }
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
 
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert([orderData])
-      .select()
-      .single()
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('cep, full_name, street, number, complement, neighborhood, city, state')
+        .eq('id', user.id)
+        .single()
 
-    if (orderError) {
-      console.error('Erro ao criar pedido:', orderError)
-      setError('Erro ao criar pedido. Tente novamente.')
+      if (profileError) {
+        console.error('❌ Erro ao buscar perfil:', profileError)
+      }
+
+      const shippingAddress = {
+        zip: profile?.cep || '',
+        street: profile?.street || '',
+        number: profile?.number || '',
+        complement: profile?.complement || '',
+        neighborhood: profile?.neighborhood || '',
+        city: profile?.city || '',
+        state: profile?.state || '',
+      }
+
+      const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+      
+      const orderData = {
+        user_id: user.id,
+        total_amount: total,
+        payment_method: paymentMethod,
+        payment_status: 'pending',
+        status: 'pending',
+        transaction_id: orderNumber,
+        shipping_address: JSON.stringify(shippingAddress)
+      }
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert([orderData])
+        .select()
+        .single()
+
+      if (orderError) {
+        console.error('Erro ao criar pedido:', orderError)
+        setError('Erro ao criar pedido. Tente novamente.')
+        setProcessing(false)
+        return
+      }
+
+      for (const item of items) {
+        await supabase
+          .from('order_items')
+          .insert({
+            order_id: order.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            price: item.price
+          })
+      }
+
+      clearCart()
+      router.push(`/loja/checkout?order=${order.id}`)
+      
+    } catch (error) {
+      console.error('Erro ao processar pedido:', error)
+      setError('Erro ao processar pedido. Tente novamente.')
       setProcessing(false)
-      return
     }
-    console.log('✅ Pedido criado:', order)
-    console.log('📦 Endereço no pedido:', order.shipping_address)
-
-    // Inserir itens
-    for (const item of items) {
-      await supabase
-        .from('order_items')
-        .insert({
-          order_id: order.id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: item.price
-        })
-    }
-
-    clearCart()
-    router.push(`/loja/checkout?order=${order.id}`)
-    
-  } catch (error) {
-    console.error('Erro ao processar pedido:', error)
-    setError('Erro ao processar pedido. Tente novamente.')
-    setProcessing(false)
   }
-}
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -164,7 +148,7 @@ console.log('📦 Endereço final:', shippingAddress)
               >
                 <ArrowLeft size={20} />
               </button>
-              <h1 className="text-2xl font-bold text-black">🛒 Meu Carrinho</h1>
+              <h1 className="text-2xl font-bold text-black">Meu Carrinho</h1>
             </div>
             {items.length > 0 && (
               <span className="text-sm text-gray-500">
@@ -205,6 +189,11 @@ console.log('📦 Endereço final:', shippingAddress)
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
                         <p className="text-[#FFB800] font-bold">{formatPrice(item.price)}</p>
+                        {item.is_digital && (
+                          <span className="text-[0.55rem] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                            Produto Digital
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex items-center border border-gray-200 rounded-lg">
@@ -268,12 +257,16 @@ console.log('📦 Endereço final:', shippingAddress)
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Frete</span>
                     <span className="text-gray-900 font-display font-bold">
-                      {shipping === 0 ? 'Grátis' : formatPrice(shipping)}
+                      {shipping === 0 ? (
+                        <span className="text-green-600">Grátis</span>
+                      ) : (
+                        formatPrice(shipping)
+                      )}
                     </span>
                   </div>
-                  {shipping === 0 && subtotal > 0 && (
-                    <p className="text-[0.6rem] text-green-600 text-right">
-                      🎉 Frete grátis para compras acima de R$ 100,00
+                  {todosDigitais && items.length > 0 && (
+                    <p className="text-[0.6rem] text-blue-600 text-right">
+                      📦 Produto digital - Frete grátis
                     </p>
                   )}
                   <div className="border-t border-gray-200 pt-2">
@@ -307,7 +300,7 @@ console.log('📦 Endereço final:', shippingAddress)
           <div className="mt-8 space-y-4">
             <Link
               href="/loja"
-              className="block text-center bg-gray-300 text-gray-700 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
+              className="text-center bg-gray-300 text-gray-700 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
             >
               <span>←</span> Voltar para Loja
             </Link>

@@ -18,6 +18,8 @@ interface Product {
   mochila_tipo: string[]
   is_active: boolean
   featured?: boolean
+  is_digital?: boolean
+  free_shipping?: boolean
 }
 
 export default function Loja() {
@@ -32,6 +34,7 @@ export default function Loja() {
   
   const { addItem, getTotalItems } = useCart()
   const cartCount = getTotalItems()
+  
 
   useEffect(() => {
     carregarUsuario()
@@ -71,13 +74,13 @@ export default function Loja() {
     } else {
       setProducts(data || [])
       
-      // Filtrar categorias que têm pelo menos um produto
       const productCategories = data?.map(p => p.category) || []
       const uniqueCategories = [...new Set(productCategories)]
       setCategories(uniqueCategories)
     }
   }
 
+  // 🔥 FUNÇÃO APENAS ADICIONAR AO CARRINHO (SEM REDIRECIONAR)
   const adicionarAoCarrinho = (product: Product) => {
     if (!user) return
 
@@ -87,8 +90,11 @@ export default function Loja() {
       price: product.price,
       image: product.image_url,
       max_stock: product.stock,
+      is_digital: product.is_digital || false,
+      free_shipping: product.free_shipping || false,
     }, 1)
 
+    // 🔥 FEEDBACK VISUAL NO BOTÃO
     const btn = document.getElementById(`btn-${product.id}`)
     if (btn) {
       const originalText = btn.textContent
@@ -112,7 +118,6 @@ export default function Loja() {
     }).format(price)
   }
 
-  // Paginação
   const totalPages = Math.ceil(products.length / productsPerPage)
   const indexOfLastProduct = currentPage * productsPerPage
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage
@@ -137,20 +142,10 @@ export default function Loja() {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-black">🛒 Loja Preparado</h1>
+              <h1 className="text-2xl font-bold text-black">Loja Preparado</h1>
               <p className="text-gray-500 text-sm">Equipamentos essenciais para sua mochila</p>
             </div>
-            <Link
-              href="/loja/carrinho"
-              className="relative bg-white p-3 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition"
-            >
-              <span className="text-xl">🛒</span>
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-[#FFB800] text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
+           
           </div>
 
           {/* Categorias */}
@@ -286,7 +281,7 @@ export default function Loja() {
         <div className="mt-8 space-y-4 max-w-4xl mx-auto px-4 pb-8">
           <Link
             href="/dashboard"
-            className="block text-center bg-gray-300 text-gray-700 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
+            className="text-center bg-gray-300 text-gray-700 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
           >
             Voltar ao Início
           </Link>

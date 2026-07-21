@@ -18,7 +18,10 @@ export default function NovoProduto() {
     price: '',
     category: '',
     stock: '',
-    mochila_tipo: [] as string[]
+    mochila_tipo: [] as string[],
+    is_digital: false,
+    free_shipping: false,
+    file_url: ''
   })
 
   const categories = [
@@ -27,7 +30,8 @@ export default function NovoProduto() {
     'Alimentacao',
     'Primeiros Socorros',
     'Ferramentas',
-    'Tecnologia'
+    'Tecnologia',
+    'E-books'
   ]
 
   const mochilaTipos = ['EDC', 'BOB', 'BOLT']
@@ -35,6 +39,21 @@ export default function NovoProduto() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target
+    setFormData(prev => {
+      const newState = { ...prev, [name]: checked }
+      
+      // Se for produto digital, free_shipping automaticamente true
+      if (name === 'is_digital' && checked) {
+        newState.free_shipping = true
+        newState.stock = ''  // Limpa o estoque
+      }
+      
+      return newState
+    })
   }
 
   const handleTipoChange = (tipo: string) => {
@@ -67,16 +86,22 @@ export default function NovoProduto() {
       return
     }
 
+    // 🔥 Para produtos digitais, estoque fica como 9999 (ilimitado)
+    const stock = formData.is_digital ? 9999 : (parseInt(formData.stock) || 0)
+
     const productData = {
       name: formData.name,
       description: formData.description || null,
       price: parseFloat(formData.price),
       category: formData.category,
-      stock: parseInt(formData.stock) || 0,
+      stock: stock,
       image_url: imageUrls[0],
       images: imageUrls,
       mochila_tipo: formData.mochila_tipo,
-      is_active: true
+      is_active: true,
+      is_digital: formData.is_digital,
+      free_shipping: formData.is_digital ? true : formData.free_shipping,
+      file_url: formData.file_url || null
     }
 
     const { error: insertError } = await supabase
@@ -90,7 +115,6 @@ export default function NovoProduto() {
       return
     }
 
-    // Só redireciona depois de salvar com sucesso
     router.push('/admin/produtos')
   }
 
@@ -154,20 +178,30 @@ export default function NovoProduto() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Estoque
-                </label>
-                <input
-                  type="number"
-                  name="stock"
-                  value={formData.stock}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800]"
-                  placeholder="0"
-                />
-              </div>
+              {/* 🔥 CAMPO ESTOQUE - OCULTO PARA PRODUTOS DIGITAIS */}
+              {!formData.is_digital && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Estoque
+                  </label>
+                  <input
+                    type="number"
+                    name="stock"
+                    value={formData.stock}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800]"
+                    placeholder="0"
+                  />
+                </div>
+              )}
             </div>
+
+            {/* 🔥 MENSAGEM PARA PRODUTO DIGITAL */}
+            {formData.is_digital && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                Produto digital nao possui estoque fisico. O estoque sera definido como ilimitado.
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -185,6 +219,61 @@ export default function NovoProduto() {
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
+            </div>
+
+            {/* 🔥 CAMPOS DE PRODUTO DIGITAL */}
+            <div className="border-t border-gray-200 pt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Configuracoes de Entrega</h3>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="is_digital"
+                    name="is_digital"
+                    checked={formData.is_digital}
+                    onChange={handleCheckboxChange}
+                    className="w-4 h-4 accent-[#FFB800] rounded"
+                  />
+                  <label htmlFor="is_digital" className="text-sm text-gray-700">
+                    Produto Digital (e-book, curso, etc.)
+                  </label>
+                </div>
+
+                {formData.is_digital && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      URL do arquivo para download
+                    </label>
+                    <input
+                      type="url"
+                      name="file_url"
+                      value={formData.file_url}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800]"
+                      placeholder="https://seu-storage.com/arquivo.pdf"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Link para o arquivo que o cliente ira baixar apos a compra
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="free_shipping"
+                    name="free_shipping"
+                    checked={formData.is_digital ? true : formData.free_shipping}
+                    onChange={handleCheckboxChange}
+                    disabled={formData.is_digital}
+                    className="w-4 h-4 accent-[#FFB800] rounded disabled:opacity-50"
+                  />
+                  <label htmlFor="free_shipping" className={`text-sm ${formData.is_digital ? 'text-gray-400' : 'text-gray-700'}`}>
+                    {formData.is_digital ? 'Frete gratuito (produto digital)' : 'Frete Gratis'}
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -244,7 +333,6 @@ export default function NovoProduto() {
           >
             <span>←</span> Voltar
           </Link>
-           
         </div>
 
       </div>

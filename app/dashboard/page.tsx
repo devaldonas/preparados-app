@@ -130,12 +130,6 @@ const checkAdminStatus = async (userId: string) => {
 <div className="mb-8">
   <div className="flex items-center justify-between flex-wrap gap-4">
     <div className="flex items-center gap-3">
-      <img 
-        src="/logo1.svg" 
-        alt="PREPARADO" 
-        className="h-14 w-auto"
-        onError={(e) => { e.currentTarget.style.display = 'none' }}
-      />
       <div>
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-black">

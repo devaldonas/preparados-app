@@ -160,7 +160,7 @@ export default function PrimeirosSocorrosPage() {
             Acesse o e-book completo com orientações detalhadas, checklists práticos e muito mais.
           </p>
           <Link
-            href="/loja"
+            href="/loja/produto/30"
             className="bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold px-6 py-2.5 rounded-lg transition inline-flex items-center gap-2"
           >
             <BookOpen size={18} />
