@@ -5,20 +5,21 @@
 export const descricoesMochila: Record<string, string> = {
   // === KIT DOCUMENTOS ===
   'Saco à prova d\'água': 'Protege documentos, dinheiro e pequenos eletrônicos contra chuva, umidade e respingos.',
-  'Dinheiro físico (cédulas pequenas e moedas)': 'Permite compras e pagamentos quando cartões, internet ou energia elétrica não estiverem disponíveis.',
+  'Dinheiro em espécie': 'Permite compras e pagamentos quando cartões, internet ou energia elétrica não estiverem disponíveis.',
   'Mapa da sua região': 'Ajuda na orientação, na escolha de rotas alternativas e na localização de abrigos, estradas e pontos de referência.',
-  'Original ou cópia dos documentos': 'Facilita a identificação pessoal e o acesso a serviços, transporte, hospedagem, atendimento e benefícios.',
+  'RG e CPF (cópia física)': 'Facilita a identificação pessoal e o acesso a serviços, transporte, hospedagem, atendimento e benefícios.',
   'Documentos dos dependentes': 'Comprovam a identidade e o vínculo de crianças, idosos ou outras pessoas sob sua responsabilidade.',
-  'Cópias em pendrive': 'Funcionam como backup digital; o ideal é proteger os arquivos com senha e manter o dispositivo em embalagem impermeável.',
+  'Documentos digitais (pendrive)': 'Funcionam como backup digital; o ideal é proteger os arquivos com senha e manter o dispositivo em embalagem impermeável.',
   
   // === KIT ÁGUA ===
-  'Garrafa de água ou cantil (inox ou alumínio)': 'Serve para transportar uma reserva individual de água e facilitar o controle do consumo ao longo do dia.',
-  'Filtro de purificação': 'Reduz partículas e, conforme a especificação do equipamento, pode remover determinados microrganismos e contaminantes.',
-  'Clorin, água sanitária ou iodo': 'Podem ser usados na desinfecção de água apenas quando o produto for apropriado para esse fim e seguindo rigorosamente o rótulo ou a orientação oficial.',
-  
+  'Garrafa/cantil inox': 'Serve para transportar uma reserva individual de água e facilitar o controle do consumo ao longo do dia.',
+  'Filtro de água': 'Reduz partículas e, conforme a especificação do equipamento, pode remover determinados microrganismos e contaminantes.',
+  'Cloro ou iodo': 'Podem ser usados na desinfecção de água apenas quando o produto for apropriado para esse fim e seguindo rigorosamente o rótulo ou a orientação oficial.',
+  'Água engarrafada': 'Reserva individual de água e facilitar o controle do consumo ao longo do dia.',
+
   // === KIT ABRIGO ===
-  'Cobertor de alumínio': 'Ajuda a reduzir a perda de calor corporal e também pode refletir calor, luz e vento em situações de emergência.',
-  'Capa de chuva ou poncho': 'Mantém o corpo e parte da mochila secos, diminuindo desconforto e risco de perda de calor.',
+  'Cobertor térmico': 'Ajuda a reduzir a perda de calor corporal e também pode refletir calor, luz e vento em situações de emergência.',
+  'Capa de chuva/poncho': 'Mantém o corpo e parte da mochila secos, diminuindo desconforto e risco de perda de calor.',
   'Lona grossa': 'Pode formar um abrigo improvisado, cobertura contra chuva, proteção de equipamentos ou isolamento do solo.',
   'Barraca': 'Oferece proteção contra vento, chuva, insetos e exposição durante o descanso.',
   'Colchonete': 'Isola o corpo do solo frio ou úmido e melhora o conforto para dormir.',
@@ -27,14 +28,14 @@ export const descricoesMochila: Record<string, string> = {
   // === KIT FOGO ===
   'Fogareiro e gás': 'Permitem cozinhar e aquecer água de forma controlada. Devem ser usados em local ventilado e afastado de materiais inflamáveis.',
   'Pederneira': 'Produz faíscas para iniciar o fogo e costuma funcionar mesmo depois de contato com umidade, quando corretamente utilizada.',
-  'Isqueiro comum ou maçarico': 'Fornece chama rápida para acender fogareiro, vela ou material de ignição.',
-  'Algodão com vaselina': 'Funciona como isca de fogo de queima relativamente prolongada, ajudando a transferir a chama para gravetos secos.',
+  'Isqueiro': 'Fornece chama rápida para acender fogareiro, vela ou material de ignição.',
+  'Algodão na vaselina': 'Funciona como isca de fogo de queima relativamente prolongada, ajudando a transferir a chama para gravetos secos.',
   'Iniciador ou álcool': 'Facilita a ignição, mas exige extremo cuidado por ser inflamável. Use somente produto adequado, em pequena quantidade e longe de chamas descontroladas.',
   'Iscas de fogo': 'Materiais secos e de fácil combustão usados para receber a faísca ou a chama inicial.',
   
   // === KIT PRIMEIROS SOCORROS ===
   'Remédios de uso contínuo': 'Mantêm tratamentos essenciais durante deslocamentos e interrupções de abastecimento. Leve quantidade compatível, receita quando necessária e embalagem original.',
-  'Par de luvas': 'Protege quem presta socorro e a vítima contra contato com sangue, fluidos e secreções.',
+  'Luvas de procedimento': 'Protege quem presta socorro e a vítima contra contato com sangue, fluidos e secreções.',
   'Torniquete': 'Usado para controlar sangramentos graves em membros. Exige treinamento e deve ser aplicado apenas em situações extremas.',
   'Traqueia': 'Dispositivo para via aérea que exige treinamento específico. Use apenas se tiver capacitação adequada.',
   'Bandagem elástica': 'Mantém compressão e estabilidade em contusões, torções e imobilizações leves.',
@@ -48,20 +49,20 @@ export const descricoesMochila: Record<string, string> = {
   'Colírio': 'Limpa e lubrifica os olhos em casos de irritação ou presença de corpos estranhos.',
   'Tesoura sem ponta': 'Corta curativos, roupas e materiais com segurança, sem risco de perfuração acidental.',
   'Esparadrapo': 'Fixa curativos, gaze e outros materiais sobre a pele.',
-  'Bandagem': 'Cobre e protege ferimentos, mantendo a área limpa e isolada.',
-  'Gases': 'Almofadas de algodão para limpeza, cobertura e proteção de feridas.',
+  'Bandagens elásticas': 'Cobre e protege ferimentos, mantendo a área limpa e isolada.',
+  'Gases e esparadrapo': 'Almofadas de algodão para limpeza, cobertura e proteção de feridas.',
   'Band-aid': 'Protege pequenos cortes e arranhões, mantendo o local limpo e isolado.',
   'Algodão': 'Aplica medicamentos, faz limpeza suave ou protege pequenas lesões.',
   'Pomada antisséptica': 'Previne infecções em ferimentos leves e auxilia na cicatrização.',
   'Spray para dor muscular': 'Alivia dores e tensões musculares com aplicação tópica.',
-  'Analgésico dor muscular': 'Medicamento para alívio de dores musculares e inflamações, conforme orientação médica.',
+  'Analgésico (Paracetamol)': 'Medicamento para alívio de dores musculares e inflamações, conforme orientação médica.',
   'Cotonetes': 'Faz limpeza precisa em áreas pequenas e aplicação localizada de medicamentos.',
   'Toalhas moeda': 'Toalhas compactas que se expandem com água, úteis para limpeza pessoal.',
   'Absorventes': 'Controle de sangramentos e emergências ginecológicas durante o deslocamento.',
   'Analgésico': 'Medicamento para alívio de dores de cabeça, febre e desconfortos gerais.',
   'Dorflex': 'Analgésico e relaxante muscular para dores de cabeça e tensão muscular.',
   'Paracetamol': 'Analgésico e antitérmico para febre e dores leves a moderadas.',
-  'Carvão ativado': 'Usado em casos de intoxicação, ajuda a absorver toxinas no sistema digestivo.',
+  'Pastilha Carvão Ativado': 'Usado em casos de intoxicação, ajuda a absorver toxinas no sistema digestivo.',
   'Pastilhas para garganta': 'Aliviam irritações, inflamações e dores de garganta.',
   'Hidraplex': 'Repõe sais minerais e líquidos, útil em casos de desidratação ou diarreia.',
   'Fenaflan adesivo': 'Adesivo anti-inflamatório para alívio local de dores musculares e articulares.',
@@ -83,30 +84,40 @@ export const descricoesMochila: Record<string, string> = {
   'Alicate de cutícula': 'Ajuda na manutenção das unhas e higiene pessoal.',
   'Sabonete bactericida': 'Garante limpeza e higienização das mãos e do corpo, prevenindo infecções.',
   'Creme dental (sem flúor)': 'Mantém a higiene bucal em situações de deslocamento.',
-  'Escova pequena': 'Ferramenta compacta para escovação dos dentes.',
+  'Escova e pasta dental': 'Ferramenta compacta para escovação dos dentes. Mantém a higiene bucal em situações de deslocamento.',
   'Talco': 'Ajuda a manter a pele seca, prevenindo assaduras e irritações.',
+  'Repelente' : 'Mantém afastados os insetos que se alimentam de sangue',
+  'Protetor solar' : 'serve para proteger a pele contra os danos causados pela radiação ultravioleta (UVA e UVB) do sol.',
   
   // === KIT TECNOLOGIA ===
   'Celular com carregadores': 'Ferramenta de comunicação, informação e localização, com carregadores para manter a energia.',
   'Fones de ouvido': 'Permitem comunicação, entretenimento e recebimento de informações sem exposição externa.',
   'Rádio comunicador': 'Mantém comunicação com o grupo e recebimento de informações em áreas sem sinal de celular.',
-  'Powerbank solar': 'Recarrega dispositivos eletrônicos usando energia solar, útil em deslocamentos prolongados.',
+  'Powerbank': 'Recarrega dispositivos eletrônicos usando energia solar, útil em deslocamentos prolongados.',
   'Lanterna de cabeça': 'Ilumina com as mãos livres, útil para deslocamento noturno e trabalhos detalhados.',
-  'Lanterna a pilha': 'Serve como iluminação reserva independente da energia elétrica.',
+  'Lanterna': 'Serve como iluminação reserva independente da energia elétrica.',
   'Pilhas extras': 'Mantêm lanternas, rádios e outros dispositivos em funcionamento por mais tempo.',
   
   // === KIT ALIMENTAÇÃO ===
-  'Caneca, faca, colher, garfo': 'Utensílios básicos para preparo e consumo de alimentos durante o deslocamento.',
-  'Água e comida (Tsampa)': 'Alimento compacto e energético, de fácil preparo e longa durabilidade.',
-  'Café, sal, mel': 'Itens de sabor e preservação que melhoram a alimentação em situações de emergência.',
+  'Caneca e talheres': 'Utensílios básicos para preparo e consumo de alimentos durante o deslocamento.',
+  'Tsampa Cacau': 'Alimento compacto e energético, de fácil preparo e longa durabilidade.',
+  'Sal Orgânico': 'Itens de sabor e preservação que melhoram a alimentação em situações de emergência.',
+  'Mel': 'Iten de sabor e preservação que melhoram a alimentação em situações de emergência.',
   'Enlatados': 'Alimentos de longa duração, prontos para consumo ou fácil preparo.',
-  
+  'Bicarbonato de Sódio': 'Atua como antiácido (aliviando azia e má digestão).',
+  'Pastilha Clorin': 'Serve para higienizar frutas, legumes e verduras, eliminando 99,99% das bactérias, vírus e protozoários, incluindo o coronavírus, sem alterar o sabor dos alimentos',
+  'Copo retrátil': ' serve como uma alternativa prática e sustentável aos copos descartáveis.',
+  'Dosador': 'Dispositivo ou utensílio projetado para medir, controlar e liberar uma quantidade exata de um produto, seja ele líquido, sólido ou em pó.',
+  'Colher dosadora': 'Utensílio cuja principal função é garantir precisão e praticidade na hora de medir ou servir algo',
+
   // === KIT ROUPAS ===
   'Três pares de mudas de roupa completo': 'Mantém o corpo seco e protegido em diferentes condições climáticas.',
-  'Jaqueta à prova d\'água': 'Protege contra chuva, vento e frio, mantendo o corpo seco.',
+  'Jaqueta impermeável': 'Protege contra chuva, vento e frio, mantendo o corpo seco.',
   'Camisa térmica': 'Mantém o calor corporal em baixas temperaturas.',
   'Bota para trilha': 'Protege os pés e garante estabilidade em terrenos variados durante deslocamentos.',
-  
+  'Meias extras': 'Garantir a termorregulação e a proteção dos pés, que são fundamentais para a mobilidade.',
+  'Calça resistente': 'Cria uma barreira que ajuda a evitar cortes, arranhões e abrasões ao andar em terrenos irregulares ou com detritos, protegendo suas pernas.',
+
   // === KIT LIMPEZA ===
   'Flanela branca': 'Ajuda na limpeza fina e permite visualizar melhor resíduos, sujeira e excesso de óleo.',
   'Flanela escura': 'É útil para remover graxa, fuligem e sujeira intensa sem evidenciar manchas no tecido.',
