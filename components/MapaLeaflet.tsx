@@ -37,9 +37,6 @@ const CircleMarker = dynamic(
   { ssr: false }
 )
 
-// 🔥 useMap NÃO PODE SER IMPORTADO DINAMICAMENTE DESSA FORMA
-// Vamos criar um componente separado para o MapController
-
 interface UserLocation {
   userId: string
   userName: string | null
@@ -74,10 +71,8 @@ const getCityColor = (city: string | null): string => {
   return colors[Math.abs(hash) % colors.length]
 }
 
-// 🔥 COMPONENTE MAP CONTROLLER (usa useMap diretamente, sem dynamic)
-// 🔥 OBS: Este componente só será renderizado no cliente
+// 🔥 COMPONENTE MAP CONTROLLER
 function MapController({ center, zoom }: { center: [number, number], zoom: number }) {
-  // 🔥 Importar useMap diretamente (só funciona no cliente)
   const { useMap } = require('react-leaflet')
   const map = useMap()
   
@@ -95,11 +90,9 @@ export default function MapaLeaflet({
   onUserSelect,
   showGroupsList = false
 }: MapaLeafletProps) {
-  // 🔥 CENTRO DO MAPA (BRASIL)
   const center: [number, number] = [-14.2350, -51.9253]
   const zoom = 4
 
-  // 🔥 AGRUPAR USUÁRIOS POR CIDADE
   const gruposPorCidade = useMemo(() => {
     const gruposMap = new Map<string, UserLocation[]>()
     if (!userLocations || !Array.isArray(userLocations) || userLocations.length === 0) {
@@ -116,7 +109,6 @@ export default function MapaLeaflet({
     return gruposMap
   }, [userLocations])
 
-  // 🔥 ÍCONE PERSONALIZADO AMARELO
   const customIcon = new L.Icon({
     iconUrl: 'data:image/svg+xml;base64,' + btoa(`
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FFB800" stroke="white" stroke-width="2">
@@ -156,15 +148,15 @@ export default function MapaLeaflet({
             >
               <Popup>
                 <div className="p-1 min-w-[150px]">
-                  <p className="font-bold text-sm text-gray-900">
-                    {loc.userName || 'Preparado'}
-                  </p>
+                  {/* 🔥 MOSTRA APENAS A CIDADE */}
+                  {loc.city && (
+                    <p className="font-bold text-sm text-gray-900">
+                      📍 {loc.city}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500">
                     🎒 {loc.mochila_tipo || 'BOB'}
                   </p>
-                  {loc.city && (
-                    <p className="text-xs text-gray-500">📍 {loc.city}</p>
-                  )}
                   <button
                     onClick={() => {
                       if (onUserSelect) {
