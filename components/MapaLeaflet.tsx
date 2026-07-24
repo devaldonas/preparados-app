@@ -147,23 +147,20 @@ export default function MapaLeaflet({
               icon={customIcon}
             >
               <Popup>
-                <div className="p-1 min-w-[150px]">
-                  {/* 🔥 MOSTRA APENAS A CIDADE */}
+                <div className="p-2 min-w-[150px] text-center">
+                  {/* 🔥 APENAS A CIDADE */}
                   {loc.city && (
-                    <p className="font-bold text-sm text-gray-900">
+                    <p className="font-bold text-base text-gray-900">
                       📍 {loc.city}
                     </p>
                   )}
-                  <p className="text-xs text-gray-500">
-                    🎒 {loc.mochila_tipo || 'BOB'}
-                  </p>
                   <button
                     onClick={() => {
                       if (onUserSelect) {
                         onUserSelect(loc.userId)
                       }
                     }}
-                    className="mt-2 w-full bg-[#FFB800] text-black text-xs font-semibold py-1 rounded-lg hover:bg-[#E5A600] transition"
+                    className="mt-2 w-full bg-[#FFB800] text-black text-xs font-semibold py-1.5 rounded-lg hover:bg-[#E5A600] transition"
                   >
                     Entrar no chat
                   </button>
