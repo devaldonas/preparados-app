@@ -43,83 +43,122 @@ export default function Carrinho() {
   }
 
   const processarCheckout = async () => {
-    if (items.length === 0) return
-
-    setProcessing(true)
-    setError(null)
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
-        return
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('cep, full_name, street, number, complement, neighborhood, city, state')
-        .eq('id', user.id)
-        .single()
-
-      if (profileError) {
-        console.error('❌ Erro ao buscar perfil:', profileError)
-      }
-
-      const shippingAddress = {
-        zip: profile?.cep || '',
-        street: profile?.street || '',
-        number: profile?.number || '',
-        complement: profile?.complement || '',
-        neighborhood: profile?.neighborhood || '',
-        city: profile?.city || '',
-        state: profile?.state || '',
-      }
-
-      const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
-      
-      const orderData = {
-        user_id: user.id,
-        total_amount: total,
-        payment_method: paymentMethod,
-        payment_status: 'pending',
-        status: 'pending',
-        transaction_id: orderNumber,
-        shipping_address: JSON.stringify(shippingAddress)
-      }
-
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert([orderData])
-        .select()
-        .single()
-
-      if (orderError) {
-        console.error('Erro ao criar pedido:', orderError)
-        setError('Erro ao criar pedido. Tente novamente.')
-        setProcessing(false)
-        return
-      }
-
-      for (const item of items) {
-        await supabase
-          .from('order_items')
-          .insert({
-            order_id: order.id,
-            product_id: item.product_id,
-            quantity: item.quantity,
-            price: item.price
-          })
-      }
-
-      clearCart()
-      router.push(`/loja/checkout?order=${order.id}`)
-      
-    } catch (error) {
-      console.error('Erro ao processar pedido:', error)
-      setError('Erro ao processar pedido. Tente novamente.')
-      setProcessing(false)
-    }
+  if (items.length === 0) {
+    setError('Seu carrinho está vazio')
+    return
   }
+
+  setProcessing(true)
+  setError(null)
+  
+  try {
+    console.log('🛒 Iniciando checkout...')
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      console.log('❌ Usuário não logado')
+      router.push('/auth/login')
+      return
+    }
+    console.log('✅ Usuário logado:', user.id)
+
+    // 🔥 BUSCAR PERFIL
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('cep, full_name, street, number, complement, neighborhood, city, state')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      console.error('❌ Erro ao buscar perfil:', profileError)
+      setError('Erro ao buscar seu endereço. Atualize seu perfil.')
+      setProcessing(false)
+      return
+    }
+
+    console.log('📦 Perfil encontrado:', profile)
+
+    // 🔥 VERIFICAR SE O ENDEREÇO ESTÁ COMPLETO
+    if (!profile?.street || !profile?.number || !profile?.city) {
+      console.error('❌ Endereço incompleto:', profile)
+      setError('Endereço incompleto. Atualize seu perfil antes de finalizar a compra.')
+      setProcessing(false)
+      return
+    }
+
+    const shippingAddress = {
+      zip: profile?.cep || '',
+      street: profile?.street || '',
+      number: profile?.number || '',
+      complement: profile?.complement || '',
+      neighborhood: profile?.neighborhood || '',
+      city: profile?.city || '',
+      state: profile?.state || '',
+    }
+
+    console.log('📦 Endereço final:', shippingAddress)
+
+    const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+    
+    const orderData = {
+      user_id: user.id,
+      total_amount: total,
+      payment_method: paymentMethod,
+      payment_status: 'pending',
+      status: 'pending',
+      transaction_id: orderNumber,
+      shipping_address: JSON.stringify(shippingAddress)
+    }
+
+    console.log('📦 Dados do pedido:', orderData)
+
+    // 🔥 INSERIR PEDIDO
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert([orderData])
+      .select()
+      .single()
+
+    if (orderError) {
+      console.error('❌ Erro ao criar pedido:', orderError)
+      setError('Erro ao criar pedido. Tente novamente.')
+      setProcessing(false)
+      return
+    }
+
+    console.log('✅ Pedido criado:', order)
+
+    // 🔥 INSERIR ITENS DO PEDIDO
+    for (const item of items) {
+      const { error: itemError } = await supabase
+        .from('order_items')
+        .insert({
+          order_id: order.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: item.price
+        })
+      
+      if (itemError) {
+        console.error('❌ Erro ao inserir item:', itemError)
+      }
+    }
+
+    console.log('✅ Itens inseridos com sucesso')
+
+    // 🔥 LIMPAR CARRINHO E REDIRECIONAR
+    clearCart()
+    console.log('🚀 Redirecionando para:', `/loja/checkout?order=${order.id}`)
+    
+    // 🔥 USAR window.location PARA GARANTIR O REDIRECIONAMENTO
+    window.location.href = `/loja/checkout?order=${order.id}`
+    
+  } catch (error) {
+    console.error('❌ Erro no checkout:', error)
+    setError('Erro ao processar pedido. Tente novamente.')
+    setProcessing(false)
+  }
+}
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {

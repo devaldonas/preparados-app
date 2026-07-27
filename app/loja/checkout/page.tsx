@@ -46,14 +46,7 @@ function CheckoutContent() {
   const [calculandoFrete, setCalculandoFrete] = useState(false)
   const [opcoesFrete, setOpcoesFrete] = useState<OpcaoFrete[]>([])
   const [freteError, setFreteError] = useState<string | null>(null)
-  const todosDigitais = order.items?.every((item: any) => item.products?.is_digital) || false
-
-  if (todosDigitais) {
-  // Pular cálculo de frete
-  setFreteSelecionado(null)
-  setOpcoesFrete([])
-  setFreteError(null)
-}
+  // const todosDigitais = order.items?.every((item: any) => item.products?.is_digital) || false
 
   useEffect(() => {
     if (!orderId) {
@@ -80,7 +73,10 @@ function CheckoutContent() {
       .eq('id', orderIdNumber)
       .single()
 
-    if (orderError) throw orderError
+    if (orderError) {
+      console.error('❌ Erro ao buscar pedido:', orderError)
+      throw orderError
+    }
     console.log('✅ Pedido encontrado:', orderData)
 
     // 2. Buscar itens do pedido
@@ -93,7 +89,8 @@ function CheckoutContent() {
           name,
           price,
           image_url,
-          partner_id
+          partner_id,
+          is_digital
         )
       `)
       .eq('order_id', orderData.id)
@@ -104,7 +101,7 @@ function CheckoutContent() {
 
     console.log('📦 Itens encontrados:', itemsData)
 
-    // 3. Buscar parceiro SEPARADAMENTE
+    // 3. Buscar parceiro
     let partnerZip = null
     if (itemsData && itemsData.length > 0) {
       const firstItem = itemsData[0]
@@ -126,101 +123,122 @@ function CheckoutContent() {
       }
     }
 
+    // 4. Atualizar estado do pedido
     setOrder({ ...orderData, items: itemsData || [] })
     setCepParceiro(partnerZip || '')
 
+    // 5. Verificar se todos os produtos são digitais
+    const todosDigitais = itemsData?.every((item: any) => item.products?.is_digital) || false
+    
+    if (todosDigitais) {
+      console.log('📦 Todos os produtos são digitais - frete grátis')
+      setFreteSelecionado(null)
+      setOpcoesFrete([])
+      setFreteError(null)
+    }
+
+    // 6. Se já estiver pago, redirecionar
     if (orderData.payment_status === 'paid') {
       router.push(`/loja/pedidos/${orderData.id}`)
       return
     }
 
-    // 🔥 GERAR QR CODE PIX CORRIGIDO (COM CRC)
-const chavePix = '13132276847'
-
-try {
-  // Usar a função importada do lib/pix
-  const payload = gerarPIX(chavePix, orderData.total_amount)
-  
-  console.log('💰 Valor total:', orderData.total_amount)
-  console.log('📱 Payload PIX gerado:', payload)
-  
-  setPixData({
-    qrCode: payload, // Salvar o payload completo
-    copyPaste: payload
-  })
-  
-  console.log('✅ PIX gerado com sucesso!')
-  
-} catch (error) {
-  console.error('❌ Erro ao gerar PIX:', error)
-  setError('Erro ao gerar código PIX')
-}
+    // 7. 🔥 GERAR QR CODE PIX
+    const chavePix = '13132276847'
+    
+    try {
+      // Usar a função gerarPIX do lib/pix.ts
+      const payload = gerarPIX(chavePix, orderData.total_amount)
+      
+      console.log('💰 Valor total:', orderData.total_amount)
+      console.log('📱 Payload PIX gerado:', payload)
+      console.log('📱 Tamanho do payload:', payload.length)
+      
+      // Codificar o payload para a URL
+      const encodedPayload = encodeURIComponent(payload)
+      
+      // Gerar QR Code com a API
+      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodedPayload}`
+      
+      console.log('🖼️ QR Code URL:', qrCodeUrl)
+      
+      // Salvar no estado
+      setPixData({
+        qrCode: qrCodeUrl,
+        copyPaste: payload
+      })
+      
+      console.log('✅ PIX gerado com sucesso!')
+      
+    } catch (pixError) {
+      console.error('❌ Erro ao gerar PIX:', pixError)
+      setError('Erro ao gerar código PIX. Tente novamente.')
+    }
 
   } catch (error) {
     console.error('❌ Erro ao carregar pedido:', error)
-    setError('Erro ao carregar pedido')
+    setError('Erro ao carregar pedido. Tente novamente.')
   } finally {
     setLoading(false)
   }
 }
-
   // 🔥 FUNÇÃO CALCULAR FRETE
   const calcularFrete = async () => {
-    if (!cepCliente || cepCliente.replace(/\D/g, '').length !== 8) {
-      setFreteError('Digite um CEP válido com 8 dígitos')
-      return
-    }
-
-    if (!cepParceiro) {
-      setFreteError('CEP do parceiro não encontrado')
-      return
-    }
-
-    setCalculandoFrete(true)
-    setFreteError(null)
-
-    try {
-      const produtos = order.items?.map((item: any) => ({
-        id: item.product_id,
-        nome: item.products?.name || 'Produto',
-        peso: 1,
-        altura: 20,
-        largura: 20,
-        comprimento: 20,
-        quantidade: item.quantity,
-        valor: item.price
-      })) || []
-
-      const response = await fetch('/api/frete/calcular', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cepDestino: cepCliente.replace(/\D/g, ''),
-          produtos: produtos,
-          cepOrigem: cepParceiro.replace(/\D/g, '')
-        })
-      })
-
-      const data = await response.json()
-
-      if (!data.success) {
-        throw new Error(data.error || 'Erro ao calcular frete')
-      }
-
-      setOpcoesFrete(data.cotacoes || [])
-      
-      if (data.cotacoes?.length === 0) {
-        setFreteError('Nenhuma opção de frete disponível para este CEP')
-      }
-
-    } catch (error) {
-      console.error('Erro ao calcular frete:', error)
-      setFreteError(error instanceof Error ? error.message : 'Erro ao calcular frete')
-      setOpcoesFrete([])
-    } finally {
-      setCalculandoFrete(false)
-    }
+  if (!cepCliente || cepCliente.replace(/\D/g, '').length !== 8) {
+    setFreteError('Digite um CEP válido com 8 dígitos')
+    return
   }
+
+  if (!cepParceiro) {
+    setFreteError('CEP do parceiro não encontrado')
+    return
+  }
+
+  setCalculandoFrete(true)
+  setFreteError(null)
+
+  try {
+    const produtos = order.items?.map((item: any) => ({
+      id: item.product_id,
+      nome: item.products?.name || 'Produto',
+      peso: 1,
+      altura: 20,
+      largura: 20,
+      comprimento: 20,
+      quantidade: item.quantity,
+      valor: item.price
+    })) || []
+
+    const response = await fetch('/api/frete/calcular', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cepDestino: cepCliente.replace(/\D/g, ''),
+        produtos: produtos,
+        cepOrigem: cepParceiro.replace(/\D/g, '')
+      })
+    })
+
+    const data = await response.json()
+
+    if (!data.success) {
+      throw new Error(data.error || 'Erro ao calcular frete')
+    }
+
+    setOpcoesFrete(data.cotacoes || [])
+    
+    if (data.cotacoes?.length === 0) {
+      setFreteError('Nenhuma opção de frete disponível para este CEP')
+    }
+
+  } catch (error) {
+    console.error('Erro ao calcular frete:', error)
+    setFreteError(error instanceof Error ? error.message : 'Erro ao calcular frete')
+    setOpcoesFrete([])
+  } finally {
+    setCalculandoFrete(false)
+  }
+}
 
   // 🔥 FUNÇÃO PARA BUSCAR COTAÇÃO DO BDM
 const buscarCotacaoBDM = async () => {
@@ -630,65 +648,73 @@ const gerarPagamentoBDM = async () => {
             
 
             {/* PIX - Conteúdo */}
-            {paymentMethod === 'pix' && pixData && (
-              <div className="text-center space-y-4">
-                <p className="text-sm text-gray-600">
-                  Escaneie o QR Code abaixo para pagar com PIX
-                </p>
+{pixData && (
+  <div className="text-center space-y-4">
+    <p className="text-sm text-gray-600">
+      Escaneie o QR Code abaixo para pagar com PIX
+    </p>
 
-                <div className="bg-white p-4 rounded-xl inline-block mx-auto border border-gray-200">
-  {pixData.qrCode && (
-    <img 
-      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixData.qrCode)}`}
-      alt="QR Code PIX"
-      className="w-48 h-48"
-      onError={(e) => {
-        e.currentTarget.src = '/images/pix-placeholder.png'
-      }}
-    />
-  )}
-</div>
+    <div className="bg-white p-4 rounded-xl inline-block mx-auto border border-gray-200">
+      {pixData.qrCode && (
+        <img 
+          src={pixData.qrCode}
+          alt="QR Code PIX"
+          className="w-48 h-48"
+          onError={(e) => {
+            console.error('❌ Erro ao carregar QR Code, usando fallback do Google Charts...')
+            
+            // 🔥 FALLBACK: Usar Google Charts
+            const fallbackUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(pixData.copyPaste)}`
+            
+            // Substituir a URL da imagem pelo fallback
+            e.currentTarget.src = fallbackUrl
+            e.currentTarget.onerror = null // Evitar loop infinito
+            
+            console.log('🔄 Fallback URL:', fallbackUrl)
+          }}
+        />
+      )}
+    </div>
 
-                <div className="flex items-center justify-center gap-2">
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(pixData.copyPaste)
-                      setCopied(true)
-                      setTimeout(() => setCopied(false), 3000)
-                    }}
-                    className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#FFB800] transition-colors"
-                  >
-                    {copied ? <Check size={16} /> : <Copy size={16} />}
-                    {copied ? 'Copiado!' : 'Copiar código PIX'}
-                  </button>
-                </div>
+    <div className="flex items-center justify-center gap-2">
+      <button
+        onClick={() => {
+          navigator.clipboard.writeText(pixData.copyPaste)
+          setCopied(true)
+          setTimeout(() => setCopied(false), 3000)
+        }}
+        className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#FFB800] transition-colors"
+      >
+        {copied ? <Check size={16} /> : <Copy size={16} />}
+        {copied ? 'Copiado!' : 'Copiar código PIX'}
+      </button>
+    </div>
 
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
-                    {error}
-                  </div>
-                )}
+    {error && (
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+        {error}
+      </div>
+    )}
 
-                <button
-                  onClick={confirmarPagamentoPIX}
-                  disabled={processing}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white font-display font-bold py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {processing ? (
-                    <>
-                      <Loader2 size={20} className="animate-spin" />
-                      Confirmando...
-                    </>
-                  ) : (
-                    <>
-                      <Check size={20} />
-                      Finalizar Pedido - {formatPrice(total)}
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-
+    <button
+      onClick={confirmarPagamentoPIX}
+      disabled={processing}
+      className="w-full bg-green-600 hover:bg-green-700 text-white font-display font-bold py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+    >
+      {processing ? (
+        <>
+          <Loader2 size={20} className="animate-spin" />
+          Confirmando...
+        </>
+      ) : (
+        <>
+          <Check size={20} />
+          Finalizar Pedido - {formatPrice(total)}
+        </>
+      )}
+    </button>
+  </div>
+)}
             
             {/* BDM Digital - Conteúdo */}
 {paymentMethod === 'bdm' && (
