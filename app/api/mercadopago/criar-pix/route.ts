@@ -14,9 +14,26 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
+    // 🔥 GARANTIR QUE A URL ESTÁ CORRETA E COM HTTPS
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://preparado.vercel.app'
+    // 🔥 REMOVER BARRA NO FINAL SE EXISTIR
+    const cleanBaseUrl = baseUrl.replace(/\/$/, '')
+    const webhookUrl = `${cleanBaseUrl}/api/mercadopago/webhook`
+    
+    console.log('🔗 Base URL:', cleanBaseUrl)
+    console.log('🔗 Webhook URL:', webhookUrl)
     console.log('💰 Criando pagamento PIX para pedido:', pedidoId)
     console.log('💰 Valor:', valor)
     console.log('📧 E-mail:', cliente.email)
+
+    // 🔥 VALIDAR A URL
+    try {
+      new URL(webhookUrl)
+      console.log('✅ URL válida:', webhookUrl)
+    } catch (urlError) {
+      console.error('❌ URL inválida:', webhookUrl)
+      throw new Error(`URL do webhook inválida: ${webhookUrl}`)
+    }
 
     // 🔥 CRIAR PAGAMENTO PIX DIRETO
     const response = await fetch('https://api.mercadopago.com/v1/payments', {
@@ -28,13 +45,13 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         transaction_amount: Number(valor),
-        description: descricao || `Pedido #${pedidoId}`,
+        description: descricao || `Pedido #${pedidoId} - PREPARADO`,
         payment_method_id: 'pix',
         payer: {
           email: cliente.email,
           first_name: cliente.nome || 'Cliente'
         },
-        notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/mercadopago/webhook`,
+        notification_url: webhookUrl,
         metadata: {
           pedido_id: pedidoId
         },
