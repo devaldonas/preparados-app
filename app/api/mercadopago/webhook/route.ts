@@ -66,10 +66,17 @@ export async function POST(request: Request) {
             .eq('id', parseInt(orderId))
             .single()
 
-          console.log('📦 OrderData:', orderData)
+          console.log('📦 OrderData completo:', JSON.stringify(orderData, null, 2))
 
           if (orderData?.items) {
-            const produtosDigitais = orderData.items.filter((item: any) => item.products?.is_digital) || []
+            // 🔥 FILTRAR PRODUTOS DIGITAIS (CORRIGIDO)
+            const produtosDigitais = orderData.items.filter((item: any) => {
+              console.log('📦 Item:', item)
+              console.log('📦 Products:', item.products)
+              console.log('📦 is_digital:', item.products?.is_digital)
+              return item.products?.is_digital === true
+            })
+            
             console.log('📦 Produtos digitais encontrados:', produtosDigitais.length)
 
             if (produtosDigitais.length > 0) {
