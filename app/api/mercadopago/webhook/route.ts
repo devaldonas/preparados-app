@@ -76,7 +76,7 @@ export async function POST(request: Request) {
             console.log(`✅ Pedido ${orderIdNumber} atualizado para PAGO`)
           }
 
-          // 🔥 BUSCAR O PEDIDO PRIMEIRO
+          // 🔥 BUSCAR O PEDIDO
           const { data: orderData, error: orderError } = await supabase
             .from('orders')
             .select('user_id')
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
           if (orderData) {
             console.log('📦 Pedido encontrado:', orderData)
 
-            // 🔥 BUSCAR OS ITENS DO PEDIDO SEPARADAMENTE
+            // 🔥 BUSCAR OS ITENS
             const { data: itemsData, error: itemsError } = await supabase
               .from('order_items')
               .select(`
@@ -112,7 +112,6 @@ export async function POST(request: Request) {
             console.log('📦 Itens encontrados:', itemsData?.length || 0)
 
             if (itemsData && itemsData.length > 0) {
-              // 🔥 FILTRAR PRODUTOS DIGITAIS
               const produtosDigitais = itemsData.filter((item: any) => {
                 console.log('📦 Item:', item.product_id, item.products?.name, 'is_digital:', item.products?.is_digital)
                 return item.products?.is_digital === true
@@ -121,38 +120,67 @@ export async function POST(request: Request) {
               console.log('📦 Produtos digitais encontrados:', produtosDigitais.length)
 
               if (produtosDigitais.length > 0) {
-                // 🔥 BUSCAR E-MAIL DO USUÁRIO
-                const { data: userData } = await supabase
+                // 🔥 CORRIGIR: Buscar e-mail usando a API do Supabase Admin
+                let userEmail = null
+                let userNome = null
+
+                // Tentar buscar via auth.users
+                const { data: userData, error: userError } = await supabase
                   .from('auth.users')
                   .select('email')
                   .eq('id', orderData.user_id)
-                  .single()
+                  .maybeSingle()
 
-                console.log('📧 E-mail do usuário:', userData?.email)
-
-                const { data: profile } = await supabase
-                  .from('profiles')
-                  .select('full_name')
-                  .eq('id', orderData.user_id)
-                  .single()
-
-                for (const item of produtosDigitais) {
-                  console.log('📧 Enviando e-book para:', userData?.email)
-                  console.log('📚 Produto:', item.products?.name)
-                  console.log('🔗 Link:', item.products?.file_url)
-
-                  const result = await enviarEbookPorEmail({
-                    email: userData?.email || '',
-                    nome: profile?.full_name || 'Usuário',
-                    produtoNome: item.products?.name || 'E-book',
-                    fileUrl: item.products?.file_url || '',
-                    pedidoId: orderIdNumber
-                  })
-
-                  console.log('📧 Resultado do envio:', result)
+                if (userError) {
+                  console.error('❌ Erro ao buscar auth.users:', userError)
                 }
 
-                console.log(`✅ E-books enviados para ${userData?.email}`)
+                if (userData?.email) {
+                  userEmail = userData.email
+                  console.log('📧 E-mail encontrado via auth.users:', userEmail)
+                } else {
+                  console.log('⚠️ E-mail não encontrado via auth.users, tentando profiles...')
+                  
+                  // 🔥 TENTAR BUSCAR DO PERFIL (como fallback)
+                  const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('full_name')
+                    .eq('id', orderData.user_id)
+                    .single()
+
+                  if (profileData) {
+                    userNome = profileData.full_name
+                    console.log('👤 Nome encontrado via profiles:', userNome)
+                  }
+                }
+
+                // 🔥 SE NÃO ENCONTROU E-MAIL, USAR O PAYER DO MERCADO PAGO
+                if (!userEmail) {
+                  userEmail = payment.payer?.email || ''
+                  console.log('📧 E-mail obtido do Mercado Pago:', userEmail)
+                }
+
+                if (userEmail) {
+                  for (const item of produtosDigitais) {
+                    console.log('📧 Enviando e-book para:', userEmail)
+                    console.log('📚 Produto:', item.products?.name)
+                    console.log('🔗 Link:', item.products?.file_url)
+
+                    const result = await enviarEbookPorEmail({
+                      email: userEmail,
+                      nome: userNome || 'Usuário',
+                      produtoNome: item.products?.name || 'E-book',
+                      fileUrl: item.products?.file_url || '',
+                      pedidoId: orderIdNumber
+                    })
+
+                    console.log('📧 Resultado do envio:', result)
+                  }
+
+                  console.log(`✅ E-books enviados para ${userEmail}`)
+                } else {
+                  console.log('❌ Nenhum e-mail encontrado para o usuário')
+                }
               } else {
                 console.log('⚠️ Nenhum produto digital encontrado no pedido')
               }
