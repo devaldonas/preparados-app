@@ -55,7 +55,7 @@ export async function POST(request: Request) {
         metadata: {
           pedido_id: pedidoId
         },
-        external_reference: `pedido_${pedidoId}`
+        external_reference: `order_${pedidoId}`
       })
     })
 

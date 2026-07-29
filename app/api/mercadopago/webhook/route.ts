@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     console.log('📨 Webhook Mercado Pago recebido:', JSON.stringify(body, null, 2))
 
-    if (body.type === 'payment' || body.action === 'payment.created') {
+    if (body.type === 'payment' || body.action === 'payment.updated') {
       const paymentId = body.data?.id
 
       if (!paymentId) {
@@ -35,12 +35,36 @@ export async function POST(request: Request) {
       console.log('💰 Pagamento:', payment.status, payment.external_reference)
 
       if (payment.status === 'approved') {
-        const externalReference = payment.external_reference
-        const orderId = externalReference?.replace('order_', '')
+        const externalReference = payment.external_reference || ''
+        console.log('📦 External Reference:', externalReference)
+
+        // 🔥 CORRIGIR: Extrair o número do ID de diferentes formatos
+        let orderId = null
+        
+        // Tentar extrair de "order_123"
+        if (externalReference.includes('order_')) {
+          orderId = externalReference.replace('order_', '')
+        }
+        // Tentar extrair de "pedido_123"
+        else if (externalReference.includes('pedido_')) {
+          orderId = externalReference.replace('pedido_', '')
+        }
+        // Se for apenas o número
+        else if (/^\d+$/.test(externalReference)) {
+          orderId = externalReference
+        }
 
         console.log('📦 Order ID extraído:', orderId)
 
         if (orderId) {
+          // 🔥 CONVERTER PARA NÚMERO
+          const orderIdNumber = parseInt(orderId, 10)
+          
+          if (isNaN(orderIdNumber)) {
+            console.error('❌ Order ID inválido:', orderId)
+            return NextResponse.json({ success: true })
+          }
+
           // 🔥 ATUALIZAR PEDIDO
           const { error: updateError } = await supabase
             .from('orders')
@@ -51,36 +75,31 @@ export async function POST(request: Request) {
               transaction_id: paymentId,
               updated_at: new Date().toISOString()
             })
-            .eq('id', parseInt(orderId))
+            .eq('id', orderIdNumber)
 
           if (updateError) {
             console.error('❌ Erro ao atualizar pedido:', updateError)
           } else {
-            console.log(`✅ Pedido ${orderId} atualizado para PAGO`)
+            console.log(`✅ Pedido ${orderIdNumber} atualizado para PAGO`)
           }
 
           // 🔥 BUSCAR PRODUTOS DIGITAIS
           const { data: orderData } = await supabase
             .from('orders')
             .select('user_id, items')
-            .eq('id', parseInt(orderId))
+            .eq('id', orderIdNumber)
             .single()
 
           console.log('📦 OrderData completo:', JSON.stringify(orderData, null, 2))
 
           if (orderData?.items) {
-            // 🔥 FILTRAR PRODUTOS DIGITAIS (CORRIGIDO)
             const produtosDigitais = orderData.items.filter((item: any) => {
-              console.log('📦 Item:', item)
-              console.log('📦 Products:', item.products)
-              console.log('📦 is_digital:', item.products?.is_digital)
               return item.products?.is_digital === true
             })
             
             console.log('📦 Produtos digitais encontrados:', produtosDigitais.length)
 
             if (produtosDigitais.length > 0) {
-              // 🔥 BUSCAR E-MAIL DO USUÁRIO
               const { data: userData } = await supabase
                 .from('auth.users')
                 .select('email')
@@ -105,7 +124,7 @@ export async function POST(request: Request) {
                   nome: profile?.full_name || 'Usuário',
                   produtoNome: item.products?.name || 'E-book',
                   fileUrl: item.products?.file_url || '',
-                  pedidoId: parseInt(orderId)
+                  pedidoId: orderIdNumber
                 })
 
                 console.log('📧 Resultado do envio:', result)
@@ -118,6 +137,8 @@ export async function POST(request: Request) {
           } else {
             console.log('⚠️ OrderData sem items:', orderData)
           }
+        } else {
+          console.log('⚠️ Não foi possível extrair o Order ID do external_reference:', externalReference)
         }
       }
     }
