@@ -38,26 +38,19 @@ export async function POST(request: Request) {
         const externalReference = payment.external_reference || ''
         console.log('📦 External Reference:', externalReference)
 
-        // 🔥 CORRIGIR: Extrair o número do ID de diferentes formatos
         let orderId = null
         
-        // Tentar extrair de "order_123"
         if (externalReference.includes('order_')) {
           orderId = externalReference.replace('order_', '')
-        }
-        // Tentar extrair de "pedido_123"
-        else if (externalReference.includes('pedido_')) {
+        } else if (externalReference.includes('pedido_')) {
           orderId = externalReference.replace('pedido_', '')
-        }
-        // Se for apenas o número
-        else if (/^\d+$/.test(externalReference)) {
+        } else if (/^\d+$/.test(externalReference)) {
           orderId = externalReference
         }
 
         console.log('📦 Order ID extraído:', orderId)
 
         if (orderId) {
-          // 🔥 CONVERTER PARA NÚMERO
           const orderIdNumber = parseInt(orderId, 10)
           
           if (isNaN(orderIdNumber)) {
@@ -83,59 +76,91 @@ export async function POST(request: Request) {
             console.log(`✅ Pedido ${orderIdNumber} atualizado para PAGO`)
           }
 
-          // 🔥 BUSCAR PRODUTOS DIGITAIS
-          const { data: orderData } = await supabase
+          // 🔥 BUSCAR O PEDIDO PRIMEIRO
+          const { data: orderData, error: orderError } = await supabase
             .from('orders')
-            .select('user_id, items')
+            .select('user_id')
             .eq('id', orderIdNumber)
             .single()
 
-          console.log('📦 OrderData completo:', JSON.stringify(orderData, null, 2))
+          if (orderError) {
+            console.error('❌ Erro ao buscar pedido:', orderError)
+          }
 
-          if (orderData?.items) {
-            const produtosDigitais = orderData.items.filter((item: any) => {
-              return item.products?.is_digital === true
-            })
-            
-            console.log('📦 Produtos digitais encontrados:', produtosDigitais.length)
+          if (orderData) {
+            console.log('📦 Pedido encontrado:', orderData)
 
-            if (produtosDigitais.length > 0) {
-              const { data: userData } = await supabase
-                .from('auth.users')
-                .select('email')
-                .eq('id', orderData.user_id)
-                .single()
+            // 🔥 BUSCAR OS ITENS DO PEDIDO SEPARADAMENTE
+            const { data: itemsData, error: itemsError } = await supabase
+              .from('order_items')
+              .select(`
+                *,
+                products:product_id (
+                  id,
+                  name,
+                  is_digital,
+                  file_url,
+                  price
+                )
+              `)
+              .eq('order_id', orderIdNumber)
 
-              console.log('📧 E-mail do usuário:', userData?.email)
+            if (itemsError) {
+              console.error('❌ Erro ao buscar itens:', itemsError)
+            }
 
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('full_name')
-                .eq('id', orderData.user_id)
-                .single()
+            console.log('📦 Itens encontrados:', itemsData?.length || 0)
 
-              for (const item of produtosDigitais) {
-                console.log('📧 Enviando e-book para:', userData?.email)
-                console.log('📚 Produto:', item.products?.name)
-                console.log('🔗 Link:', item.products?.file_url)
+            if (itemsData && itemsData.length > 0) {
+              // 🔥 FILTRAR PRODUTOS DIGITAIS
+              const produtosDigitais = itemsData.filter((item: any) => {
+                console.log('📦 Item:', item.product_id, item.products?.name, 'is_digital:', item.products?.is_digital)
+                return item.products?.is_digital === true
+              })
+              
+              console.log('📦 Produtos digitais encontrados:', produtosDigitais.length)
 
-                const result = await enviarEbookPorEmail({
-                  email: userData?.email || '',
-                  nome: profile?.full_name || 'Usuário',
-                  produtoNome: item.products?.name || 'E-book',
-                  fileUrl: item.products?.file_url || '',
-                  pedidoId: orderIdNumber
-                })
+              if (produtosDigitais.length > 0) {
+                // 🔥 BUSCAR E-MAIL DO USUÁRIO
+                const { data: userData } = await supabase
+                  .from('auth.users')
+                  .select('email')
+                  .eq('id', orderData.user_id)
+                  .single()
 
-                console.log('📧 Resultado do envio:', result)
+                console.log('📧 E-mail do usuário:', userData?.email)
+
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('full_name')
+                  .eq('id', orderData.user_id)
+                  .single()
+
+                for (const item of produtosDigitais) {
+                  console.log('📧 Enviando e-book para:', userData?.email)
+                  console.log('📚 Produto:', item.products?.name)
+                  console.log('🔗 Link:', item.products?.file_url)
+
+                  const result = await enviarEbookPorEmail({
+                    email: userData?.email || '',
+                    nome: profile?.full_name || 'Usuário',
+                    produtoNome: item.products?.name || 'E-book',
+                    fileUrl: item.products?.file_url || '',
+                    pedidoId: orderIdNumber
+                  })
+
+                  console.log('📧 Resultado do envio:', result)
+                }
+
+                console.log(`✅ E-books enviados para ${userData?.email}`)
+              } else {
+                console.log('⚠️ Nenhum produto digital encontrado no pedido')
               }
-
-              console.log(`✅ E-books enviados para ${userData?.email}`)
             } else {
-              console.log('⚠️ Nenhum produto digital encontrado no pedido')
+              console.log('⚠️ Nenhum item encontrado no pedido')
             }
           } else {
-            console.log('⚠️ OrderData sem items:', orderData)
+            console.log('⚠️ Pedido não encontrado:', orderIdNumber)
           }
         } else {
           console.log('⚠️ Não foi possível extrair o Order ID do external_reference:', externalReference)
