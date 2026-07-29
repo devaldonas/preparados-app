@@ -2,64 +2,66 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    const { total, orderId, userEmail } = await request.json()
+    const { total, orderId, userEmail, items } = await request.json()
 
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
 
     if (!accessToken) {
-      throw new Error('Token do Mercado Pago não configurado')
+      console.error('❌ Token do Mercado Pago não configurado')
+      return NextResponse.json({
+        success: false,
+        error: 'Token do Mercado Pago não configurado'
+      }, { status: 500 })
     }
 
-    // 🔥 CRIAR PREFERÊNCIA DE PAGAMENTO
+    console.log('💰 Criando preferência para pedido:', orderId)
+    console.log('💰 Total:', total)
+    console.log('📧 E-mail:', userEmail)
+
+    // 🔥 CRIAR PREFERÊNCIA DE PAGAMENTO - APENAS PIX
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        items: [{
-          id: `order-${orderId}`,
-          title: `Pedido #${orderId}`,
-          description: `Pagamento do pedido ${orderId}`,
-          quantity: 1,
-          currency_id: 'BRL',
-          unit_price: Number(total)
-        }],
-        payer: {
-          email: userEmail
-        },
-        payment_methods: {
-          excluded_payment_methods: [],
-          excluded_payment_types: [
-            { id: 'ticket' },
-            { id: 'bank_transfer' },
-            { id: 'atm' }
-          ],
-          installments: 1
-        },
-        back_urls: {
-          success: `${process.env.NEXT_PUBLIC_APP_URL}/loja/pedidos`,
-          failure: `${process.env.NEXT_PUBLIC_APP_URL}/loja/carrinho`,
-          pending: `${process.env.NEXT_PUBLIC_APP_URL}/loja/checkout`
-        },
-        auto_return: 'approved',
-        notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/mercadopago/webhook`,
-        external_reference: `order_${orderId}`,
-        metadata: {
-          order_id: orderId
-        }
-      })
-    })
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${accessToken}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    items: [{
+      id: `order-${orderId}`,
+      title: `Pedido #${orderId} - PREPARADO`,
+      quantity: 1,
+      currency_id: 'BRL',
+      unit_price: Number(total)
+    }],
+    payer: {
+      email: userEmail
+    },
+    payment_methods: {
+      installments: 1
+    },
+    auto_return: 'approved',
+    notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/mercadopago/webhook`,
+    external_reference: `order_${orderId}`,
+    back_urls: {
+      success: `${process.env.NEXT_PUBLIC_APP_URL}/loja/pedidos`,
+      failure: `${process.env.NEXT_PUBLIC_APP_URL}/loja/carrinho`,
+      pending: `${process.env.NEXT_PUBLIC_APP_URL}/loja/checkout?order=${orderId}`
+    }
+  })
+})
 
     const data = await response.json()
 
     if (!response.ok) {
       console.error('❌ Erro Mercado Pago:', data)
-      throw new Error(data.message || 'Erro ao criar preferência')
+      return NextResponse.json({
+        success: false,
+        error: data.message || 'Erro ao criar preferência'
+      }, { status: response.status })
     }
 
     console.log('✅ Preferência criada:', data.id)
+    console.log('🔗 Link:', data.init_point)
 
     return NextResponse.json({
       success: true,
