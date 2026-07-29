@@ -7,7 +7,7 @@ export async function enviarEmailResend({
   to,
   subject,
   html,
-  from = 'PREPARADO <naoresponda@preparado.vercel.app>'
+  from = 'PREPARADO <onboarding@resend.dev>'
 }: {
   to: string
   subject: string
