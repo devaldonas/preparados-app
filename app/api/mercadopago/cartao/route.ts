@@ -2,10 +2,7 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    console.log('📦 Body recebido na API:', body)
-
-    const { pedidoId, valor, descricao, cliente } = body
+    const { pedidoId, valor, descricao, cliente } = await request.json()
 
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
 
@@ -17,11 +14,23 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
-    console.log('💰 Criando preferência para cartão:', pedidoId)
-    console.log('💰 Valor:', valor)
-    console.log('📧 E-mail:', cliente.email)
+    // 🔥 GARANTIR QUE A URL ESTÁ CORRETA
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://preparado.vercel.app'
+    const cleanBaseUrl = baseUrl.replace(/\/$/, '')
+    const webhookUrl = `${cleanBaseUrl}/api/mercadopago/webhook`
 
-    // 🔥 CRIAR PREFERÊNCIA DE PAGAMENTO
+    console.log('🔗 Webhook URL:', webhookUrl)
+    console.log('💰 Criando preferência para cartão:', pedidoId)
+
+    // 🔥 VALIDAR A URL
+    try {
+      new URL(webhookUrl)
+      console.log('✅ URL válida:', webhookUrl)
+    } catch (urlError) {
+      console.error('❌ URL inválida:', webhookUrl)
+      throw new Error(`URL do webhook inválida: ${webhookUrl}`)
+    }
+
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
@@ -46,12 +55,12 @@ export async function POST(request: Request) {
           default_installments: 1
         },
         back_urls: {
-          success: `${process.env.NEXT_PUBLIC_APP_URL}/loja/pedidos`,
-          failure: `${process.env.NEXT_PUBLIC_APP_URL}/loja/carrinho`,
-          pending: `${process.env.NEXT_PUBLIC_APP_URL}/loja/checkout?order=${pedidoId}`
+          success: `${cleanBaseUrl}/loja/pedidos`,
+          failure: `${cleanBaseUrl}/loja/carrinho`,
+          pending: `${cleanBaseUrl}/loja/checkout?order=${pedidoId}`
         },
         auto_return: 'approved',
-        notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/mercadopago/webhook`,
+        notification_url: webhookUrl,
         external_reference: `order_${pedidoId}`,
         metadata: {
           pedido_id: pedidoId
@@ -60,7 +69,6 @@ export async function POST(request: Request) {
     })
 
     const data = await response.json()
-    console.log('📦 Resposta do Mercado Pago:', data)
 
     if (!response.ok) {
       console.error('❌ Erro Mercado Pago:', data)
