@@ -1,8 +1,6 @@
 import { supabase } from './supabaseClient'
 
 // 🔥 Opção 1: Usar Resend (recomendado)
-// Cadastre-se em https://resend.com e pegue sua API key
-
 export async function enviarEmailResend({
   to,
   subject,
@@ -15,6 +13,11 @@ export async function enviarEmailResend({
   from?: string
 }) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY
+
+  console.log('📧📧📧 enviarEmailResend FOI CHAMADA!')
+  console.log('📧 Para:', to)
+  console.log('📧 Assunto:', subject)
+  console.log('🔑 RESEND_API_KEY existe?', !!RESEND_API_KEY)
 
   if (!RESEND_API_KEY) {
     console.error('❌ RESEND_API_KEY não configurada')
@@ -43,31 +46,13 @@ export async function enviarEmailResend({
       return { error: data.message || 'Erro ao enviar e-mail' }
     }
 
-    console.log('✅ E-mail enviado:', data.id)
+    console.log('✅ E-mail enviado com sucesso! ID:', data.id)
     return { success: true, id: data.id }
 
   } catch (error) {
     console.error('❌ Erro ao enviar e-mail:', error)
     return { error: 'Erro ao enviar e-mail' }
   }
-}
-
-// 🔥 Opção 2: Usar Nodemailer (SMTP)
-// Configure com Gmail, SendGrid, etc.
-
-export async function enviarEmailSMTP({
-  to,
-  subject,
-  html,
-  text
-}: {
-  to: string
-  subject: string
-  html: string
-  text?: string
-}) {
-  // Implementação com nodemailer
-  // ...
 }
 
 // 🔥 Função para enviar e-book
@@ -84,6 +69,19 @@ export async function enviarEbookPorEmail({
   fileUrl: string
   pedidoId: number
 }) {
+  console.log('📧📧📧 enviarEbookPorEmail FOI CHAMADA!')
+  console.log('📧 Para:', email)
+  console.log('📧 Nome:', nome)
+  console.log('📧 Produto:', produtoNome)
+  console.log('📧 Link:', fileUrl)
+  console.log('📧 Pedido:', pedidoId)
+
+  // 🔥 VERIFICAR SE O E-MAIL É VÁLIDO
+  if (!email) {
+    console.error('❌ E-mail vazio!')
+    return { error: 'E-mail vazio' }
+  }
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -111,7 +109,7 @@ export async function enviarEbookPorEmail({
         <p>Seu pedido foi confirmado e agora você pode baixar seu e-book clicando no botão abaixo:</p>
         
         <div style="text-align: center; margin: 30px 0;">
-          <a href="https://preparado.vercel.app/download/aph-primeiros-socorros" class="button">📖 Baixar E-book</a>
+          <a href="${fileUrl}" class="button">📖 Baixar E-book</a>
         </div>
         
         <div class="info">
