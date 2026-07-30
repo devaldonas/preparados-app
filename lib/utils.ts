@@ -1,4 +1,4 @@
-// lib/utils.ts (VERSÃO FINAL E DEFINITIVA)
+// lib/utils.ts
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
@@ -6,11 +6,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// 🔥 FUNÇÃO PARA FORMATAR DATA COM FUSO BRASÍLIA (UTC-3)
 export const formatDate = (date: string | Date, showTime: boolean = true) => {
   if (!date) return 'Data não disponível'
   
   try {
-    // 🔥 CONVERTER PARA DATE
     const data = typeof date === 'string' ? new Date(date) : date
     
     if (isNaN(data.getTime())) {

@@ -77,10 +77,19 @@ export async function enviarEbookPorEmail({
   console.log('📧 Pedido:', pedidoId)
 
   // 🔥 VERIFICAR SE O E-MAIL É VÁLIDO
-  if (!email) {
-    console.error('❌ E-mail vazio!')
-    return { error: 'E-mail vazio' }
+  if (!email || email === 'cliente@preparado.com') {
+    console.error('❌ E-mail inválido ou fallback:', email)
+    return { error: 'E-mail inválido' }
   }
+
+  // 🔥 DATA CORRIGIDA (BRASÍLIA - UTC-3)
+  const dataCorrigida = new Date()
+  dataCorrigida.setHours(dataCorrigida.getHours() - 3)
+  const dataFormatada = dataCorrigida.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  })
 
   const html = `
     <!DOCTYPE html>
@@ -103,23 +112,23 @@ export async function enviarEbookPorEmail({
         <h1>PREPARADO</h1>
       </div>
       <div class="content">
-        <h2>Olá, ${nome}!</h2>
+        <h2>Olá, ${nome || 'Cliente'}!</h2>
         <p>Parabéns pela sua compra do e-book <strong>"${produtoNome}"</strong>!</p>
         
         <p>Seu pedido foi confirmado e agora você pode baixar seu e-book clicando no botão abaixo:</p>
         
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${fileUrl}" class="button">📖 Baixar E-book</a>
+          <a href="${fileUrl}" class="button">Baixar E-book</a>
         </div>
         
         <div class="info">
           <p><strong> Detalhes do pedido:</strong></p>
           <p>Pedido #${pedidoId}</p>
-          import { formatDate } from './utils'
+          <p>Data: ${dataFormatada}</p>
           <p>E-mail: ${email}</p>
         </div>
         
-        <p><strong> Importante:</strong></p>
+        <p><strong>Importante:</strong></p>
         <ul style="color: #666; font-size: 14px;">
           <li>O link é válido por 30 dias.</li>
           <li>Não compartilhe este link com outras pessoas.</li>
@@ -130,7 +139,7 @@ export async function enviarEbookPorEmail({
           Agradecemos pela sua compra e esperamos que o conteúdo seja útil para sua preparação!
         </p>
         
-        <p>Com,<br><strong>Equipe PREPARADO</strong></p>
+        <p>Com ,<br><strong>Equipe PREPARADO</strong></p>
       </div>
       <div class="footer">
         <p>Este e-mail foi enviado automaticamente. Por favor, não responda.</p>
@@ -142,7 +151,7 @@ export async function enviarEbookPorEmail({
 
   return enviarEmailResend({
     to: email,
-    subject: `Seu e-book "${produtoNome}" chegou! - PREPARADO`,
+    subject: `📚 Seu e-book "${produtoNome}" chegou! - PREPARADO`,
     html
   })
 }
