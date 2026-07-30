@@ -17,7 +17,7 @@ export const formatDate = (date: string | Date, showTime: boolean = true) => {
       return 'Data inválida'
     }
     
-    // 🔥 SUBTRAIR 3 HORAS (BRASÍLIA)
+    // 🔥 SUBTRAIR 3 HORAS (BRASÍLIA - UTC-3)
     const horaBrasilia = new Date(data.getTime() - 3 * 60 * 60 * 1000)
     
     const dia = String(horaBrasilia.getDate()).padStart(2, '0')
