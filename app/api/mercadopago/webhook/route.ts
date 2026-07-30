@@ -121,75 +121,58 @@ export async function POST(request: Request) {
               if (produtosDigitais.length > 0) {
                 // 🔥 BUSCAR NOME E E-MAIL DO USUÁRIO
                 let userEmail = null
-                let userNome = 'Cliente'
+                let userNome = null
 
-                // 🔥 PRIMEIRO: Buscar do profiles (nome e email)
                 console.log('🔍 Buscando dados do usuário via profiles...')
                 const { data: profileData, error: profileError } = await supabase
                   .from('profiles')
-                  .select('full_name, email')
+                  .select('full_name')
                   .eq('id', orderData.user_id)
                   .single()
 
+                console.log('📦 profileData:', profileData)
+
                 if (profileError) {
                   console.error('❌ Erro ao buscar profiles:', profileError)
-                } else if (profileData) {
-                  // 🔥 SALVAR O NOME
-                  if (profileData.full_name) {
-                    userNome = profileData.full_name
-                    console.log('👤 Nome via profiles:', userNome)
-                  }
-                  
-                  // 🔥 SALVAR O E-MAIL (se existir)
-                  if (profileData.email) {
-                    userEmail = profileData.email
-                    console.log('📧 E-mail via profiles.email:', userEmail)
-                  }
+                } else if (profileData && profileData.full_name) {
+                  userNome = profileData.full_name
+                  console.log('👤 Nome via profiles:', userNome)
+                } else {
+                  console.log('⚠️ Nome não encontrado no profiles')
                 }
 
-                // 🔥 SEGUNDO: Se não encontrou email, tentar RPC
-                if (!userEmail) {
-                  try {
-                    console.log('🔍 Tentando buscar email via RPC get_user_email...')
-                    const { data: emailData, error: emailError } = await supabase
-                      .rpc('get_user_email', { user_id: orderData.user_id })
-
-                    if (emailError) {
-                      console.error('❌ Erro na RPC:', emailError)
-                    } else if (emailData) {
-                      userEmail = emailData
-                      console.log('📧 E-mail obtido via RPC get_user_email:', userEmail)
-                    }
-                  } catch (rpcError) {
-                    console.error('❌ Exceção na RPC:', rpcError)
-                  }
+                // 🔥 SE NOME CONTINUAR NULL, USAR 'Cliente'
+                if (!userNome) {
+                  userNome = 'Cliente'
+                  console.log('⚠️ Usando nome padrão:', userNome)
                 }
 
-                // 🔥 TERCEIRO: Se ainda não tem email, usar email do pedido
-                if (!userEmail) {
-                  console.log('⚠️ Nenhum email encontrado, tentando email do pedido...')
-                  const { data: orderWithEmail } = await supabase
-                    .from('orders')
-                    .select('user_email')
-                    .eq('id', orderIdNumber)
-                    .single()
-                  
-                  if (orderWithEmail?.user_email) {
-                    userEmail = orderWithEmail.user_email
-                    console.log('📧 E-mail do pedido:', userEmail)
+                // 🔥 BUSCAR E-MAIL VIA RPC
+                console.log('🔍 Buscando email via RPC...')
+                try {
+                  const { data: emailData, error: emailError } = await supabase
+                    .rpc('get_user_email', { user_id: orderData.user_id })
+
+                  if (emailError) {
+                    console.error('❌ Erro na RPC:', emailError)
+                  } else if (emailData) {
+                    userEmail = emailData
+                    console.log('📧 E-mail via RPC:', userEmail)
                   }
+                } catch (rpcError) {
+                  console.error('❌ Exceção na RPC:', rpcError)
                 }
 
-                // 🔥 QUARTO: Último fallback
+                // 🔥 FALLBACK FINAL
                 if (!userEmail) {
                   userEmail = 'cliente@preparado.com'
-                  console.log('⚠️ Nenhum email encontrado, usando fallback:', userEmail)
+                  console.log('⚠️ Usando email fallback:', userEmail)
                 }
 
-                // 🔥 ENVIAR O E-BOOK
-                console.log('📧 Enviando e-book para:', userEmail)
-                console.log('👤 Nome do usuário:', userNome)
+                console.log('📧 E-mail final:', userEmail)
+                console.log('👤 Nome final:', userNome)
 
+                // 🔥 ENVIAR E-BOOK
                 for (const item of produtosDigitais) {
                   console.log('📚 Produto:', item.products?.name)
                   console.log('🔗 Link:', item.products?.file_url)

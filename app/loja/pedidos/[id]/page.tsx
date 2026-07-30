@@ -184,9 +184,9 @@ export default function DetalhePedido({ params }: { params: Promise<{ id: string
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="font-display text-2xl font-bold text-gray-900">
-              Pedido #{order.transaction_id?.slice(-8) || order.id}
-            </h1>
+           <p className="text-sm font-medium text-gray-900">
+              Pedido #{order.id}
+           </p>
             <p className="text-sm text-gray-500">
               Realizado em {formatDate(order.created_at)}
             </p>
