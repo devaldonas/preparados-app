@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Package, ChevronRight, Clock, CheckCircle, Truck, AlertCircle, Eye } from 'lucide-react'
-
+import { formatDate } from '@/lib/utils'
 interface Order {
   id: number
   user_id: string
@@ -79,14 +79,29 @@ export default function PedidosPage() {
   }
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR', {
+  if (!date) return 'Data não disponível'
+  
+  try {
+    const data = new Date(date)
+    if (isNaN(data.getTime())) {
+      return 'Data inválida'
+    }
+    
+    // 🔥 SUBTRAIR 3 HORAS PARA BRASÍLIA (UTC-3)
+    const horaBrasilia = new Date(data.getTime() - 3 * 60 * 60 * 1000)
+    
+    return horaBrasilia.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     })
+  } catch (error) {
+    console.error('Erro ao formatar data:', error)
+    return 'Data inválida'
   }
+}
 
   const getStatusInfo = (status: string) => {
     const map: Record<string, { label: string; icon: any; color: string }> = {
@@ -170,7 +185,7 @@ export default function PedidosPage() {
                           Pedido #{order.id}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {formatDate(order.created_at)}
+                          {formatDate(order.created_at)}  {/* 🔥 JÁ ESTÁ CORRETO */}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1">

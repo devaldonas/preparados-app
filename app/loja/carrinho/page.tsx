@@ -101,16 +101,15 @@ export default function Carrinho() {
     const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
 
     // 🔥 CRIAR PEDIDO - SEM AJUSTE MANUAL
-    const orderData = {
+const orderData = {
   user_id: user.id,
   total_amount: total,
   payment_method: paymentMethod,
   payment_status: 'pending',
   status: 'pending',
   transaction_id: orderNumber,
-  shipping_address: JSON.stringify(shippingAddress),
+  shipping_address: JSON.stringify(shippingAddress)
   // 🔥 REMOVER created_at - O Supabase vai usar DEFAULT NOW() no banco
-  // created_at: new Date().toISOString()
 }
 
     console.log('📦 Dados do pedido:', orderData)
