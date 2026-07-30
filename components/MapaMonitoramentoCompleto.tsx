@@ -1,231 +1,486 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
+import 'leaflet/dist/leaflet.css'
 
-interface Evento {
+// 🔥 IMPORTS DINÂMICOS (SSR: false)
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+)
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+)
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+)
+const Popup = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+)
+const Circle = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Circle),
+  { ssr: false }
+)
+
+// 🔥 NÃO IMPORTAR LEAFLET ESTATICAMENTE
+// import L from 'leaflet'  ← REMOVER
+
+interface DisasterEvent {
   id: string
-  magnitude: number
-  lugar: string
-  data: string
-  url: string
-  lat: number
-  lng: number
+  type: string
+  typeCode: string
+  title: string
+  description: string
+  latitude: number
+  longitude: number
+  magnitude?: number
+  depth?: number
+  alertLevel: 'green' | 'orange' | 'red'
+  alertLevelLabel: string
+  date: string
+  country: string
+  region: string
+  source: string
 }
 
-export default function MapaMonitoramentoCompleto() {
-  const [eventos, setEventos] = useState<Evento[]>([])
-  const [carregando, setCarregando] = useState(true)
-  const [ultimaAtualizacao, setUltimaAtualizacao] = useState('')
-  const [erro, setErro] = useState('')
-  const [mapaCarregado, setMapaCarregado] = useState(false)
-  const mapRef = useRef<HTMLDivElement>(null)
-  const mapaInstanceRef = useRef<any>(null)
-  const markersRef = useRef<any[]>([])
+// 🔥 CORES POR TIPO DE DESASTRE
+const disasterColors: Record<string, string> = {
+  'Terremoto': '#FF4444',
+  'Inundação': '#4488FF',
+  'Ciclone': '#AA44FF',
+  'Incêndio': '#FF8800',
+  'Vulcão': '#CC0000',
+  'Seca': '#CC8844',
+  'Tsunami': '#00AAAA',
+  'Desconhecido': '#888888'
+}
 
-  const buscarEventos = async () => {
+// 🔥 CORES POR NÍVEL DE ALERTA
+const alertColors: Record<string, string> = {
+  'red': '#FF0000',
+  'orange': '#FF8800',
+  'green': '#00CC44'
+}
+
+// 🔥 EMOJIS POR TIPO
+const disasterEmojis: Record<string, string> = {
+  'Terremoto': '🌍',
+  'Inundação': '🌊',
+  'Ciclone': '🌀',
+  'Incêndio': '🔥',
+  'Vulcão': '🌋',
+  'Seca': '☀️',
+  'Tsunami': '🌊',
+  'Desconhecido': '❓'
+}
+
+// 🔥 ESCALA DE MAGNITUDE
+const getMagnitudeLabel = (magnitude: number): string => {
+  if (magnitude >= 9) return 'Catastrófico (Mega)'
+  if (magnitude >= 8) return 'Catastrófico'
+  if (magnitude >= 7) return 'Grande'
+  if (magnitude >= 6) return 'Forte'
+  if (magnitude >= 5) return 'Moderado'
+  if (magnitude >= 4) return 'Leve'
+  if (magnitude >= 3) return 'Pequeno'
+  return 'Micro'
+}
+
+// 🔥 FUNÇÃO PARA CALCULAR RAIO DO CÍRCULO
+const getCircleRadius = (event: DisasterEvent): number => {
+  if (event.type === 'Terremoto' && event.magnitude) {
+    return Math.pow(2, event.magnitude - 4) * 10
+  }
+  if (event.type === 'Inundação') {
+    return event.alertLevel === 'red' ? 150 : 
+           event.alertLevel === 'orange' ? 80 : 30
+  }
+  if (event.type === 'Ciclone') {
+    return event.alertLevel === 'red' ? 200 : 
+           event.alertLevel === 'orange' ? 120 : 50
+  }
+  if (event.type === 'Incêndio') {
+    return event.alertLevel === 'red' ? 80 : 
+           event.alertLevel === 'orange' ? 40 : 15
+  }
+  return 20
+}
+
+// 🔥 FILTROS
+const disasterTypes = [
+  { value: 'ALL', label: 'Todos' },
+  { value: 'Terremoto', label: '🌍 Terremotos' },
+  { value: 'Inundação', label: '🌊 Inundações' },
+  { value: 'Ciclone', label: '🌀 Ciclones' },
+  { value: 'Incêndio', label: '🔥 Incêndios' },
+  { value: 'Vulcão', label: '🌋 Vulcões' },
+  { value: 'Seca', label: '☀️ Secas' },
+]
+
+const alertLevels = [
+  { value: 'ALL', label: 'Todos' },
+  { value: 'red', label: '🔴 Crítico' },
+  { value: 'orange', label: '🟠 Alerta' },
+  { value: 'green', label: '🟢 Monitoramento' },
+]
+
+export default function MapaMonitoramentoCompleto() {
+  const [events, setEvents] = useState<DisasterEvent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filterType, setFilterType] = useState('ALL')
+  const [filterAlert, setFilterAlert] = useState('ALL')
+  const [error, setError] = useState<string | null>(null)
+  const [stats, setStats] = useState({ total: 0, red: 0, orange: 0, green: 0 })
+  const [isClient, setIsClient] = useState(false)
+  const [L, setL] = useState<any>(null)
+
+  const center: [number, number] = [-14.2350, -51.9253]
+  const zoom = 4
+
+  useEffect(() => {
+    setIsClient(true)
+    
+    // 🔥 CARREGAR LEAFLET APENAS NO CLIENTE
+    import('leaflet').then((module) => {
+      const leaflet = module.default
+      
+      // 🔥 CORRIGIR ÍCONES DO LEAFLET
+      delete (leaflet.Icon.Default.prototype as any)._getIconUrl
+      leaflet.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+      })
+      
+      setL(leaflet)
+      carregarEventos()
+    })
+  }, [])
+
+  const carregarEventos = async () => {
     try {
-      setCarregando(true)
-      const response = await fetch(
-        'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson'
-      )
+      setLoading(true)
+      setError(null)
+
+      const response = await fetch('/api/disasters')
       const data = await response.json()
 
-      const eventosFormatados = data.features.map((feature: any) => ({
-        id: feature.id,
-        magnitude: feature.properties.mag,
-        lugar: feature.properties.place,
-        data: new Date(feature.properties.time).toLocaleString(),
-        url: feature.properties.url,
-        lat: feature.geometry.coordinates[1],
-        lng: feature.geometry.coordinates[0],
-      }))
-
-      setEventos(eventosFormatados)
-      setUltimaAtualizacao(new Date().toLocaleTimeString())
-      setErro('')
-      
-      if (mapaInstanceRef.current) {
-        atualizarMarcadores(eventosFormatados)
+      if (!data.success) {
+        throw new Error(data.error || 'Erro ao carregar eventos')
       }
+
+      setEvents(data.events || [])
+      
+      const stats = {
+        total: data.events?.length || 0,
+        red: data.events?.filter((e: DisasterEvent) => e.alertLevel === 'red').length || 0,
+        orange: data.events?.filter((e: DisasterEvent) => e.alertLevel === 'orange').length || 0,
+        green: data.events?.filter((e: DisasterEvent) => e.alertLevel === 'green').length || 0,
+      }
+      setStats(stats)
+
     } catch (error) {
-      console.error('Erro ao buscar terremotos:', error)
-      setErro('Não foi possível carregar os dados')
+      console.error('❌ Erro ao carregar eventos:', error)
+      setError('Erro ao carregar dados de monitoramento')
     } finally {
-      setCarregando(false)
+      setLoading(false)
     }
   }
 
-  const carregarMapa = () => {
-    if (mapaCarregado || typeof window === 'undefined') return
-
-    Promise.all([
-      import('leaflet'),
-      import('leaflet/dist/leaflet.css')
-    ]).then(([L]) => {
-      if (!mapRef.current || mapaInstanceRef.current) return
-
-      const map = L.map(mapRef.current).setView([20, 0], 2)
-      
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map)
-
-      mapaInstanceRef.current = map
-      setMapaCarregado(true)
-      
-      if (eventos.length > 0) {
-        atualizarMarcadores(eventos)
-      }
-    }).catch(err => {
-      console.error('Erro ao carregar Leaflet:', err)
-      setErro('Erro ao carregar o mapa')
+  // 🔥 FUNÇÃO PARA CRIAR ÍCONE (usa L carregado dinamicamente)
+  const createIcon = (type: string, alertLevel: string) => {
+    if (!L) return null
+    
+    const alertColor = alertColors[alertLevel] || '#888888'
+    
+    return L.divIcon({
+      className: 'custom-disaster-marker',
+      html: `
+        <div style="
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: ${alertColor};
+          border: 3px solid white;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+          color: white;
+          font-weight: bold;
+        ">
+          ${disasterEmojis[type] || '⚠️'}
+        </div>
+      `,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      popupAnchor: [0, -16]
     })
   }
 
-  const atualizarMarcadores = (eventosLista: Evento[]) => {
-    if (!mapaInstanceRef.current) return
+  const filteredEvents = events.filter(event => {
+    if (filterType !== 'ALL' && event.type !== filterType) return false
+    if (filterAlert !== 'ALL' && event.alertLevel !== filterAlert) return false
+    return true
+  })
 
-    markersRef.current.forEach(marker => {
-      marker.remove()
-    })
-    markersRef.current = []
-
-    const L = (window as any).L
-    if (!L) return
-
-    eventosLista.forEach(evento => {
-      const cor = evento.magnitude >= 5 ? '#c0392b' : (evento.magnitude >= 4 ? '#e67e22' : '#3498db')
-      const tamanho = evento.magnitude >= 5 ? 12 : 8
-      
-      const icon = L.divIcon({
-        className: 'custom-div-icon',
-        html: `<div style="background-color:${cor}; width:${tamanho}px; height:${tamanho}px; border-radius:50%; border:2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>`,
-        iconSize: [tamanho, tamanho],
-        iconAnchor: [tamanho/2, tamanho/2]
-      })
-
-      const marker = L.marker([evento.lat, evento.lng], { icon })
-        .bindPopup(`
-          <strong>Terremoto Magnitude ${evento.magnitude}</strong><br>
-          ${evento.lugar}<br>
-          ${evento.data}<br>
-          <a href="${evento.url}" target="_blank" rel="noopener noreferrer">Ver no USGS →</a>
-        `)
-        .addTo(mapaInstanceRef.current)
-      
-      markersRef.current.push(marker)
+  const formatDate = (date: string) => {
+    const d = new Date(date)
+    d.setHours(d.getHours() - 3)
+    return d.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     })
   }
 
-  useEffect(() => {
-    buscarEventos()
-    const interval = setInterval(buscarEventos, 300000)
-    return () => clearInterval(interval)
-  }, [])
+  if (!isClient || !L || loading) {
+    return (
+      <div className="w-full h-[500px] rounded-xl overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800] mx-auto" />
+          <p className="text-sm text-gray-500 mt-4">Carregando monitoramento global...</p>
+        </div>
+      </div>
+    )
+  }
 
-  useEffect(() => {
-    carregarMapa()
-  }, [])
-
-  const getSeveridadeClass = (mag: number) => {
-    if (mag >= 5) return 'text-red-600 font-bold'
-    if (mag >= 4) return 'text-orange-500 font-bold'
-    return 'text-blue-500'
+  if (error) {
+    return (
+      <div className="w-full h-[500px] rounded-xl overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 text-sm">{error}</p>
+          <button
+            onClick={carregarEventos}
+            className="mt-4 bg-[#FFB800] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-cyan-50">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🌍</span>
-            <div>
-              <h3 className="font-semibold text-gray-900">Monitoramento Global - Terremotos</h3>
-              <p className="text-xs text-gray-500">
-                Últimas 24h (Magnitude ≥ 2.5) | Fonte: USGS
+    <div className="relative">
+      {/* HEADER */}
+      <div className="bg-[#FFB800] p-3 rounded-t-xl">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🌍</span>
+            <h3 className="font-bold text-black">Monitoramento Global</h3>
+          </div>
+          <div className="flex items-center gap-4 text-xs font-medium text-black/80">
+            <span>📍 {stats.total} eventos</span>
+            <span className="text-red-600">● {stats.red} crítico</span>
+            <span className="text-orange-500">● {stats.orange} alerta</span>
+            <span className="text-green-600">● {stats.green} monitoramento</span>
+          </div>
+        </div>
+      </div>
+
+      {/* FILTROS */}
+      <div className="bg-white border-x border-gray-200 p-3 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-600">Tipo:</span>
+          <div className="flex gap-1 flex-wrap">
+            {disasterTypes.map((type) => (
+              <button
+                key={type.value}
+                onClick={() => setFilterType(type.value)}
+                className={`px-2 py-1 rounded-full text-xs transition ${
+                  filterType === type.value
+                    ? 'bg-[#FFB800] text-black font-semibold'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-xs font-medium text-gray-600">Alerta:</span>
+          <div className="flex gap-1 flex-wrap">
+            {alertLevels.map((level) => (
+              <button
+                key={level.value}
+                onClick={() => setFilterAlert(level.value)}
+                className={`px-2 py-1 rounded-full text-xs transition ${
+                  filterAlert === level.value
+                    ? 'bg-[#FFB800] text-black font-semibold'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {level.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* MAPA */}
+      <div className="relative w-full h-[500px] overflow-hidden border border-gray-200 rounded-b-xl">
+        <MapContainer
+          center={center}
+          zoom={zoom}
+          style={{ width: '100%', height: '100%' }}
+          zoomControl={false}
+          attributionControl={false}
+        >
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; CartoDB'
+          />
+
+          {/* CÍRCULOS E MARCADORES DOS EVENTOS */}
+          {filteredEvents.map((event) => {
+            if (!event.latitude || !event.longitude) return null
+            
+            const icon = createIcon(event.type, event.alertLevel)
+            if (!icon) return null
+            
+            const radius = getCircleRadius(event)
+            const color = alertColors[event.alertLevel] || '#888888'
+            
+            return (
+              <div key={event.id}>
+                {/* CÍRCULO DE RAIO */}
+                <Circle
+                  center={[event.latitude, event.longitude]}
+                  radius={radius * 1000}
+                  pathOptions={{
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.15,
+                    weight: 2,
+                    opacity: 0.6,
+                    dashArray: '5, 5'
+                  }}
+                />
+                
+                {/* MARCADOR */}
+                <Marker
+                  position={[event.latitude, event.longitude]}
+                  icon={icon}
+                >
+                  <Popup>
+                    <div className="p-2 min-w-[220px] max-w-[280px]">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">{disasterEmojis[event.type] || '⚠️'}</span>
+                        <div>
+                          <p className="font-bold text-gray-900 text-sm">{event.title}</p>
+                          <p className="text-xs text-gray-500">{event.type}</p>
+                        </div>
+                      </div>
+                      
+                      {/* ESCALA DA OCORRÊNCIA */}
+                      <div className="bg-gray-50 rounded-lg p-2 mb-2 border border-gray-200">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-medium text-gray-700">Escala:</span>
+                          {event.type === 'Terremoto' && event.magnitude ? (
+                            <span className="font-bold text-red-600">
+                              Magnitude {event.magnitude.toFixed(1)} - {getMagnitudeLabel(event.magnitude)}
+                            </span>
+                          ) : event.type === 'Ciclone' ? (
+                            <span className="font-bold text-purple-600">
+                              Categoria {event.alertLevel === 'red' ? '3+' : 
+                                        event.alertLevel === 'orange' ? '2' : '1'}
+                            </span>
+                          ) : event.type === 'Incêndio' ? (
+                            <span className="font-bold text-orange-600">
+                              {event.alertLevel === 'red' ? 'Grande' : 
+                               event.alertLevel === 'orange' ? 'Médio' : 'Pequeno'}
+                            </span>
+                          ) : (
+                            <span className="font-bold text-blue-600">
+                              {event.alertLevel === 'red' ? 'Severo' : 
+                               event.alertLevel === 'orange' ? 'Moderado' : 'Leve'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-xs mt-1">
+                          <span className="text-gray-500">Raio de abrangência:</span>
+                          <span className="font-medium text-gray-700">{radius} km</span>
+                        </div>
+                        {event.depth && (
+                          <div className="flex items-center justify-between text-xs mt-1">
+                            <span className="text-gray-500">Profundidade:</span>
+                            <span className="font-medium text-gray-700">{event.depth} km</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* STATUS DO ALERTA */}
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`inline-block w-2 h-2 rounded-full ${
+                          event.alertLevel === 'red' ? 'bg-red-500' :
+                          event.alertLevel === 'orange' ? 'bg-orange-500' :
+                          'bg-green-500'
+                        }`} />
+                        <span className="text-xs font-medium">
+                          {event.alertLevelLabel}
+                        </span>
+                        {event.alertLevel === 'red' && (
+                          <span className="text-[0.55rem] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">
+                            ⚠️ Atenção
+                          </span>
+                        )}
+                      </div>
+                      
+                      {event.country && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          📍 {event.country}{event.region ? ` - ${event.region}` : ''}
+                        </p>
+                      )}
+                      
+                      <p className="text-xs text-gray-400 mt-1">
+                        {formatDate(event.date)}
+                      </p>
+                      
+                      {event.description && (
+                        <p className="text-xs text-gray-600 mt-2 border-t border-gray-100 pt-2">
+                          {event.description}
+                        </p>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              </div>
+            )
+          })}
+
+          {/* LEGENDA */}
+          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-3 text-xs z-10 border border-gray-200">
+            <p className="font-semibold text-gray-800 mb-1">Legenda</p>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-red-500" />
+                <span className="text-gray-600">Crítico</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-orange-500" />
+                <span className="text-gray-600">Alerta</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-green-500" />
+                <span className="text-gray-600">Monitoramento</span>
+              </div>
+            </div>
+            <div className="border-t border-gray-200 mt-2 pt-2">
+              <p className="text-[0.55rem] text-gray-400">
+                Círculos representam a área de abrangência
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">
-              {ultimaAtualizacao && `Atualizado: ${ultimaAtualizacao}`}
-            </span>
-            <button
-              onClick={buscarEventos}
-              disabled={carregando}
-              className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200 transition disabled:opacity-50"
-            >
-              {carregando ? '⏳' : '🔄'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col lg:flex-row">
-        <div className="flex-1 h-[400px] lg:h-[500px] relative">
-          <div ref={mapRef} className="w-full h-full" />
-          {!mapaCarregado && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700"></div>
-            </div>
-          )}
-        </div>
-
-        <div className="w-full lg:w-80 bg-gray-50 border-l border-gray-200 flex flex-col">
-          <div className="p-3 bg-gray-100 border-b border-gray-200">
-            <h4 className="font-semibold text-gray-700 text-sm">📋 Eventos Recentes</h4>
-            <p className="text-xs text-gray-400">{eventos.length} terremotos nas últimas 24h</p>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto max-h-[300px] lg:max-h-[450px]">
-            {carregando && eventos.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">Carregando eventos...</div>
-            ) : erro ? (
-              <div className="p-4 text-center text-red-500 text-sm">{erro}</div>
-            ) : eventos.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">Nenhum evento significativo detectado.</div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {eventos.slice(0, 30).map((evento) => (
-                  <div key={evento.id} className="p-3 hover:bg-white transition">
-                    <div className={`text-sm ${getSeveridadeClass(evento.magnitude)}`}>
-                      Terremoto M {evento.magnitude}
-                    </div>
-                    <div className="text-xs text-gray-600 mt-0.5 truncate" title={evento.lugar}>
-                      {evento.lugar}
-                    </div>
-                    <div className="text-xs text-gray-400 mt-0.5">
-                      {evento.data}
-                    </div>
-                    <a
-                      href={evento.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-500 hover:underline mt-1 inline-block"
-                    >
-                      Mais detalhes →
-                    </a>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="p-3 border-t border-gray-100 bg-gray-50 text-xs text-gray-500 flex flex-wrap justify-center gap-4">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-red-600 rounded-full"></div>
-          <span>Magnitude ≥ 5 (Alto)</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-          <span>Magnitude 4 - 4.9 (Médio)</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-          <span>Magnitude 2.5 - 3.9 (Baixo)</span>
-        </div>
+        </MapContainer>
       </div>
     </div>
   )
