@@ -1,3 +1,13 @@
+// lib/utils.ts
+import { type ClassValue, clsx } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+// 🔥 FUNÇÃO cn (para merge de classes Tailwind)
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+// 🔥 FUNÇÃO formatDate
 export const formatDate = (date: string | Date, showTime: boolean = true) => {
   if (!date) return 'Data não disponível'
   
