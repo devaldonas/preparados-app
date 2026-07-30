@@ -150,7 +150,7 @@ export async function enviarEbookPorEmail({
 
   return enviarEmailResend({
     to: email,
-    subject: `📚 Seu e-book "${produtoNome}" chegou! - PREPARADO`,
+    subject: `Seu e-book "${produtoNome}" chegou! - PREPARADO`,
     html
   })
 }

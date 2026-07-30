@@ -5,7 +5,6 @@ import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabaseClient'
-import NavBar from '@/components/NavBar'
 import { formatDate } from '@/lib/utils' 
 import { ArrowLeft, Package, Clock, CheckCircle, Truck, AlertCircle, Printer } from 'lucide-react'
 
@@ -179,8 +178,6 @@ export default function DetalhePedido({ params }: { params: Promise<{ id: string
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <NavBar showBackButton={true} backButtonPath="/loja/pedidos" />
-      
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
