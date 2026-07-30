@@ -99,16 +99,22 @@ export default function Carrinho() {
     console.log('📦 Endereço final:', shippingAddress)
 
     const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+
+    // 🔥 CRIAR PEDIDO COM DATA CORRIGIDA
+    const now = new Date()
+    // 🔥 SUBTRAIR 3 HORAS PARA BRASÍLIA
+    const brasiliaTime = new Date(now.getTime() - 3 * 60 * 60 * 1000)
     
     const orderData = {
-      user_id: user.id,
-      total_amount: total,
-      payment_method: paymentMethod,
-      payment_status: 'pending',
-      status: 'pending',
-      transaction_id: orderNumber,
-      shipping_address: JSON.stringify(shippingAddress)
-    }
+  user_id: user.id,
+  total_amount: total,
+  payment_method: paymentMethod,
+  payment_status: 'pending',
+  status: 'pending',
+  transaction_id: orderNumber,
+  shipping_address: JSON.stringify(shippingAddress),
+  created_at: brasiliaTime.toISOString()  // 🔥 DATA CORRIGIDA
+}
 
     console.log('📦 Dados do pedido:', orderData)
 
