@@ -82,14 +82,13 @@ export async function enviarEbookPorEmail({
     return { error: 'E-mail inválido' }
   }
 
-  // 🔥 DATA CORRIGIDA (BRASÍLIA - UTC-3)
-  const dataCorrigida = new Date()
-  dataCorrigida.setHours(dataCorrigida.getHours() - 3)
-  const dataFormatada = dataCorrigida.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
+  // 🔥 DATA CORRIGIDA (BRASÍLIA - UTC)
+  
+  const dataFormatada = new Date().toLocaleDateString('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric'
+})
 
   const html = `
     <!DOCTYPE html>
