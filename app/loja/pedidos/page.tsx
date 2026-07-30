@@ -166,8 +166,8 @@ export default function PedidosPage() {
                   <div className="p-5">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
-                        <p className="font-display font-bold text-gray-900">
-                          Pedido #{order.transaction_id?.slice(-8) || order.id}
+                        <p className="text-sm font-medium text-gray-900">
+                          Pedido #{order.id}
                         </p>
                         <p className="text-xs text-gray-500">
                           {formatDate(order.created_at)}
