@@ -100,11 +100,7 @@ export default function Carrinho() {
 
     const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
 
-    // 🔥 CRIAR PEDIDO COM DATA CORRIGIDA
-    const now = new Date()
-    // 🔥 SUBTRAIR 3 HORAS PARA BRASÍLIA
-    const brasiliaTime = new Date(now.getTime() - 3 * 60 * 60 * 1000)
-    
+    // 🔥 CRIAR PEDIDO - SEM AJUSTE MANUAL
     const orderData = {
   user_id: user.id,
   total_amount: total,
@@ -113,7 +109,8 @@ export default function Carrinho() {
   status: 'pending',
   transaction_id: orderNumber,
   shipping_address: JSON.stringify(shippingAddress),
-  created_at: brasiliaTime.toISOString()  // 🔥 DATA CORRIGIDA
+  // 🔥 REMOVER created_at - O Supabase vai usar DEFAULT NOW() no banco
+  // created_at: new Date().toISOString()
 }
 
     console.log('📦 Dados do pedido:', orderData)
