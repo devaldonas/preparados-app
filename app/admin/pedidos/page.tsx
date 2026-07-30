@@ -376,10 +376,8 @@ export default function AdminPedidos() {
                     
                     return (
                       <tr key={order.id} className="hover:bg-gray-50 transition">
-                        <td className="px-4 py-3">
-                          <span className="font-mono text-sm text-gray-900">
-                            #{order.transaction_id?.slice(-8) || order.id}
-                          </span>
+                        <td className="px-4 py-3 font-medium text-gray-900">
+                          #{order.id}
                         </td>
                         <td className="px-4 py-3">
                           <div>

@@ -115,7 +115,7 @@ export async function enviarEbookPorEmail({
         <div class="info">
           <p><strong> Detalhes do pedido:</strong></p>
           <p>Pedido #${pedidoId}</p>
-          <p>Data: ${new Date().toLocaleDateString('pt-BR')}</p>
+          import { formatDate } from './utils'
           <p>E-mail: ${email}</p>
         </div>
         
