@@ -274,7 +274,6 @@ export default function MapaMonitoramentoCompleto() {
       <div className="bg-[#FFB800] p-3 rounded-t-xl">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🌍</span>
             <h3 className="font-bold text-black">Monitoramento Global</h3>
           </div>
           <div className="flex items-center gap-4 text-xs font-medium text-black/80">
