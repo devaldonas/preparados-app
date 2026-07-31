@@ -343,9 +343,9 @@ const checkAdminStatus = async (userId: string) => {
 
         {/* Mapa de Monitoramento Global com fundo preto */}
         <div className="mb-8">
-          <div className="bg-[#FFB800] rounded-xl overflow-hidden">
+          <div className="bg-[#000000] rounded-xl overflow-hidden">
             <div className="p-1 border-b border-[#FFB800]-800">
-              <h3 className="font-semibold text-[#FFB800] flex items-center gap-2">
+              <h3 className="font-semibold text-[#080808] flex items-center gap-2">
                 <span className="text-xl"></span> Monitoramento Global - Terremotos
               </h3>
             </div>
