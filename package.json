@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.105.3",
     "@trpc/client": "^11.17.0",
@@ -16,6 +17,7 @@
     "autoprefixer": "^10.5.0",
     "axios": "^1.18.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "geolib": "^3.3.14",
     "leaflet": "^1.9.4",

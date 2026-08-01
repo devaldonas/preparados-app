@@ -1,4 +1,3 @@
-// app/dashboard/page.tsx (APENAS CORREÇÃO DO LINK)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -9,8 +8,7 @@ import Link from 'next/link'
 import RadioPlayer from '@/components/RadioPlayer'
 import MapaMonitoramentoCompleto from '@/components/MapaMonitoramentoCompleto'
 import GuiaPreparacaoCard from '@/components/GuiaPreparacaoCard'
-
-
+import RadioCard from '@/components/Radio/RadioCard'
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
@@ -22,47 +20,62 @@ export default function Dashboard() {
   const router = useRouter()
   const [mostrarRadio, setMostrarRadio] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [onlineUsers, setOnlineUsers] = useState(0)
 
   useEffect(() => {
-  const getUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/auth/login')
-    } else {
-      setUser(user)
-      await loadProfile(user.id)
-      await loadProgress(user.id)
-      await checkCheckinStatus(user.id)
-      await checkAdminStatus(user.id)
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+      } else {
+        setUser(user)
+        await loadProfile(user.id)
+        await loadProgress(user.id)
+        await checkCheckinStatus(user.id)
+        await checkAdminStatus(user.id)
+        await loadOnlineUsers()
+      }
+      setLoading(false)
     }
-    setLoading(false)
-  }
-  getUser()
-}, [])
+    getUser()
+  }, [])
 
-const loadProfile = async (userId: string) => {
-  const { data } = await supabase
-    .from('profiles')
-    .select('full_name, mochila_tipo')
-    .eq('id', userId)
-    .single()
-  
-  if (data && user) {
-    setUser({ ...user, user_metadata: { ...user.user_metadata, full_name: data.full_name, mochila_tipo: data.mochila_tipo } })
+  const loadProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name, mochila_tipo')
+      .eq('id', userId)
+      .single()
+    
+    if (data && user) {
+      setUser({ ...user, user_metadata: { ...user.user_metadata, full_name: data.full_name, mochila_tipo: data.mochila_tipo } })
+    }
   }
-}
 
-const checkAdminStatus = async (userId: string) => {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', userId)
-    .single()
+  const checkAdminStatus = async (userId: string) => {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single()
 
-  if (profile?.role === 'admin') {
-    setIsAdmin(true)
+    if (profile?.role === 'admin') {
+      setIsAdmin(true)
+    }
   }
-}
+
+  const loadOnlineUsers = async () => {
+    try {
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('online_status', 'online')
+      setOnlineUsers(count || 0)
+    } catch (error) {
+      console.error('Erro ao buscar usuários online:', error)
+      setOnlineUsers(0)
+    }
+  }
 
   const loadProgress = async (userId: string) => {
     const { data: userProgress } = await supabase
@@ -124,215 +137,182 @@ const checkAdminStatus = async (userId: string) => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-           <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         
         {/* Header com saudação e logo */}
-<div className="mb-8">
-  <div className="flex items-center justify-between flex-wrap gap-4">
-    <div className="flex items-center gap-3">
-      <div>
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-black">
-            Olá, {getFirstName(user.user_metadata?.full_name || 'Preparado')}!
-          </h1>
-          {/* CORREÇÃO: href="/admin/produtos" → href="/admin" */}
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className="bg-[#FFB800] text-black px-3 py-1 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition"
-            >
-              Admin
-            </Link>
-          )}
+        <div className="mb-8">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold text-black">
+                    Olá, {getFirstName(user.user_metadata?.full_name || 'Preparado')}!
+                  </h1>
+                  {isAdmin && (
+                    <Link
+                      href="/admin"
+                      className="bg-[#FFB800] text-black px-3 py-1 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition"
+                    >
+                      Admin
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-</div>
 
-{/* Cards de Progresso */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-  
-  {/* Card de Progresso */}
-<div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-  <div className="text-center">
-    <p className="font-bold text-black text-xl">Você está</p>
-    <div className="flex items-center justify-center gap-3 mt-1 mb-3">
-      <span className="text-2xl font-bold text-[#FFB800]">
-        {Math.round(progress)}%
-      </span>
-      <img 
-        src="/images/preparado.png" 
-        alt="PREPARADO" 
-        className="h-4 w-auto"
-        onError={(e) => { e.currentTarget.style.display = 'none' }}
-      />
-    </div>
-    <div className="w-full bg-gray-200 rounded-full h-2.5">
-      <div 
-        className="bg-[#FFB800] h-2.5 rounded-full transition-all duration-500"
-        style={{ width: `${progress}%` }}
-      />
-    </div>
-  </div>
-</div>
-  
-  {/* Card Check-in */}
-<Link 
-  href="/check-in"
-  className="bg-[#FFB800] rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition group flex items-center justify-center"
->
-  <div className="text-center">
-    <p className="font-bold text-black text-xl">
-      PREPARÔMETRO 
-    </p>
-    
-  </div>
-</Link>
-  
-</div>
+        {/* Cards de Progresso */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          
+          {/* Card de Progresso */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="text-center">
+              <p className="font-bold text-black text-xl">Você está</p>
+              <div className="flex items-center justify-center gap-3 mt-1 mb-3">
+                <span className="text-2xl font-bold text-[#FFB800]">
+                  {Math.round(progress)}%
+                </span>
+                <img 
+                  src="/images/preparado.png" 
+                  alt="PREPARADO" 
+                  className="h-4 w-auto"
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div 
+                  className="bg-[#FFB800] h-2.5 rounded-full transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Card Check-in */}
+          <Link 
+            href="/check-in"
+            className="bg-[#FFB800] rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition group flex items-center justify-center"
+          >
+            <div className="text-center">
+              <p className="font-bold text-black text-xl">PREPARÔMETRO</p>
+            </div>
+          </Link>
+          
+        </div>
 
-{/* Menu Principal - Cards de Acesso Rápido */}
-<div className="grid grid-cols-2 gap-4 mb-8">
+        {/* Menu Principal - Cards de Acesso Rápido */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
 
-  {/* Pessoas */}
-  <Link
-    href="/pessoas"
-    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
-  >
-    <div className="w-20 h-20 flex items-center justify-center">
-      <img
-        src="/images/pessoas1-icon.png"
-        alt="Pessoas Próximas"
-        className="w-16 h-16 object-contain"
-        onError={(e) => {
-          e.currentTarget.style.display = "none"
-        }}
-      />
-    </div>
+          {/* Pessoas */}
+          <Link
+            href="/pessoas"
+            className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
+          >
+            <div className="w-20 h-20 flex items-center justify-center">
+              <img
+                src="/images/pessoas1-icon.png"
+                alt="Pessoas Próximas"
+                className="w-16 h-16 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none"
+                }}
+              />
+            </div>
+            <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
+              Pessoas Próximas
+            </h3>
+          </Link>
 
-    <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
-      Pessoas Próximas
-    </h3>
-  </Link>
+          {/* Mochila */}
+          <Link
+            href="/mochilas"
+            className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
+          >
+            <div className="w-20 h-20 flex items-center justify-center">
+              <img
+                src="/images/mochila-icon.png"
+                alt="Mochila"
+                className="w-16 h-16 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none"
+                }}
+              />
+            </div>
+            <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
+              Mochila
+            </h3>
+          </Link>
 
-  {/* Mochila */}
-  <Link
-    href="/mochilas"
-    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
-  >
-    <div className="w-20 h-20 flex items-center justify-center">
-      <img
-        src="/images/mochila-icon.png"
-        alt="Mochila"
-        className="w-16 h-16 object-contain"
-        onError={(e) => {
-          e.currentTarget.style.display = "none"
-        }}
-      />
-    </div>
+          {/* Catástrofes */}
+          <Link
+            href="/catastrofes"
+            className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
+          >
+            <div className="w-20 h-20 flex items-center justify-center">
+              <img
+                src="/images/catastrofes-icon.png"
+                alt="Catástrofes"
+                className="w-16 h-16 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none"
+                }}
+              />
+            </div>
+            <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
+              Catástrofes
+            </h3>
+          </Link>
 
-    <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
-      Mochila
-    </h3>
-  </Link>
+          {/* Rádio - Usando RadioCard */}
+          <RadioCard 
+            onlineUsers={onlineUsers} 
+            activeChannel="CH CIDADES"
+          />
 
-  {/* Catástrofes */}
-  <Link
-    href="/catastrofes"
-    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
-  >
-    <div className="w-20 h-20 flex items-center justify-center">
-      <img
-        src="/images/catastrofes-icon.png"
-        alt="Catástrofes"
-        className="w-16 h-16 object-contain"
-        onError={(e) => {
-          e.currentTarget.style.display = "none"
-        }}
-      />
-    </div>
+          {/* Loja */}
+          <Link
+            href="/loja"
+            className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
+          >
+            <div className="w-20 h-20 flex items-center justify-center">
+              <img
+                src="/images/loja-icon.png"
+                alt="Loja"
+                className="w-16 h-16 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none"
+                }}
+              />
+            </div>
+            <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
+              Loja
+            </h3>
+          </Link>
 
-    <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
-      Catástrofes
-    </h3>
-  </Link>
+          {/* Primeiros Socorros */}
+          <Link
+            href="/primeiros-socorros"
+            className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px] cursor-pointer hover:border-[#FFB800] group relative overflow-hidden"
+          >
+            <div className="w-20 h-20 flex items-center justify-center">
+              <img
+                src="/images/primeiros-socorros.jpeg"
+                alt="Primeiros Socorros"
+                className="w-16 h-16 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none"
+                }}
+              />
+            </div>
+            <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
+              Primeiros Socorros
+            </h3>
+          </Link>
 
- {/* Rádio - EM BREVE */}
-<div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 opacity-60 cursor-not-allowed flex flex-col items-center justify-between text-center min-h-[170px]">
-  <div className="w-20 h-20 flex items-center justify-center relative">
-    <img
-      src="/images/comunicador1-icon.png"
-      alt="Comunicador Via Rádio"
-      className="w-16 h-16 object-contain opacity-50"
-      onError={(e) => {
-        e.currentTarget.style.display = "none"
-      }}
-    />
-    <span className="absolute -top-2 -right-2 bg-gray-500 text-white text-[0.55rem] font-bold px-2 py-0.5 rounded-full">
-      Em breve
-    </span>
-  </div>
+        </div>
 
-  <h3 className="font-bold text-gray-400 text-base min-h-[48px] flex items-center justify-center">
-    Rádio
-  </h3>
-  
-  <p className="text-[0.55rem] text-gray-400 mt-1">
-    Em breve
-  </p>
-</div>
-
-  {/* Loja */}
-  <Link
-    href="/loja"
-    className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
-  >
-    <div className="w-20 h-20 flex items-center justify-center">
-      <img
-        src="/images/loja-icon.png"
-        alt="Loja"
-        className="w-16 h-16 object-contain"
-        onError={(e) => {
-          e.currentTarget.style.display = "none"
-        }}
-      />
-    </div>
-
-    <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
-      Loja
-    </h3>
-  </Link>
-
-  {/* Primeiros Socorros */}
-<Link
-  href="/primeiros-socorros"
-  className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px] cursor-pointer hover:border-[#FFB800] group relative overflow-hidden"
->
-  {/* Badge "Novo" */}
-
-  
-  <div className="w-20 h-20 flex items-center justify-center">
-    <img
-      src="/images/primeiros-socorros.jpeg"
-      alt="Primeiros Socorros"
-      className="w-16 h-16 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
-      onError={(e) => {
-        e.currentTarget.style.display = "none"
-      }}
-    />
-  </div>
-
-  <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
-    Primeiros Socorros
-  </h3>
-
-</Link>
-
-</div>
-
-        
-         {/* Rádio Diamante */}
+        {/* Rádio Diamante */}
         <div className="mb-8">
           <RadioPlayer 
             minimizado={false}
@@ -353,7 +333,7 @@ const checkAdminStatus = async (userId: string) => {
           </div>
         </div>
 
-               {/* Seção de Dicas */}
+        {/* Seção de Dicas */}
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5 border border-gray-200">
           <div className="flex items-start gap-3">
             <img 
@@ -372,8 +352,8 @@ const checkAdminStatus = async (userId: string) => {
             </div>
           </div>
           <div>
-              <BotaoIndicarAmigo />
-            </div>
+            <BotaoIndicarAmigo />
+          </div>
         </div>
       </div>
     </div>
