@@ -183,19 +183,35 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
 
   // Configurar listener de áudio
   useEffect(() => {
-    if (selectedGroup && isOn) {
+  if (selectedGroup && isOn) {
+    console.log(`🔄 Grupo mudou para: ${selectedGroup}, configurando listener...`);
+    setupAudioListener();
+    
+    return () => {
+      // Só desconecta se não for o mesmo grupo
+      if (audioChannelRef.current) {
+        console.log(`🔄 Desconectando canal do grupo: ${selectedGroup}`);
+        audioChannelRef.current.unsubscribe();
+        audioChannelRef.current = null;
+      }
+    };
+  }
+}, [selectedGroup]); // ← Removido isOn das dependências
+
+// Reconectar quando o rádio for ligado/desligado
+useEffect(() => {
+  if (isOn && selectedGroup) {
+    console.log('🔄 Rádio ligado, reconectando canal...');
+    // Pequeno delay para evitar conflitos
+    setTimeout(() => {
       setupAudioListener();
-      
-      return () => {
-        if (audioChannelRef.current) {
-          audioChannelRef.current.unsubscribe();
-        }
-        if (animationRef.current) {
-          cancelAnimationFrame(animationRef.current);
-        }
-      };
-    }
-  }, [selectedGroup, isOn]);
+    }, 100);
+  } else if (!isOn && audioChannelRef.current) {
+    console.log('🔇 Rádio desligado, desconectando canal...');
+    audioChannelRef.current.unsubscribe();
+    audioChannelRef.current = null;
+  }
+}, [isOn]);
 
   // Função para abrir chat do grupo
   const abrirChatDoGrupo = async (userId: string) => {
@@ -225,10 +241,10 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
   
   console.log(`🎧 Configurando listener para o grupo: ${selectedGroup}`);
   
-  // Se já tiver um canal, desconecta
+  // Se já tiver um canal e estiver SUBSCRIBED, não recria
   if (audioChannelRef.current) {
-    console.log('🔄 Desconectando canal anterior');
-    audioChannelRef.current.unsubscribe();
+    console.log('ℹ️ Canal já existe, mantendo conexão');
+    return;
   }
   
   const channel = supabase.channel(`radio:${selectedGroup}`);
@@ -236,7 +252,6 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
   channel
     .on('broadcast', { event: 'novo-audio' }, (payload) => {
       console.log('📡 Áudio RECEBIDO via broadcast:', payload);
-      console.log('📡 Payload completo:', JSON.stringify(payload, null, 2));
       handleReceivedAudio(payload.payload);
     })
     .subscribe((status) => {
@@ -533,14 +548,12 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
   }
   
   try {
-    // Converte o blob para base64
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
       const base64Audio = reader.result as string;
       console.log('📤 Áudio convertido para base64, tamanho:', base64Audio.length);
       
-      // Envia via broadcast
       const payload = {
         type: 'broadcast',
         event: 'novo-audio',
@@ -554,10 +567,27 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
         }
       };
       
-      console.log('📤 Enviando payload:', payload);
+      console.log('📤 Enviando payload para o canal:', audioChannelRef.current.topic);
       
-      await audioChannelRef.current.send(payload);
-      console.log('✅ Áudio enviado com sucesso!');
+      // Verifica se o canal está conectado antes de enviar
+      try {
+        await audioChannelRef.current.send(payload);
+        console.log('✅ Áudio enviado com sucesso!');
+      } catch (sendError) {
+        console.error('❌ Erro ao enviar áudio:', sendError);
+        // Tenta reconectar
+        console.log('🔄 Tentando reconectar o canal...');
+        setupAudioListener();
+        // Tenta enviar novamente após reconectar
+        setTimeout(async () => {
+          try {
+            await audioChannelRef.current.send(payload);
+            console.log('✅ Áudio enviado com sucesso após reconexão!');
+          } catch (retryError) {
+            console.error('❌ Falha ao enviar após reconexão:', retryError);
+          }
+        }, 500);
+      }
     };
   } catch (error) {
     console.error('❌ Erro ao enviar áudio:', error);
