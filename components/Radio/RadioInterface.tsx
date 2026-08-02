@@ -277,13 +277,14 @@ const setupAudioListener = (groupId?: string) => {
 
   // Processar áudio recebido
   const handleReceivedAudio = (payload: any) => {
-  console.log('📡📡📡 HANDLE RECEIVED AUDIO CHAMADO! 📡📡📡');
   console.log('📡 handleReceivedAudio chamado');
   console.log('📡 Payload recebido:', payload);
   console.log('📡 De: ', payload.from);
   console.log('📡 Meu ID:', currentUser?.id);
+  console.log('📡 Comparação:', payload.from === currentUser?.id);
   
-  if (payload.from === currentUser?.id) {
+  // CORREÇÃO: Comparação mais robusta
+  if (payload.from === currentUser?.id || payload.from === currentUser?.id?.toString()) {
     console.log('🔇 Ignorando próprio áudio');
     return;
   }
@@ -572,6 +573,9 @@ const handleChannelChange = async (channelId: string) => {
 
   const enviarAudio = async (audioBlob: Blob) => {
   console.log('📤 enviarAudio chamado');
+  console.log('📤 enviarAudio chamado');
+  console.log('📤 currentUser:', currentUser);
+  console.log('📤 currentUser.id:', currentUser?.id);
   
   if (!currentUser) {
     console.log('❌ Usuário não autenticado');
