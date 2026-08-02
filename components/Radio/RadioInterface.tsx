@@ -58,10 +58,11 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
   const [isOn, setIsOn] = useState(true);
   const [currentChannel, setCurrentChannel] = useState(initialChannel);
   const [selectedGroup, setSelectedGroup] = useState(initialGroup);
+  const [currentGroupId, setCurrentGroupId] = useState<string>('todos');
   const [volume, setVolume] = useState(75);
   const [isMuted, setIsMuted] = useState(false);
   const [range, setRange] = useState(50);
-  const [activeTab, setActiveTab] = useState<'mapa' | 'controles' | 'radar'>('mapa');
+  const [activeTab, setActiveTab] = useState<'mapa' | 'controles' | 'radar'>('controles');
   const [isMicActive, setIsMicActive] = useState(false);
   const [groups, setGroups] = useState<RadioGroup[]>([]);
   const [nearbyUsers, setNearbyUsers] = useState<NearbyUser[]>([]);
@@ -76,7 +77,8 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
   const [speakerCity, setSpeakerCity] = useState('');
   const [audioURLs, setAudioURLs] = useState<{ id: string; url: string; from: string }[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [currentGroupId, setCurrentGroupId] = useState<string>('todos');
+  const [currentUserName, setCurrentUserName] = useState<string>('');
+  const [currentUserCity, setCurrentUserCity] = useState<string>('');
 
   // Refs
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -89,6 +91,15 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
 
   // Localização do usuário
   const { latitude, longitude } = useUserLocation();
+
+  // Função para sanitizar nome do canal
+  const sanitizeChannelName = (name: string) => {
+    return name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]/g, '_')
+      .toLowerCase();
+  };
 
   // Buscar usuário e verificar se é admin
   useEffect(() => {
@@ -108,6 +119,8 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
         if (profile) {
           setSpeakerName(profile.full_name || 'Usuário');
           setSpeakerCity(profile.city || 'Cidade');
+          setCurrentUserName(profile.full_name || 'Usuário');
+          setCurrentUserCity(profile.city || 'Cidade');
         }
       }
     };
@@ -155,7 +168,6 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
         setNearbyUsers(users);
         setConnectedUsers(users.filter((u) => u.status === 'online').length);
 
-        // Carrega localizações para o mapa
         const { data } = await supabase
           .from('profiles')
           .select('id, full_name, cep, latitude, longitude, mochila_tipo, group_id, city, state')
@@ -182,157 +194,93 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
     loadRadioData();
   }, [userLatitude, userLongitude, latitude, longitude, range]);
 
-  // Configurar listener de áudio
-  useEffect(() => {
-  if (selectedGroup && isOn) {
-    console.log(`🔄 Grupo mudou para: ${selectedGroup}, configurando listener...`);
-    setupAudioListener();
+  // Setup do listener de áudio
+  const setupAudioListener = (groupId?: string) => {
+    const groupIdToUse = groupId || currentGroupId || 'todos';
     
-    return () => {
-      // Só desconecta se não for o mesmo grupo
-      if (audioChannelRef.current) {
-        console.log(`🔄 Desconectando canal do grupo: ${selectedGroup}`);
-        audioChannelRef.current.unsubscribe();
-        audioChannelRef.current = null;
-      }
-    };
-  }
-}, [selectedGroup]); // ← Removido isOn das dependências
-
-// Reconectar quando o rádio for ligado/desligado
-useEffect(() => {
-  if (isOn && selectedGroup) {
-    console.log('🔄 Rádio ligado, reconectando canal...');
-    // Pequeno delay para evitar conflitos
-    setTimeout(() => {
-      setupAudioListener();
-    }, 100);
-  } else if (!isOn && audioChannelRef.current) {
-    console.log('🔇 Rádio desligado, desconectando canal...');
-    audioChannelRef.current.unsubscribe();
-    audioChannelRef.current = null;
-  }
-}, [isOn]);
-
-  // Função para abrir chat do grupo
-  const abrirChatDoGrupo = async (userId: string) => {
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('group_id')
-        .eq('id', userId)
-        .single();
-
-      if (profile?.group_id) {
-        router.push(`/grupo/${profile.group_id}`);
-      } else {
-        router.push('/grupo');
-      }
-    } catch (error) {
-      console.error('Erro ao abrir chat:', error);
+    const group = groups.find(g => g.id === groupIdToUse);
+    const groupName = group?.name || groupIdToUse;
+    const channelName = `radio:${sanitizeChannelName(groupName)}`;
+    
+    console.log(`🎧 Configurando listener para: ${groupName} (${channelName})`);
+    
+    if (audioChannelRef.current) {
+      console.log('🔄 Desconectando canal anterior');
+      audioChannelRef.current.unsubscribe();
+      audioChannelRef.current = null;
     }
-  };
-
-  /// Setup do listener de áudio com ID do grupo
-const setupAudioListener = (groupId?: string) => {
-  const groupIdToUse = groupId || currentGroupId || 'todos';
-  
-  console.log(`🎧 Configurando listener para o grupo ID: ${groupIdToUse}`);
-  
-  // Se já tiver um canal, desconecta
-  if (audioChannelRef.current) {
-    console.log('🔄 Desconectando canal anterior');
-    audioChannelRef.current.unsubscribe();
-    audioChannelRef.current = null;
-  }
-  
-  // USANDO CANAL FIXO PARA TESTE - Mude para groupIdToUse depois
-  const channelName = `radio:teste`; // Canal fixo para teste
-  // const channelName = `radio:${groupIdToUse}`; // Descomente depois
-  
-  console.log(`📡 Usando canal: ${channelName}`);
-  
-  const channel = supabase.channel(channelName);
-  
-  // Listener para QUALQUER broadcast (debug)
-  channel.on('broadcast', { event: '*' }, (payload) => {
-    console.log('📡📡📡 BROADCAST GENÉRICO RECEBIDO:', payload);
-  });
-  
-  channel
-    .on('broadcast', { event: 'novo-audio' }, (payload) => {
-      console.log('📡 Áudio RECEBIDO via broadcast (evento específico):', payload);
-      handleReceivedAudio(payload.payload);
-    })
-    .subscribe((status) => {
-      console.log(`📡 Status do canal: ${status}`);
-      if (status === 'SUBSCRIBED') {
-        console.log('✅ Canal SUBSCRIBED - Pronto para receber mensagens!');
+    
+    const channel = supabase.channel(channelName, {
+      config: {
+        broadcast: { ack: true, self: false },
       }
     });
-  
-  audioChannelRef.current = channel;
-  console.log('✅ Listener configurado com sucesso!');
-};
+    
+    channel
+      .on('broadcast', { event: 'novo-audio' }, (payload) => {
+        console.log(`📡 Áudio RECEBIDO no canal ${channelName}:`, payload);
+        handleReceivedAudio(payload.payload);
+      })
+      .subscribe((status) => {
+        console.log(`📡 Status do canal ${channelName}: ${status}`);
+        if (status === 'SUBSCRIBED') {
+          console.log(`✅ Canal ${channelName} SUBSCRIBED!`);
+        }
+      });
+    
+    audioChannelRef.current = channel;
+    console.log(`✅ Listener configurado para: ${channelName}`);
+  };
 
   // Processar áudio recebido
   const handleReceivedAudio = (payload: any) => {
-  console.log('📡 handleReceivedAudio chamado');
-  console.log('📡 Payload recebido:', payload);
-  console.log('📡 De: ', payload.from);
-  console.log('📡 Meu ID:', currentUser?.id);
-  console.log('📡 Comparação:', payload.from === currentUser?.id);
-  
-  // CORREÇÃO: Comparação mais robusta
-  if (payload.from === currentUser?.id || payload.from === currentUser?.id?.toString()) {
-    console.log('🔇 Ignorando próprio áudio');
-    return;
-  }
-  
-  console.log('✅ Áudio de outro usuário!');
-  
-  // Atualiza quem está falando
-  setIsSomeoneSpeaking(true);
-  setSpeakerName(payload.fromName || 'Preparado');
-  setSpeakerCity(payload.fromCity || 'Cidade');
-  
-  // Toca o beep de recebimento
-  playBeep();
-  
-  // Converte base64 para Blob e reproduz
-  try {
-    console.log('🔄 Convertendo base64 para áudio...');
-    const audioBlob = base64ToBlob(payload.audio);
-    console.log('📦 Áudio convertido, tamanho:', audioBlob.size);
-    const url = URL.createObjectURL(audioBlob);
-    console.log('🔗 URL criada:', url);
+    console.log('📡 handleReceivedAudio chamado');
     
-    // Adiciona ao histórico
-    setAudioURLs(prev => [...prev, {
-      id: payload.id,
-      url: url,
-      from: payload.fromName || 'Preparado'
-    }]);
+    if (payload.from === currentUser?.id) {
+      console.log('🔇 Ignorando próprio áudio');
+      return;
+    }
     
-    // Reproduz o áudio
-    const audio = new Audio(url);
-    audio.volume = volume / 100;
-    console.log('▶️ Reproduzindo áudio...');
-    audio.play()
-      .then(() => console.log('✅ Áudio reproduzido com sucesso!'))
-      .catch(e => console.log('❌ Erro ao reproduzir:', e));
+    console.log(`✅ Áudio de OUTRO usuário: ${payload.fromName} (${payload.fromCity})`);
     
-    // Reseta o estado após o áudio terminar
-    audio.onended = () => {
-      console.log('⏹️ Áudio terminou');
+    setIsSomeoneSpeaking(true);
+    setSpeakerName(payload.fromName || 'Preparado');
+    setSpeakerCity(payload.fromCity || 'Cidade');
+    
+    playBeep();
+    
+    try {
+      const audioBlob = base64ToBlob(payload.audio);
+      const url = URL.createObjectURL(audioBlob);
+      
+      const audio = new Audio(url);
+      audio.volume = volume / 100;
+      audio.play()
+        .then(() => console.log('✅ Áudio reproduzido'))
+        .catch(e => console.log('❌ Erro ao reproduzir:', e));
+      
+      audio.onended = () => {
+        console.log('⏹️ Áudio terminou');
+        setIsSomeoneSpeaking(false);
+        setSpeakerName('');
+        setSpeakerCity('');
+      };
+      
+      setTimeout(() => {
+        if (isSomeoneSpeaking) {
+          console.log('⏰ Timeout: resetando espectro');
+          setIsSomeoneSpeaking(false);
+          setSpeakerName('');
+          setSpeakerCity('');
+        }
+      }, 5000);
+      
+    } catch (err) {
+      console.error('❌ Erro ao processar áudio:', err);
       setIsSomeoneSpeaking(false);
-    };
-  } catch (err) {
-    console.error('❌ Erro ao processar áudio:', err);
-  }
-};
+    }
+  };
 
-  // Converter base64 para Blob
   const base64ToBlob = (base64: string) => {
     const parts = base64.split(';base64,');
     const contentType = parts[0].split(':')[1];
@@ -364,90 +312,88 @@ const setupAudioListener = (groupId?: string) => {
     inputBorder: '#1a1a1a',
   };
 
- // Mudar canal
-const handleChannelChange = async (channelId: string) => {
-  setCurrentChannel(channelId);
-  const lat = userLatitude || latitude;
-  const lng = userLongitude || longitude;
+  // Mudar canal
+  const handleChannelChange = async (channelId: string) => {
+    setCurrentChannel(channelId);
+    const lat = userLatitude || latitude;
+    const lng = userLongitude || longitude;
 
-  if (channelId === 'CH CIDADES') {
-    const nearbyGroups = await getNearbyGroups(lat, lng, range);
-    if (nearbyGroups.length > 0) {
-      const groupsWithIds = [
-        {
-          id: 'todos',
-          name: 'Todos',
-          city: 'Todas as cidades',
-          state: 'Brasil',
-          latitude: lat,
-          longitude: lng,
-          members: nearbyGroups.reduce((acc, g) => acc + g.members, 0),
-        },
-        ...nearbyGroups,
-      ];
+    if (channelId === 'CH CIDADES') {
+      const nearbyGroups = await getNearbyGroups(lat, lng, range);
+      
+      let groupsWithIds: RadioGroup[] = [];
+      
+      const todosGroup = {
+        id: 'todos',
+        name: 'Todos',
+        city: 'Todas as cidades',
+        state: 'Brasil',
+        latitude: lat,
+        longitude: lng,
+        members: nearbyGroups.reduce((acc, g) => acc + g.members, 0),
+      };
+      groupsWithIds.push(todosGroup);
+      
+      nearbyGroups.forEach(g => {
+        if (g.city && g.city !== 'Cidade Não Informada') {
+          groupsWithIds.push({
+            ...g,
+            id: `city_${sanitizeChannelName(g.city)}`,
+          });
+        } else {
+          groupsWithIds.push({
+            ...g,
+            id: `group_${g.id}`,
+          });
+        }
+      });
+      
       setGroups(groupsWithIds);
       
-      // Seleciona o primeiro grupo (Todos) e salva o ID
       const firstGroup = groupsWithIds[0];
       setSelectedGroup(firstGroup.name);
       setCurrentGroupId(firstGroup.id);
-      
-      // Configura o listener com o ID do grupo
       setupAudioListener(firstGroup.id);
-    } else {
-      const defaultGroup = {
-        id: 'default',
-        name: 'Todos',
-        city: 'Sua Cidade',
-        state: 'Estado',
-        latitude: lat,
-        longitude: lng,
-        members: 1,
-      };
-      setGroups([defaultGroup]);
-      setSelectedGroup(defaultGroup.name);
-      setCurrentGroupId(defaultGroup.id);
-      setupAudioListener(defaultGroup.id);
-    }
-  } else if (channelId === 'CH ADMIN' && isAdmin) {
-    const { data: admins } = await supabase
-      .from('profiles')
-      .select('id, full_name, city, state, latitude, longitude')
-      .eq('role', 'admin')
-      .not('latitude', 'is', null)
-      .not('longitude', 'is', null);
+      
+    } else if (channelId === 'CH ADMIN' && isAdmin) {
+      const { data: admins } = await supabase
+        .from('profiles')
+        .select('id, full_name, city, state, latitude, longitude')
+        .eq('role', 'admin')
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null);
 
-    if (admins && admins.length > 0) {
-      const adminGroups = [
-        {
-          id: 'todos-admin',
-          name: 'Todos os Admins',
-          city: 'Administradores',
-          state: 'Brasil',
-          latitude: lat,
-          longitude: lng,
-          members: admins.length,
-        },
-        ...admins.map((admin) => ({
-          id: `admin-${admin.id}`,
-          name: admin.full_name || 'Admin',
-          city: admin.city || 'Cidade',
-          state: admin.state || 'Estado',
-          latitude: admin.latitude || 0,
-          longitude: admin.longitude || 0,
-          members: 1,
-        })),
-      ];
-      setGroups(adminGroups);
-      
-      const firstGroup = adminGroups[0];
-      setSelectedGroup(firstGroup.name);
-      setCurrentGroupId(firstGroup.id);
-      setupAudioListener(firstGroup.id);
+      if (admins && admins.length > 0) {
+        const adminGroups = [
+          {
+            id: 'admin-todos',
+            name: 'Todos os Admins',
+            city: 'Administradores',
+            state: 'Brasil',
+            latitude: lat,
+            longitude: lng,
+            members: admins.length,
+          },
+          ...admins.map((admin) => ({
+            id: `admin-${admin.id}`,
+            name: admin.full_name || 'Admin',
+            city: admin.city || 'Cidade',
+            state: admin.state || 'Estado',
+            latitude: admin.latitude || 0,
+            longitude: admin.longitude || 0,
+            members: 1,
+          })),
+        ];
+        setGroups(adminGroups);
+        
+        const firstGroup = adminGroups[0];
+        setSelectedGroup(firstGroup.name);
+        setCurrentGroupId(firstGroup.id);
+        setupAudioListener(firstGroup.id);
+      }
     }
-    setSelectedGroup('Todos os Admins');
-  }
-};
+  };
+
   // Áudio do beep
   useEffect(() => {
     audioRef.current = new Audio('/roger-beep.mp3');
@@ -462,175 +408,179 @@ const handleChannelChange = async (channelId: string) => {
     }
   }, [isOn, volume]);
 
-  // Funções de gravação de áudio
-  const startRecording = async () => {
-  console.log('🎤 startRecording chamado');
-  console.log('isOn:', isOn);
-  console.log('currentUser:', currentUser);
-  
-  if (!isOn) {
-    console.log('❌ Rádio desligado, não pode gravar');
-    return;
-  }
-
-  if (!currentUser) {
-    console.log('❌ Usuário não autenticado');
-    return;
-  }
-
-  try {
-    console.log('🎤 Solicitando acesso ao microfone...');
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-      audio: { 
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      } 
-    });
-    console.log('✅ Microfone acessado com sucesso!');
+  // Função para enviar áudio
+  const enviarAudio = async (audioBlob: Blob) => {
+    console.log('📤 enviarAudio chamado');
     
-    // Analisador de áudio
-    const audioContext = new AudioContext();
-    const source = audioContext.createMediaStreamSource(stream);
-    const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256;
-    source.connect(analyser);
+    if (!currentUser) {
+      console.log('❌ Usuário não autenticado');
+      return;
+    }
     
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    const group = groups.find(g => g.id === currentGroupId);
+    const groupName = group?.name || selectedGroup || 'todos';
+    const channelName = `radio:${sanitizeChannelName(groupName)}`;
     
-    const updateLevel = () => {
-      analyser.getByteFrequencyData(dataArray);
-      const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-      const level = Math.min(100, (average / 255) * 100);
-      setAudioLevel(level);
-      animationRef.current = requestAnimationFrame(updateLevel);
-    };
+    console.log(`📤 Enviando para o canal: ${channelName}`);
     
-    updateLevel();
+    if (!audioChannelRef.current) {
+      console.log('❌ Canal não configurado, configurando...');
+      setupAudioListener(currentGroupId);
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
     
-    mediaRecorderRef.current = new MediaRecorder(stream, {
-      mimeType: 'audio/webm;codecs=opus'
-    });
-    audioChunksRef.current = [];
-
-    mediaRecorderRef.current.ondataavailable = (event) => {
-      console.log('📦 Dados de áudio disponíveis:', event.data.size);
-      if (event.data.size > 0) {
-        audioChunksRef.current.push(event.data);
-      }
-    };
-
-    mediaRecorderRef.current.onstop = async () => {
-      console.log('🛑 Gravação finalizada');
-      console.log('📦 Chunks de áudio:', audioChunksRef.current.length);
-      
-      if (audioChunksRef.current.length === 0) {
-        console.log('⚠️ Nenhum dado de áudio foi gravado');
-        return;
-      }
-      
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-      console.log('📦 Tamanho do áudio:', audioBlob.size, 'bytes');
-      
-      if (audioBlob.size > 0) {
-        await enviarAudio(audioBlob);
-      } else {
-        console.log('⚠️ Áudio vazio, não enviado');
-      }
-      
-      stream.getTracks().forEach(track => track.stop());
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-      setAudioLevel(0);
-    };
-
-    mediaRecorderRef.current.start();
-    console.log('🎤 Gravação iniciada!');
-    setIsRecording(true);
-    setIsMicActive(true);
-    setIsSomeoneSpeaking(true);
-    
-    playBeep();
-    
-    // REMOVIDO: timeout de 15 segundos - agora o usuário controla
-
-  } catch (err) {
-    console.error('❌ Erro ao acessar microfone:', err);
-    alert('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
-  }
-};
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      setIsMicActive(false);
-      setIsSomeoneSpeaking(false);
-      playBeep();
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      reader.onloadend = async () => {
+        const base64Audio = reader.result as string;
+        
+        const payload = {
+          type: 'broadcast',
+          event: 'novo-audio',
+          payload: {
+            id: `${Date.now()}_${currentUser.id}`,
+            audio: base64Audio,
+            from: currentUser.id,
+            fromName: currentUserName || 'Preparado',
+            fromCity: currentUserCity || 'Cidade',
+            timestamp: Date.now()
+          }
+        };
+        
+        try {
+          await audioChannelRef.current.send(payload);
+          console.log(`✅ Áudio enviado para ${channelName}!`);
+          
+          setIsSomeoneSpeaking(false);
+          setSpeakerName('');
+          setSpeakerCity('');
+          setAudioLevel(0);
+          
+        } catch (sendError) {
+          console.error('❌ Erro ao enviar:', sendError);
+          setupAudioListener(currentGroupId);
+        }
+      };
+    } catch (error) {
+      console.error('❌ Erro ao enviar áudio:', error);
     }
   };
 
-  const enviarAudio = async (audioBlob: Blob) => {
-  console.log('📤 enviarAudio chamado');
-  console.log('📤 enviarAudio chamado');
-  console.log('📤 currentUser:', currentUser);
-  console.log('📤 currentUser.id:', currentUser?.id);
-  
-  if (!currentUser) {
-    console.log('❌ Usuário não autenticado');
-    return;
-  }
-  
-  // Verifica se o canal existe
-  if (!audioChannelRef.current) {
-    console.log('❌ Canal não configurado, configurando...');
-    setupAudioListener();
-    await new Promise(resolve => setTimeout(resolve, 500));
-    if (!audioChannelRef.current) {
-      console.log('❌ Falha ao configurar canal');
+  // Funções de gravação
+  const startRecording = () => {
+    console.log('🎤 startRecording');
+    
+    if (!isOn) {
+      console.log('❌ Rádio desligado');
       return;
     }
-  }
-  
-  try {
-    const reader = new FileReader();
-    reader.readAsDataURL(audioBlob);
-    reader.onloadend = async () => {
-      const base64Audio = reader.result as string;
-      console.log('📤 Áudio convertido, tamanho:', base64Audio.length);
-      
-      // CORRIGIDO: payload definido corretamente
-      const payload = {
-        type: 'broadcast',
-        event: 'novo-audio',
-        payload: {
-          id: `${Date.now()}_${currentUser.id}`,
-          audio: base64Audio,
-          from: currentUser.id,
-          fromName: speakerName || 'Preparado',
-          fromCity: speakerCity || 'Cidade',
-          timestamp: Date.now()
-        }
-      };
-      
-      console.log('📤 Enviando payload...');
-      
-      try {
-        await audioChannelRef.current.send(payload);
-        console.log('✅ Áudio enviado com sucesso!');
-      } catch (sendError) {
-        console.error('❌ Erro ao enviar:', sendError);
-      }
-    };
-  } catch (error) {
-    console.error('❌ Erro ao enviar áudio:', error);
-  }
-};
+
+    if (isRecording) {
+      console.log('⚠️ Já está gravando');
+      return;
+    }
+
+    if (!currentUser) {
+      console.log('❌ Usuário não autenticado');
+      return;
+    }
+
+    try {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          console.log('✅ Microfone acessado');
+          
+          setIsRecording(true);
+          setIsMicActive(true);
+          setIsSomeoneSpeaking(true);
+          setSpeakerName(currentUserName || 'Você');
+          setSpeakerCity(currentUserCity || 'Cidade');
+          
+          const recorder = new MediaRecorder(stream, {
+            mimeType: 'audio/webm;codecs=opus'
+          });
+          mediaRecorderRef.current = recorder;
+          audioChunksRef.current = [];
+
+          recorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              audioChunksRef.current.push(event.data);
+            }
+          };
+
+          recorder.onstop = () => {
+            console.log('🛑 Gravação finalizada');
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+            if (audioBlob.size > 0) {
+              enviarAudio(audioBlob);
+            }
+            stream.getTracks().forEach(track => track.stop());
+            setIsRecording(false);
+            setIsMicActive(false);
+            setAudioLevel(0);
+          };
+
+          recorder.start();
+          console.log('🎤 Gravação iniciada!');
+          playBeep();
+
+          setTimeout(() => {
+            if (recorder.state === 'recording') {
+              recorder.stop();
+            }
+          }, 15000);
+        })
+        .catch(err => {
+          console.error('❌ Erro ao acessar microfone:', err);
+          alert('Permita o acesso ao microfone para usar o PTT.');
+        });
+    } catch (err) {
+      console.error('❌ Erro:', err);
+    }
+  };
+
+  const stopRecording = () => {
+    console.log('🛑 stopRecording');
+    
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      console.log('🛑 Parando gravação...');
+      mediaRecorderRef.current.stop();
+      playBeep();
+    } else {
+      console.log('⚠️ Nenhuma gravação ativa');
+      setIsRecording(false);
+      setIsMicActive(false);
+      setIsSomeoneSpeaking(false);
+      setSpeakerName('');
+      setSpeakerCity('');
+      setAudioLevel(0);
+    }
+  };
+
   // Range change
   const handleRangeChange = useCallback((newRange: number) => {
     setRange(newRange);
   }, []);
+
+  // Função para abrir chat do grupo
+  const abrirChatDoGrupo = async (userId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('group_id')
+        .eq('id', userId)
+        .single();
+
+      if (profile?.group_id) {
+        router.push(`/grupo/${profile.group_id}`);
+      } else {
+        router.push('/grupo');
+      }
+    } catch (error) {
+      console.error('Erro ao abrir chat:', error);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -642,53 +592,24 @@ const handleChannelChange = async (channelId: string) => {
 
   return (
     <div style={{ minHeight: '100vh', background: colors.background, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', fontFamily: 'Segoe UI, Arial, sans-serif' }}>
-      <div style={{ background: colors.card, borderRadius: '24px', padding: '24px', width: '100%', maxWidth: '420px', border: `1px solid ${colors.cardBorder}`, boxShadow: '0 20px 60px rgba(0,0,0,0.6)', position: 'relative' }}>
+      <div style={{ background: colors.card, borderRadius: '24px', padding: '20px', width: '100%', maxWidth: '420px', border: `1px solid ${colors.cardBorder}`, boxShadow: '0 20px 60px rgba(0,0,0,0.6)', position: 'relative' }}>
         
-        {/* Botão fechar */}
-        {onClose && (
-          <button
-            onClick={onClose}
-            style={{
-              position: 'absolute',
-              top: '16px',
-              right: '16px',
-              background: 'transparent',
-              border: 'none',
-              color: colors.textSecondary,
-              fontSize: '20px',
-              cursor: 'pointer',
-              padding: '4px 8px',
-              borderRadius: '8px',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-          >
-            ✕
-          </button>
-        )}
-
-        {/* HEADER */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '12px', paddingBottom: '8px', borderBottom: `1px solid ${colors.cardBorder}` }}>
-          <span style={{ color: colors.accent, fontSize: '18px', fontWeight: 'bold', letterSpacing: '2px' }}>
-            RÁDIO COMUNICADOR
-          </span>
-        </div>
+        {/* HEADER REMOVIDO */}
 
         {/* CANAIS */}
-        <div style={{ background: colors.inputBg, borderRadius: '14px', padding: '10px 16px', marginBottom: '8px', border: `1px solid ${colors.inputBorder}` }}>
-          <div style={{ color: colors.accent, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px', fontWeight: 'bold' }}>
+        <div style={{ background: colors.inputBg, borderRadius: '14px', padding: '8px 12px', marginBottom: '6px', border: `1px solid ${colors.inputBorder}` }}>
+          <div style={{ color: colors.accent, fontSize: '9px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px', fontWeight: 'bold' }}>
             CANAIS
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
             {channels.map((ch) => (
               <button
                 key={ch.id}
                 onClick={() => { if (ch.available) handleChannelChange(ch.id); }}
                 style={{
-                  padding: '6px',
+                  padding: '4px',
                   borderRadius: '8px',
-                  fontSize: '11px',
+                  fontSize: '10px',
                   fontWeight: 'bold',
                   border: 'none',
                   cursor: ch.available && isOn ? 'pointer' : 'not-allowed',
@@ -716,190 +637,187 @@ const handleChannelChange = async (channelId: string) => {
         <div style={{ 
           background: colors.inputBg, 
           borderRadius: '14px', 
-          padding: '6px 12px', 
-          marginBottom: '8px', 
+          padding: '4px 10px', 
+          marginBottom: '6px', 
           border: `1px solid ${colors.inputBorder}`,
           display: 'flex',
           flexDirection: 'column',
-          gap: '4px',
+          gap: '2px',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <div style={{ 
-                width: '20px', 
-                height: '20px', 
+                width: '16px', 
+                height: '16px', 
                 borderRadius: '50%', 
                 background: isSomeoneSpeaking ? colors.accent : '#2a2a2a',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '9px',
+                fontSize: '8px',
                 fontWeight: 'bold',
                 color: isSomeoneSpeaking ? colors.background : colors.textSecondary,
               }}>
                 {isSomeoneSpeaking ? speakerName.charAt(0).toUpperCase() : '?'}
               </div>
-              <span style={{ color: colors.textPrimary, fontSize: '12px', fontWeight: 'bold' }}>
+              <span style={{ color: colors.textPrimary, fontSize: '11px', fontWeight: 'bold' }}>
                 {isSomeoneSpeaking ? speakerName : '---'}
               </span>
               {isSomeoneSpeaking && (
-                <span style={{ color: colors.accent, fontSize: '8px', fontWeight: 'bold' }}>
+                <span style={{ color: colors.accent, fontSize: '7px', fontWeight: 'bold' }}>
                   ● AO VIVO
                 </span>
               )}
             </div>
-            <span style={{ color: colors.textSecondary, fontSize: '8px' }}>
+            <span style={{ color: colors.textSecondary, fontSize: '7px' }}>
               {isSomeoneSpeaking ? speakerCity : '---'}
             </span>
           </div>
           <AudioSpectrum isActive={isSomeoneSpeaking || isRecording} color={colors.accent} />
         </div>
 
-        {/* GRUPOS */}
-        <div style={{ background: colors.inputBg, borderRadius: '14px', padding: '10px 16px', marginBottom: '8px', border: `1px solid ${colors.inputBorder}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-            <div style={{ color: colors.accent, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>GRUPOS</div>
-            <span style={{ color: colors.textSecondary, fontSize: '9px' }}>{connectedUsers} conectados</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', maxHeight: '150px', overflowY: 'auto' }}>
-            {groups.map((g) => (
-              <button
-                key={g.id}
-                onClick={() => setSelectedGroup(g.name)}
-                style={{
-                  textAlign: 'left',
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  border: 'none',
-                  cursor: isOn ? 'pointer' : 'not-allowed',
-                  opacity: isOn ? 1 : 0.5,
-                  background: selectedGroup === g.name ? `${colors.accent}15` : 'transparent',
-                  color: selectedGroup === g.name ? colors.accent : colors.textSecondary,
-                  borderLeft: selectedGroup === g.name ? `3px solid ${colors.accent}` : '3px solid transparent',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-                disabled={!isOn}
-              >
-                <span>{g.name}</span>
-                <span style={{ fontSize: '9px', color: colors.textSecondary }}>{g.members} {g.members === 1 ? 'pessoa' : 'pessoas'}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* MIC - PTT com comportamento correto (pressionar e segurar) */}
-<div style={{ 
-  background: colors.inputBg, 
-  borderRadius: '14px', 
-  padding: '12px 16px', 
-  marginBottom: '8px', 
-  border: `1px solid ${colors.inputBorder}`, 
-  display: 'flex', 
-  justifyContent: 'center' 
-}}>
-  <button
-    onPointerDown={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (isOn && !isRecording) {
-        console.log('🎤 PTT PRESSIONADO - Iniciando gravação');
-        startRecording();
-      }
-    }}
-    onPointerUp={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (isOn && isRecording) {
-        console.log('🛑 PTT SOLTO - Parando gravação');
-        stopRecording();
-      }
-    }}
-    onPointerLeave={(e) => {
-      if (isOn && isRecording) {
-        console.log('🛑 PTT CANCELADO - Mouse saiu do botão');
-        stopRecording();
-      }
-    }}
-    onContextMenu={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    }}
-    onDragStart={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    }}
-    style={{
-      width: '70%',
-      padding: '12px',
-      borderRadius: '30px',
-      border: 'none',
-      background: isRecording && isOn ? `${colors.accent}30` : 'transparent',
-      cursor: isOn ? 'pointer' : 'not-allowed',
-      opacity: isOn ? 1 : 0.4,
-      transition: 'all 0.15s ease',
-      transform: isRecording && isOn ? 'scale(0.95)' : 'scale(1)',
-      boxShadow: isRecording && isOn ? `0 0 30px ${colors.accent}20` : 'none',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'relative',
-      overflow: 'hidden',
-      minHeight: '60px',
-      touchAction: 'none',
-      userSelect: 'none',
-      WebkitUserSelect: 'none',
-      WebkitTouchCallout: 'none',
-    }}
-    disabled={!isOn}
-  >
-    <img
-      src="/botao-ptt.png"
-      alt="PTT"
-      style={{
-        width: '120px',
-        height: '60px',
-        objectFit: 'contain',
-        pointerEvents: 'none',
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-      }}
-      draggable={false}
-      onDragStart={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-    />
-    {isRecording && isOn && (
-      <div style={{ 
-        position: 'absolute', 
-        inset: 0, 
-        background: `radial-gradient(circle, ${colors.accent}15, transparent 70%)`, 
-        animation: 'pulse-bg 0.8s ease-in-out infinite' 
-      }} />
-    )}
-    {isRecording && isOn && (
-      <div style={{
-        position: 'absolute',
-        bottom: '8px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        fontSize: '10px',
-        color: colors.accent,
-        fontWeight: 'bold',
-        background: 'rgba(0,0,0,0.7)',
-        padding: '2px 12px',
-        borderRadius: '10px',
-        animation: 'pulse-text 0.8s ease-in-out infinite',
-      }}>
-        🎤 GRAVANDO...
-      </div>
-    )}
-  </button>
+        {/* GRUPOS - Altura reduzida para mostrar apenas 4 linhas */}
+       <div style={{ background: colors.inputBg, borderRadius: '14px', padding: '6px 10px', marginBottom: '6px', border: `1px solid ${colors.inputBorder}` }}>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+    <div style={{ color: colors.accent, fontSize: '9px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>GRUPOS</div>
+    <span style={{ color: colors.textSecondary, fontSize: '8px' }}>{connectedUsers} conectados</span>
+  </div>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxHeight: '120px', overflowY: 'auto' }}>
+    {groups.map((g) => (
+      <button
+        key={g.id}
+        onClick={() => {
+          console.log(`🔄 Selecionando grupo: ${g.name} (ID: ${g.id})`);
+          setSelectedGroup(g.name);
+          setCurrentGroupId(g.id);
+          setupAudioListener(g.id);
+        }}
+        style={{
+          textAlign: 'left',
+          padding: '2px 8px',
+          borderRadius: '4px',
+          fontSize: '10px',
+          border: 'none',
+          cursor: isOn ? 'pointer' : 'not-allowed',
+          opacity: isOn ? 1 : 0.5,
+          background: selectedGroup === g.name ? `${colors.accent}15` : 'transparent',
+          color: selectedGroup === g.name ? colors.accent : colors.textSecondary,
+          borderLeft: selectedGroup === g.name ? `2px solid ${colors.accent}` : '2px solid transparent',
+          transition: 'all 0.2s',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+        disabled={!isOn}
+      >
+        <span>{g.name}</span>
+        <span style={{ fontSize: '8px', color: colors.textSecondary }}>{g.members}</span>
+      </button>
+    ))}
+  </div>
 </div>
+
+        {/* MIC - PTT com altura reduzida */}
+        <div style={{ 
+          background: colors.inputBg, 
+          borderRadius: '14px', 
+          padding: '6px 12px', 
+          marginBottom: '6px', 
+          border: `1px solid ${colors.inputBorder}`, 
+          display: 'flex', 
+          justifyContent: 'center' 
+        }}>
+          <button
+            onMouseDown={() => {
+              if (isOn && !isRecording) {
+                startRecording();
+              }
+            }}
+            onMouseUp={() => {
+              if (isOn && isRecording) {
+                stopRecording();
+              }
+            }}
+            onMouseLeave={() => {
+              if (isOn && isRecording) {
+                stopRecording();
+              }
+            }}
+            onTouchStart={() => {
+              if (isOn && !isRecording) {
+                startRecording();
+              }
+            }}
+            onTouchEnd={() => {
+              if (isOn && isRecording) {
+                stopRecording();
+              }
+            }}
+            onTouchCancel={() => {
+              if (isOn && isRecording) {
+                stopRecording();
+              }
+            }}
+            style={{
+              width: '60%',
+              padding: '6px',
+              borderRadius: '20px',
+              border: 'none',
+              background: isRecording && isOn ? `${colors.accent}30` : 'transparent',
+              cursor: isOn ? 'pointer' : 'not-allowed',
+              opacity: isOn ? 1 : 0.4,
+              transition: 'all 0.15s ease',
+              transform: isRecording && isOn ? 'scale(0.95)' : 'scale(1)',
+              boxShadow: isRecording && isOn ? `0 0 20px ${colors.accent}20` : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              minHeight: '44px',
+              touchAction: 'none',
+              userSelect: 'none',
+            }}
+            disabled={!isOn}
+          >
+            <img
+              src="/botao-ptt.png"
+              alt="PTT"
+              style={{
+                width: '80px',
+                height: '40px',
+                objectFit: 'contain',
+                pointerEvents: 'none',
+              }}
+              draggable={false}
+            />
+            {isRecording && isOn && (
+              <div style={{ 
+                position: 'absolute', 
+                inset: 0, 
+                background: `radial-gradient(circle, ${colors.accent}15, transparent 70%)`, 
+                animation: 'pulse-bg 0.8s ease-in-out infinite' 
+              }} />
+            )}
+            {isRecording && isOn && (
+              <div style={{
+                position: 'absolute',
+                bottom: '4px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontSize: '8px',
+                color: colors.accent,
+                fontWeight: 'bold',
+                background: 'rgba(0,0,0,0.7)',
+                padding: '1px 8px',
+                borderRadius: '8px',
+                animation: 'pulse-text 0.8s ease-in-out infinite',
+              }}>
+                GRAVANDO
+              </div>
+            )}
+          </button>
+        </div>
 
         {/* MAPA / CONTROLES / RADAR - Tabs */}
         <div style={{ 
@@ -907,7 +825,7 @@ const handleChannelChange = async (channelId: string) => {
           borderRadius: '14px', 
           overflow: 'hidden', 
           border: `1px solid ${colors.accent}`, 
-          marginBottom: '8px' 
+          marginBottom: '6px' 
         }}>
           {[
             { id: 'mapa', label: 'Mapa', icon: Map },
@@ -919,8 +837,8 @@ const handleChannelChange = async (channelId: string) => {
               onClick={() => setActiveTab(tab.id as 'mapa' | 'controles' | 'radar')}
               style={{
                 flex: 1,
-                padding: '6px',
-                fontSize: '11px',
+                padding: '4px',
+                fontSize: '10px',
                 fontWeight: 'bold',
                 border: 'none',
                 cursor: 'pointer',
@@ -935,7 +853,7 @@ const handleChannelChange = async (channelId: string) => {
                 gap: '4px',
               }}
             >
-              <tab.icon size={14} />
+              <tab.icon size={12} />
               {tab.label}
             </button>
           ))}
@@ -946,8 +864,8 @@ const handleChannelChange = async (channelId: string) => {
           background: colors.inputBg, 
           borderRadius: '14px', 
           padding: '4px', 
-          marginBottom: '8px', 
-          minHeight: '180px', 
+          marginBottom: '6px', 
+          minHeight: '160px', 
           border: `1px solid ${colors.inputBorder}`, 
           overflow: 'hidden' 
         }}>
@@ -959,33 +877,31 @@ const handleChannelChange = async (channelId: string) => {
               flexDirection: 'column', 
               alignItems: 'center', 
               justifyContent: 'center', 
-              padding: '12px', 
-              gap: '8px', 
-              minHeight: '180px' 
+              padding: '8px', 
+              gap: '6px', 
+              minHeight: '160px' 
             }}>
-              {/* Botão On/Off */}
               <button
                 onClick={() => setIsOn(!isOn)}
                 style={{
                   background: isOn ? colors.accent : colors.cardBorder,
                   color: isOn ? colors.background : colors.textSecondary,
                   border: 'none',
-                  padding: '4px 20px',
-                  borderRadius: '16px',
-                  fontSize: '11px',
+                  padding: '3px 16px',
+                  borderRadius: '14px',
+                  fontSize: '10px',
                   fontWeight: 'bold',
                   cursor: 'pointer',
                   transition: 'all 0.3s',
-                  boxShadow: isOn ? `0 0 15px ${colors.accent}40` : 'none',
+                  boxShadow: isOn ? `0 0 12px ${colors.accent}40` : 'none',
                 }}
               >
                 {isOn ? 'ON' : 'OFF'}
               </button>
 
-              {/* Knobs */}
               <div style={{ 
                 display: 'flex', 
-                gap: '16px', 
+                gap: '12px', 
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 width: '100%' 
@@ -1000,7 +916,7 @@ const handleChannelChange = async (channelId: string) => {
                   disabled={!isOn} 
                 />
                 
-                <div style={{ width: '1px', height: '40px', background: '#2a2a2a' }} />
+                <div style={{ width: '1px', height: '30px', background: '#2a2a2a' }} />
                 
                 <div style={{ position: 'relative' }}>
                   <KnobElegante
@@ -1021,11 +937,11 @@ const handleChannelChange = async (channelId: string) => {
                       background: colors.card,
                       border: `1px solid ${colors.cardBorder}`,
                       borderRadius: '50%',
-                      width: '18px',
-                      height: '18px',
+                      width: '16px',
+                      height: '16px',
                       color: isMuted ? colors.accent : colors.textSecondary,
                       cursor: 'pointer',
-                      fontSize: '8px',
+                      fontSize: '7px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1040,8 +956,7 @@ const handleChannelChange = async (channelId: string) => {
                 </div>
               </div>
               
-              {/* Informações */}
-              <div style={{ color: colors.textSecondary, fontSize: '9px', textAlign: 'center', marginTop: '2px' }}>
+              <div style={{ color: colors.textSecondary, fontSize: '8px', textAlign: 'center' }}>
                 {connectedUsers} conectados
               </div>
             </div>
@@ -1049,25 +964,25 @@ const handleChannelChange = async (channelId: string) => {
             // RADAR
             <div style={{ 
               position: 'relative', 
-              width: '120px', 
-              height: '120px', 
+              width: '100px', 
+              height: '100px', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center', 
-              margin: '20px auto' 
+              margin: '16px auto' 
             }}>
               <div style={{ position: 'absolute', inset: 0, border: `2px solid ${colors.accent}20`, borderRadius: '50%', animation: 'radar-pulse 2s ease-out infinite' }} />
-              <div style={{ position: 'absolute', inset: '10px', border: `2px solid ${colors.accent}15`, borderRadius: '50%', animation: 'radar-pulse 2s ease-out 0.5s infinite' }} />
-              <div style={{ position: 'absolute', inset: '20px', border: `2px solid ${colors.accent}10`, borderRadius: '50%', animation: 'radar-pulse 2s ease-out 1s infinite' }} />
-              <div style={{ position: 'absolute', inset: '30px', border: `2px solid ${colors.accent}5`, borderRadius: '50%', animation: 'radar-pulse 2s ease-out 1.5s infinite' }} />
-              <div style={{ position: 'absolute', top: '50%', left: '50%', width: '55px', height: '2px', background: `linear-gradient(to right, ${colors.accent}, transparent)`, transformOrigin: 'left center', animation: 'radar-spin 3s linear infinite', borderRadius: '2px', boxShadow: `0 0 10px ${colors.accent}40` }} />
+              <div style={{ position: 'absolute', inset: '8px', border: `2px solid ${colors.accent}15`, borderRadius: '50%', animation: 'radar-pulse 2s ease-out 0.5s infinite' }} />
+              <div style={{ position: 'absolute', inset: '16px', border: `2px solid ${colors.accent}10`, borderRadius: '50%', animation: 'radar-pulse 2s ease-out 1s infinite' }} />
+              <div style={{ position: 'absolute', inset: '24px', border: `2px solid ${colors.accent}5`, borderRadius: '50%', animation: 'radar-pulse 2s ease-out 1.5s infinite' }} />
+              <div style={{ position: 'absolute', top: '50%', left: '50%', width: '45px', height: '2px', background: `linear-gradient(to right, ${colors.accent}, transparent)`, transformOrigin: 'left center', animation: 'radar-spin 3s linear infinite', borderRadius: '2px', boxShadow: `0 0 10px ${colors.accent}40` }} />
               <div style={{ position: 'absolute', top: '50%', left: '50%', width: '6px', height: '6px', background: colors.accent, borderRadius: '50%', transform: 'translate(-50%, -50%)', boxShadow: `0 0 20px ${colors.accent}60` }} />
               {nearbyUsers.slice(0, 6).map((user, index) => {
                 const angle = (index / 6) * 360;
                 const distance = 20 + Math.random() * 25;
                 const rad = (angle * Math.PI) / 180;
-                const x = 60 + distance * Math.cos(rad);
-                const y = 60 + distance * Math.sin(rad);
+                const x = 50 + distance * Math.cos(rad);
+                const y = 50 + distance * Math.sin(rad);
                 return (
                   <div key={user.id} style={{ position: 'absolute', left: `${x - 3}%`, top: `${y - 3}%`, width: '6px', height: '6px', borderRadius: '50%', background: user.status === 'online' ? '#FFD700' : '#444444', boxShadow: user.status === 'online' ? '0 0 10px rgba(255,215,0,0.5)' : 'none', animation: user.status === 'online' ? 'pulse-dot 1.5s ease-in-out infinite' : 'none' }} />
                 );
@@ -1077,7 +992,7 @@ const handleChannelChange = async (channelId: string) => {
         </div>
 
         {/* STATUS */}
-        <div style={{ background: colors.inputBg, borderRadius: '14px', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '10px', flexWrap: 'wrap', border: `1px solid ${colors.inputBorder}` }}>
+        <div style={{ background: colors.inputBg, borderRadius: '14px', padding: '6px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '9px', flexWrap: 'wrap', border: `1px solid ${colors.inputBorder}` }}>
           <span style={{ color: isOn ? colors.accent : colors.textSecondary }}>
             {isOn ? '●' : '●'} {isOn ? 'Conectado' : 'Desconectado'}
           </span>
