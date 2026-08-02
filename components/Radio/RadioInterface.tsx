@@ -218,60 +218,92 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
 
   // Setup do listener de áudio
   const setupAudioListener = () => {
-    if (!selectedGroup) return;
-    
-    const channel = supabase.channel(`radio:${selectedGroup}`);
-    
-    channel
-      .on('broadcast', { event: 'novo-audio' }, (payload) => {
-        console.log('📡 Áudio recebido:', payload);
-        handleReceivedAudio(payload.payload);
-      })
-      .subscribe();
-    
-    audioChannelRef.current = channel;
-  };
+  if (!selectedGroup) {
+    console.log('❌ Nenhum grupo selecionado para ouvir áudio');
+    return;
+  }
+  
+  console.log(`🎧 Configurando listener para o grupo: ${selectedGroup}`);
+  
+  // Se já tiver um canal, desconecta
+  if (audioChannelRef.current) {
+    console.log('🔄 Desconectando canal anterior');
+    audioChannelRef.current.unsubscribe();
+  }
+  
+  const channel = supabase.channel(`radio:${selectedGroup}`);
+  
+  channel
+    .on('broadcast', { event: 'novo-audio' }, (payload) => {
+      console.log('📡 Áudio RECEBIDO via broadcast:', payload);
+      console.log('📡 Payload completo:', JSON.stringify(payload, null, 2));
+      handleReceivedAudio(payload.payload);
+    })
+    .subscribe((status) => {
+      console.log(`📡 Status do canal de áudio: ${status}`);
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ Canal de áudio SUBSCRIBED - Pronto para receber mensagens!');
+      }
+    });
+  
+  audioChannelRef.current = channel;
+  console.log('✅ Listener de áudio configurado com sucesso!');
+};
 
   // Processar áudio recebido
   const handleReceivedAudio = (payload: any) => {
-    if (payload.from === currentUser?.id) {
-      console.log('🔇 Ignorando próprio áudio');
-      return;
-    }
+  console.log('📡 handleReceivedAudio chamado');
+  console.log('📡 Payload recebido:', payload);
+  console.log('📡 De: ', payload.from);
+  console.log('📡 Meu ID:', currentUser?.id);
+  
+  if (payload.from === currentUser?.id) {
+    console.log('🔇 Ignorando próprio áudio');
+    return;
+  }
+  
+  console.log('✅ Áudio de outro usuário!');
+  
+  // Atualiza quem está falando
+  setIsSomeoneSpeaking(true);
+  setSpeakerName(payload.fromName || 'Preparado');
+  setSpeakerCity(payload.fromCity || 'Cidade');
+  
+  // Toca o beep de recebimento
+  playBeep();
+  
+  // Converte base64 para Blob e reproduz
+  try {
+    console.log('🔄 Convertendo base64 para áudio...');
+    const audioBlob = base64ToBlob(payload.audio);
+    console.log('📦 Áudio convertido, tamanho:', audioBlob.size);
+    const url = URL.createObjectURL(audioBlob);
+    console.log('🔗 URL criada:', url);
     
-    // Atualiza quem está falando
-    setIsSomeoneSpeaking(true);
-    setSpeakerName(payload.fromName || 'Preparado');
-    setSpeakerCity(payload.fromCity || 'Cidade');
+    // Adiciona ao histórico
+    setAudioURLs(prev => [...prev, {
+      id: payload.id,
+      url: url,
+      from: payload.fromName || 'Preparado'
+    }]);
     
-    // Toca o beep de recebimento
-    playBeep();
+    // Reproduz o áudio
+    const audio = new Audio(url);
+    audio.volume = volume / 100;
+    console.log('▶️ Reproduzindo áudio...');
+    audio.play()
+      .then(() => console.log('✅ Áudio reproduzido com sucesso!'))
+      .catch(e => console.log('❌ Erro ao reproduzir:', e));
     
-    // Converte base64 para Blob e reproduz
-    try {
-      const audioBlob = base64ToBlob(payload.audio);
-      const url = URL.createObjectURL(audioBlob);
-      
-      // Adiciona ao histórico
-      setAudioURLs(prev => [...prev, {
-        id: payload.id,
-        url: url,
-        from: payload.fromName || 'Preparado'
-      }]);
-      
-      // Reproduz o áudio
-      const audio = new Audio(url);
-      audio.volume = volume / 100;
-      audio.play().catch(e => console.log('Erro ao reproduzir:', e));
-      
-      // Reseta o estado após o áudio terminar
-      audio.onended = () => {
-        setIsSomeoneSpeaking(false);
-      };
-    } catch (err) {
-      console.error('Erro ao processar áudio:', err);
-    }
-  };
+    // Reseta o estado após o áudio terminar
+    audio.onended = () => {
+      console.log('⏹️ Áudio terminou');
+      setIsSomeoneSpeaking(false);
+    };
+  } catch (err) {
+    console.error('❌ Erro ao processar áudio:', err);
+  }
+};
 
   // Converter base64 para Blob
   const base64ToBlob = (base64: string) => {
@@ -378,67 +410,102 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
 
   // Funções de gravação de áudio
   const startRecording = async () => {
-    if (!isOn) return;
+  console.log('🎤 startRecording chamado');
+  console.log('isOn:', isOn);
+  console.log('currentUser:', currentUser);
+  
+  if (!isOn) {
+    console.log('❌ Rádio desligado, não pode gravar');
+    return;
+  }
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // Analisador de áudio para o espectro
-      const audioContext = new AudioContext();
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-      
-      analyser.fftSize = 256;
-      source.connect(analyser);
-      
-      const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      
-      const updateLevel = () => {
-        analyser.getByteFrequencyData(dataArray);
-        const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-        const level = Math.min(100, (average / 255) * 100);
-        setAudioLevel(level);
-        animationRef.current = requestAnimationFrame(updateLevel);
-      };
-      
-      updateLevel();
-      
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      audioChunksRef.current = [];
+  if (!currentUser) {
+    console.log('❌ Usuário não autenticado');
+    return;
+  }
 
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
+  try {
+    console.log('🎤 Solicitando acesso ao microfone...');
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: { 
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      } 
+    });
+    console.log('✅ Microfone acessado com sucesso!');
+    
+    // Analisador de áudio
+    const audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    source.connect(analyser);
+    
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    
+    const updateLevel = () => {
+      analyser.getByteFrequencyData(dataArray);
+      const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+      const level = Math.min(100, (average / 255) * 100);
+      setAudioLevel(level);
+      animationRef.current = requestAnimationFrame(updateLevel);
+    };
+    
+    updateLevel();
+    
+    mediaRecorderRef.current = new MediaRecorder(stream, {
+      mimeType: 'audio/webm;codecs=opus'
+    });
+    audioChunksRef.current = [];
 
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+    mediaRecorderRef.current.ondataavailable = (event) => {
+      console.log('📦 Dados de áudio disponíveis:', event.data.size);
+      if (event.data.size > 0) {
+        audioChunksRef.current.push(event.data);
+      }
+    };
+
+    mediaRecorderRef.current.onstop = async () => {
+      console.log('🛑 Gravação finalizada');
+      console.log('📦 Chunks de áudio:', audioChunksRef.current.length);
+      
+      if (audioChunksRef.current.length === 0) {
+        console.log('⚠️ Nenhum dado de áudio foi gravado');
+        return;
+      }
+      
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      console.log('📦 Tamanho do áudio:', audioBlob.size, 'bytes');
+      
+      if (audioBlob.size > 0) {
         await enviarAudio(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
-        if (animationRef.current) {
-          cancelAnimationFrame(animationRef.current);
-        }
-        setAudioLevel(0);
-      };
+      } else {
+        console.log('⚠️ Áudio vazio, não enviado');
+      }
+      
+      stream.getTracks().forEach(track => track.stop());
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      setAudioLevel(0);
+    };
 
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-      setIsMicActive(true);
-      setIsSomeoneSpeaking(true);
-      
-      playBeep();
-      
-      // Limite de 15 segundos
-      setTimeout(() => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-          stopRecording();
-        }
-      }, 15000);
-    } catch (err) {
-      console.error('Erro ao acessar microfone:', err);
-    }
-  };
+    mediaRecorderRef.current.start();
+    console.log('🎤 Gravação iniciada!');
+    setIsRecording(true);
+    setIsMicActive(true);
+    setIsSomeoneSpeaking(true);
+    
+    playBeep();
+    
+    // REMOVIDO: timeout de 15 segundos - agora o usuário controla
+
+  } catch (err) {
+    console.error('❌ Erro ao acessar microfone:', err);
+    alert('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
+  }
+};
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -451,38 +518,51 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
   };
 
   const enviarAudio = async (audioBlob: Blob) => {
-    if (!currentUser) return;
-    
-    try {
-      // Converte o blob para base64
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      reader.onloadend = async () => {
-        const base64Audio = reader.result as string;
-        
-        // Envia via broadcast
-        if (audioChannelRef.current) {
-          await audioChannelRef.current.send({
-            type: 'broadcast',
-            event: 'novo-audio',
-            payload: {
-              id: Date.now().toString(),
-              audio: base64Audio,
-              from: currentUser.id,
-              fromName: speakerName || 'Preparado',
-              fromCity: speakerCity || 'Cidade',
-              timestamp: Date.now()
-            }
-          });
-          
-          console.log('📤 Áudio enviado com sucesso!');
+  console.log('📤 enviarAudio chamado');
+  console.log('currentUser:', currentUser);
+  console.log('selectedGroup:', selectedGroup);
+  
+  if (!currentUser) {
+    console.log('❌ Usuário não autenticado');
+    return;
+  }
+  
+  if (!audioChannelRef.current) {
+    console.log('❌ Canal de áudio não configurado');
+    return;
+  }
+  
+  try {
+    // Converte o blob para base64
+    const reader = new FileReader();
+    reader.readAsDataURL(audioBlob);
+    reader.onloadend = async () => {
+      const base64Audio = reader.result as string;
+      console.log('📤 Áudio convertido para base64, tamanho:', base64Audio.length);
+      
+      // Envia via broadcast
+      const payload = {
+        type: 'broadcast',
+        event: 'novo-audio',
+        payload: {
+          id: `${Date.now()}_${currentUser.id}`,
+          audio: base64Audio,
+          from: currentUser.id,
+          fromName: speakerName || 'Preparado',
+          fromCity: speakerCity || 'Cidade',
+          timestamp: Date.now()
         }
       };
-    } catch (error) {
-      console.error('Erro ao enviar áudio:', error);
-    }
-  };
-
+      
+      console.log('📤 Enviando payload:', payload);
+      
+      await audioChannelRef.current.send(payload);
+      console.log('✅ Áudio enviado com sucesso!');
+    };
+  } catch (error) {
+    console.error('❌ Erro ao enviar áudio:', error);
+  }
+};
   // Range change
   const handleRangeChange = useCallback((newRange: number) => {
     setRange(newRange);
@@ -647,66 +727,115 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
           </div>
         </div>
 
-        {/* MIC - PTT */}
-        <div style={{ 
-          background: colors.inputBg, 
-          borderRadius: '14px', 
-          padding: '12px 16px', 
-          marginBottom: '8px', 
-          border: `1px solid ${colors.inputBorder}`, 
-          display: 'flex', 
-          justifyContent: 'center' 
-        }}>
-          <button
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            onMouseLeave={stopRecording}
-            onTouchStart={startRecording}
-            onTouchEnd={stopRecording}
-            onTouchCancel={stopRecording}
-            style={{
-              width: '70%',
-              padding: '12px',
-              borderRadius: '30px',
-              border: 'none',
-              background: isRecording && isOn ? `${colors.accent}30` : 'transparent',
-              cursor: isOn ? 'pointer' : 'not-allowed',
-              opacity: isOn ? 1 : 0.4,
-              transition: 'all 0.15s ease',
-              transform: isRecording && isOn ? 'scale(0.95)' : 'scale(1)',
-              boxShadow: isRecording && isOn ? `0 0 30px ${colors.accent}20` : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              minHeight: '60px',
-              touchAction: 'none',
-            }}
-            disabled={!isOn}
-          >
-            <img
-              src="/botao-ptt.png"
-              alt="PTT"
-              style={{
-                width: '120px',
-                height: '60px',
-                objectFit: 'contain',
-              }}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-            {isRecording && isOn && (
-              <div style={{ 
-                position: 'absolute', 
-                inset: 0, 
-                background: `radial-gradient(circle, ${colors.accent}15, transparent 70%)`, 
-                animation: 'pulse-bg 0.8s ease-in-out infinite' 
-              }} />
-            )}
-          </button>
-        </div>
+        {/* MIC - PTT com comportamento correto (pressionar e segurar) */}
+<div style={{ 
+  background: colors.inputBg, 
+  borderRadius: '14px', 
+  padding: '12px 16px', 
+  marginBottom: '8px', 
+  border: `1px solid ${colors.inputBorder}`, 
+  display: 'flex', 
+  justifyContent: 'center' 
+}}>
+  <button
+    onPointerDown={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isOn && !isRecording) {
+        console.log('🎤 PTT PRESSIONADO - Iniciando gravação');
+        startRecording();
+      }
+    }}
+    onPointerUp={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isOn && isRecording) {
+        console.log('🛑 PTT SOLTO - Parando gravação');
+        stopRecording();
+      }
+    }}
+    onPointerLeave={(e) => {
+      if (isOn && isRecording) {
+        console.log('🛑 PTT CANCELADO - Mouse saiu do botão');
+        stopRecording();
+      }
+    }}
+    onContextMenu={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    }}
+    onDragStart={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    }}
+    style={{
+      width: '70%',
+      padding: '12px',
+      borderRadius: '30px',
+      border: 'none',
+      background: isRecording && isOn ? `${colors.accent}30` : 'transparent',
+      cursor: isOn ? 'pointer' : 'not-allowed',
+      opacity: isOn ? 1 : 0.4,
+      transition: 'all 0.15s ease',
+      transform: isRecording && isOn ? 'scale(0.95)' : 'scale(1)',
+      boxShadow: isRecording && isOn ? `0 0 30px ${colors.accent}20` : 'none',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+      overflow: 'hidden',
+      minHeight: '60px',
+      touchAction: 'none',
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
+      WebkitTouchCallout: 'none',
+    }}
+    disabled={!isOn}
+  >
+    <img
+      src="/botao-ptt.png"
+      alt="PTT"
+      style={{
+        width: '56px',
+        height: '56px',
+        objectFit: 'contain',
+        pointerEvents: 'none',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+      }}
+      draggable={false}
+      onDragStart={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    />
+    {isRecording && isOn && (
+      <div style={{ 
+        position: 'absolute', 
+        inset: 0, 
+        background: `radial-gradient(circle, ${colors.accent}15, transparent 70%)`, 
+        animation: 'pulse-bg 0.8s ease-in-out infinite' 
+      }} />
+    )}
+    {isRecording && isOn && (
+      <div style={{
+        position: 'absolute',
+        bottom: '8px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        fontSize: '10px',
+        color: colors.accent,
+        fontWeight: 'bold',
+        background: 'rgba(0,0,0,0.7)',
+        padding: '2px 12px',
+        borderRadius: '10px',
+        animation: 'pulse-text 0.8s ease-in-out infinite',
+      }}>
+        🎤 GRAVANDO...
+      </div>
+    )}
+  </button>
+</div>
 
         {/* MAPA / CONTROLES / RADAR - Tabs */}
         <div style={{ 
