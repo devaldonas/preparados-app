@@ -76,6 +76,7 @@ const RadioInterface: React.FC<RadioInterfaceProps> = ({
   const [speakerCity, setSpeakerCity] = useState('');
   const [audioURLs, setAudioURLs] = useState<{ id: string; url: string; from: string }[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentGroupId, setCurrentGroupId] = useState<string>('todos');
 
   // Refs
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -232,41 +233,51 @@ useEffect(() => {
     }
   };
 
-  // Setup do listener de áudio
-  const setupAudioListener = () => {
-  if (!selectedGroup) {
-    console.log('❌ Nenhum grupo selecionado para ouvir áudio');
-    return;
-  }
+  /// Setup do listener de áudio com ID do grupo
+const setupAudioListener = (groupId?: string) => {
+  const groupIdToUse = groupId || currentGroupId || 'todos';
   
-  console.log(`🎧 Configurando listener para o grupo: ${selectedGroup}`);
+  console.log(`🎧 Configurando listener para o grupo ID: ${groupIdToUse}`);
   
-  // Se já tiver um canal e estiver SUBSCRIBED, não recria
+  // Se já tiver um canal, desconecta
   if (audioChannelRef.current) {
-    console.log('ℹ️ Canal já existe, mantendo conexão');
-    return;
+    console.log('🔄 Desconectando canal anterior');
+    audioChannelRef.current.unsubscribe();
+    audioChannelRef.current = null;
   }
   
-  const channel = supabase.channel(`radio:${selectedGroup}`);
+  // USANDO CANAL FIXO PARA TESTE - Mude para groupIdToUse depois
+  const channelName = `radio:teste`; // Canal fixo para teste
+  // const channelName = `radio:${groupIdToUse}`; // Descomente depois
+  
+  console.log(`📡 Usando canal: ${channelName}`);
+  
+  const channel = supabase.channel(channelName);
+  
+  // Listener para QUALQUER broadcast (debug)
+  channel.on('broadcast', { event: '*' }, (payload) => {
+    console.log('📡📡📡 BROADCAST GENÉRICO RECEBIDO:', payload);
+  });
   
   channel
     .on('broadcast', { event: 'novo-audio' }, (payload) => {
-      console.log('📡 Áudio RECEBIDO via broadcast:', payload);
+      console.log('📡 Áudio RECEBIDO via broadcast (evento específico):', payload);
       handleReceivedAudio(payload.payload);
     })
     .subscribe((status) => {
-      console.log(`📡 Status do canal de áudio: ${status}`);
+      console.log(`📡 Status do canal: ${status}`);
       if (status === 'SUBSCRIBED') {
-        console.log('✅ Canal de áudio SUBSCRIBED - Pronto para receber mensagens!');
+        console.log('✅ Canal SUBSCRIBED - Pronto para receber mensagens!');
       }
     });
   
   audioChannelRef.current = channel;
-  console.log('✅ Listener de áudio configurado com sucesso!');
+  console.log('✅ Listener configurado com sucesso!');
 };
 
   // Processar áudio recebido
   const handleReceivedAudio = (payload: any) => {
+  console.log('📡📡📡 HANDLE RECEIVED AUDIO CHAMADO! 📡📡📡');
   console.log('📡 handleReceivedAudio chamado');
   console.log('📡 Payload recebido:', payload);
   console.log('📡 De: ', payload.from);
@@ -352,63 +363,90 @@ useEffect(() => {
     inputBorder: '#1a1a1a',
   };
 
-  // Mudar canal
-  const handleChannelChange = async (channelId: string) => {
-    setCurrentChannel(channelId);
-    const lat = userLatitude || latitude;
-    const lng = userLongitude || longitude;
+ // Mudar canal
+const handleChannelChange = async (channelId: string) => {
+  setCurrentChannel(channelId);
+  const lat = userLatitude || latitude;
+  const lng = userLongitude || longitude;
 
-    if (channelId === 'CH CIDADES') {
-      const nearbyGroups = await getNearbyGroups(lat, lng, range);
-      if (nearbyGroups.length > 0) {
-        setGroups([
-          {
-            id: 'todos',
-            name: 'Todos',
-            city: 'Todas as cidades',
-            state: 'Brasil',
-            latitude: lat,
-            longitude: lng,
-            members: nearbyGroups.reduce((acc, g) => acc + g.members, 0),
-          },
-          ...nearbyGroups,
-        ]);
-      }
-      setSelectedGroup('Todos');
-    } else if (channelId === 'CH ADMIN' && isAdmin) {
-      const { data: admins } = await supabase
-        .from('profiles')
-        .select('id, full_name, city, state, latitude, longitude')
-        .eq('role', 'admin')
-        .not('latitude', 'is', null)
-        .not('longitude', 'is', null);
-
-      if (admins && admins.length > 0) {
-        setGroups([
-          {
-            id: 'todos-admin',
-            name: 'Todos os Admins',
-            city: 'Administradores',
-            state: 'Brasil',
-            latitude: lat,
-            longitude: lng,
-            members: admins.length,
-          },
-          ...admins.map((admin) => ({
-            id: `admin-${admin.id}`,
-            name: admin.full_name || 'Admin',
-            city: admin.city || 'Cidade',
-            state: admin.state || 'Estado',
-            latitude: admin.latitude || 0,
-            longitude: admin.longitude || 0,
-            members: 1,
-          })),
-        ]);
-      }
-      setSelectedGroup('Todos os Admins');
+  if (channelId === 'CH CIDADES') {
+    const nearbyGroups = await getNearbyGroups(lat, lng, range);
+    if (nearbyGroups.length > 0) {
+      const groupsWithIds = [
+        {
+          id: 'todos',
+          name: 'Todos',
+          city: 'Todas as cidades',
+          state: 'Brasil',
+          latitude: lat,
+          longitude: lng,
+          members: nearbyGroups.reduce((acc, g) => acc + g.members, 0),
+        },
+        ...nearbyGroups,
+      ];
+      setGroups(groupsWithIds);
+      
+      // Seleciona o primeiro grupo (Todos) e salva o ID
+      const firstGroup = groupsWithIds[0];
+      setSelectedGroup(firstGroup.name);
+      setCurrentGroupId(firstGroup.id);
+      
+      // Configura o listener com o ID do grupo
+      setupAudioListener(firstGroup.id);
+    } else {
+      const defaultGroup = {
+        id: 'default',
+        name: 'Todos',
+        city: 'Sua Cidade',
+        state: 'Estado',
+        latitude: lat,
+        longitude: lng,
+        members: 1,
+      };
+      setGroups([defaultGroup]);
+      setSelectedGroup(defaultGroup.name);
+      setCurrentGroupId(defaultGroup.id);
+      setupAudioListener(defaultGroup.id);
     }
-  };
+  } else if (channelId === 'CH ADMIN' && isAdmin) {
+    const { data: admins } = await supabase
+      .from('profiles')
+      .select('id, full_name, city, state, latitude, longitude')
+      .eq('role', 'admin')
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null);
 
+    if (admins && admins.length > 0) {
+      const adminGroups = [
+        {
+          id: 'todos-admin',
+          name: 'Todos os Admins',
+          city: 'Administradores',
+          state: 'Brasil',
+          latitude: lat,
+          longitude: lng,
+          members: admins.length,
+        },
+        ...admins.map((admin) => ({
+          id: `admin-${admin.id}`,
+          name: admin.full_name || 'Admin',
+          city: admin.city || 'Cidade',
+          state: admin.state || 'Estado',
+          latitude: admin.latitude || 0,
+          longitude: admin.longitude || 0,
+          members: 1,
+        })),
+      ];
+      setGroups(adminGroups);
+      
+      const firstGroup = adminGroups[0];
+      setSelectedGroup(firstGroup.name);
+      setCurrentGroupId(firstGroup.id);
+      setupAudioListener(firstGroup.id);
+    }
+    setSelectedGroup('Todos os Admins');
+  }
+};
   // Áudio do beep
   useEffect(() => {
     audioRef.current = new Audio('/roger-beep.mp3');
@@ -534,17 +572,21 @@ useEffect(() => {
 
   const enviarAudio = async (audioBlob: Blob) => {
   console.log('📤 enviarAudio chamado');
-  console.log('currentUser:', currentUser);
-  console.log('selectedGroup:', selectedGroup);
   
   if (!currentUser) {
     console.log('❌ Usuário não autenticado');
     return;
   }
   
+  // Verifica se o canal existe
   if (!audioChannelRef.current) {
-    console.log('❌ Canal de áudio não configurado');
-    return;
+    console.log('❌ Canal não configurado, configurando...');
+    setupAudioListener();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    if (!audioChannelRef.current) {
+      console.log('❌ Falha ao configurar canal');
+      return;
+    }
   }
   
   try {
@@ -552,8 +594,9 @@ useEffect(() => {
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
       const base64Audio = reader.result as string;
-      console.log('📤 Áudio convertido para base64, tamanho:', base64Audio.length);
+      console.log('📤 Áudio convertido, tamanho:', base64Audio.length);
       
+      // CORRIGIDO: payload definido corretamente
       const payload = {
         type: 'broadcast',
         event: 'novo-audio',
@@ -567,26 +610,13 @@ useEffect(() => {
         }
       };
       
-      console.log('📤 Enviando payload para o canal:', audioChannelRef.current.topic);
+      console.log('📤 Enviando payload...');
       
-      // Verifica se o canal está conectado antes de enviar
       try {
         await audioChannelRef.current.send(payload);
         console.log('✅ Áudio enviado com sucesso!');
       } catch (sendError) {
-        console.error('❌ Erro ao enviar áudio:', sendError);
-        // Tenta reconectar
-        console.log('🔄 Tentando reconectar o canal...');
-        setupAudioListener();
-        // Tenta enviar novamente após reconectar
-        setTimeout(async () => {
-          try {
-            await audioChannelRef.current.send(payload);
-            console.log('✅ Áudio enviado com sucesso após reconexão!');
-          } catch (retryError) {
-            console.error('❌ Falha ao enviar após reconexão:', retryError);
-          }
-        }, 500);
+        console.error('❌ Erro ao enviar:', sendError);
       }
     };
   } catch (error) {
@@ -826,8 +856,8 @@ useEffect(() => {
       src="/botao-ptt.png"
       alt="PTT"
       style={{
-        width: '56px',
-        height: '56px',
+        width: '120px',
+        height: '60px',
         objectFit: 'contain',
         pointerEvents: 'none',
         userSelect: 'none',
