@@ -8,7 +8,7 @@ import Link from 'next/link'
 import RadioPlayer from '@/components/RadioPlayer'
 import MapaMonitoramentoCompleto from '@/components/MapaMonitoramentoCompleto'
 import GuiaPreparacaoCard from '@/components/GuiaPreparacaoCard'
-import RadioCard from '@/components/Radio/RadioCard'
+import MentoriaCard from '@/components/MentoriaCard';
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
@@ -264,11 +264,8 @@ export default function Dashboard() {
             </h3>
           </Link>
 
-          {/* Rádio - Usando RadioCard */}
-          <RadioCard 
-            onlineUsers={onlineUsers} 
-            activeChannel="CH CIDADES"
-          />
+          {/* Mentoria - Usando MentoriaCard */}
+          <MentoriaCard isLive={false} nextEvent="Domingo 19h" />
 
           {/* Loja */}
           <Link
