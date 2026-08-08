@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-  "dev": "next dev --hostname 0.0.0.0",
-  "build": "next build",
-  "start": "next start"
-},
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "next build",
+    "start": "next start"
+  },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "^0.12.0",
@@ -31,6 +31,7 @@
     "react-icons": "^5.6.0",
     "react-leaflet": "^5.0.0",
     "react-swipeable": "^7.0.2",
+    "react-youtube": "^10.1.0",
     "resend": "^6.17.2",
     "supercluster": "^8.0.1",
     "tailwind-merge": "^3.6.0",

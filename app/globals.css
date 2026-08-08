@@ -55,3 +55,226 @@
   border: 2px solid white;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
+/* Remover "Assistir no YouTube" do player */
+.youtube-embed {
+  position: relative;
+  overflow: hidden;
+}
+
+.youtube-embed iframe {
+  width: 100%;
+  height: 100%;
+}
+
+/* Esconde o link do YouTube que aparece no canto */
+.youtube-embed .ytp-watermark {
+  display: none !important;
+}
+
+/* Esconde o logo do YouTube */
+.ytp-logo {
+  display: none !important;
+}
+
+/* Esconde o botão de compartilhamento */
+.ytp-share-icon {
+  display: none !important;
+}
+/* Remover elementos do YouTube globalmente */
+.ytp-watermark,
+.ytp-youtube-button,
+.ytp-share-button,
+.ytp-info-button,
+.ytp-title,
+.ytp-logo,
+.ytp-gradient-top,
+.ytp-autonav-toggle-button {
+  display: none !important;
+}
+
+.ytp-chrome-top {
+  opacity: 0 !important;
+  transition: none !important;
+  pointer-events: none !important;
+}
+
+.ytp-chrome-bottom {
+  display: block !important;
+}
+
+.ytp-fullscreen-button,
+.ytp-settings-button,
+.ytp-play-button,
+.ytp-volume-panel {
+  display: block !important;
+}
+/* Remover elementos do YouTube globalmente */
+.ytp-watermark,
+.ytp-youtube-button,
+.ytp-share-button,
+.ytp-share-icon,
+.ytp-title,
+.ytp-logo,
+.ytp-info-button,
+.ytp-report-button,
+.ytp-annotations-button,
+.ytp-subtitles-button,
+.ytp-autonav-toggle-button,
+.ytp-gradient-top {
+  display: none !important;
+}
+
+.ytp-chrome-top {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.ytp-chrome-bottom {
+  display: block !important;
+}
+
+.ytp-play-button,
+.ytp-volume-panel,
+.ytp-fullscreen-button,
+.ytp-settings-button,
+.ytp-progress-bar,
+.ytp-time-display {
+  display: block !important;
+}
+/* Remover elementos do YouTube */
+.ytp-watermark,
+.ytp-youtube-button,
+.ytp-share-button,
+.ytp-share-icon,
+.ytp-title,
+.ytp-logo,
+.ytp-info-button,
+.ytp-report-button,
+.ytp-annotations-button,
+.ytp-subtitles-button,
+.ytp-autonav-toggle-button,
+.ytp-gradient-top {
+  display: none !important;
+}
+
+.ytp-chrome-top {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.ytp-chrome-bottom {
+  display: block !important;
+}
+
+.ytp-play-button,
+.ytp-volume-panel,
+.ytp-fullscreen-button,
+.ytp-settings-button,
+.ytp-progress-bar,
+.ytp-time-display {
+  display: block !important;
+}
+/* ===== REMOVER BOTÕES DO YOUTUBE ===== */
+
+/* Esconde o logo do YouTube */
+.ytp-watermark,
+.ytp-logo,
+.ytp-logo-link {
+  display: none !important;
+}
+
+/* Esconde o botão "Assistir no YouTube" */
+.ytp-youtube-button,
+.ytp-youtube-button-container,
+.ytp-button-ytp-youtube {
+  display: none !important;
+}
+
+/* Esconde o botão de compartilhamento */
+.ytp-share-button,
+.ytp-share-icon,
+.ytp-share-panel {
+  display: none !important;
+}
+
+/* Esconde o título e informações */
+.ytp-title,
+.ytp-title-link,
+.ytp-info-button {
+  display: none !important;
+}
+
+/* Esconde a barra superior */
+.ytp-chrome-top,
+.ytp-gradient-top {
+  display: none !important;
+}
+
+/* Esconde botão de relatório */
+.ytp-report-button {
+  display: none !important;
+}
+
+/* Esconde botão de anotações */
+.ytp-annotations-button {
+  display: none !important;
+}
+
+/* Esconde botão de legendas */
+.ytp-subtitles-button {
+  display: none !important;
+}
+
+/* Esconde botão de reprodução automática */
+.ytp-autonav-toggle-button {
+  display: none !important;
+}
+
+/* Esconde o menu de configurações (opcional) */
+/* .ytp-settings-button { display: none !important; } */
+
+/* Mantém os controles essenciais */
+.ytp-chrome-bottom {
+  display: block !important;
+}
+
+.ytp-play-button {
+  display: block !important;
+}
+
+.ytp-volume-panel {
+  display: block !important;
+}
+
+.ytp-fullscreen-button {
+  display: block !important;
+}
+
+.ytp-progress-bar {
+  display: block !important;
+}
+
+.ytp-time-display {
+  display: block !important;
+}
+/* Esconde o botão "Assistir no YouTube" */
+.ytp-youtube-button {
+  display: none !important;
+}
+
+/* Esconde o botão "Share" */
+.ytp-share-button {
+  display: none !important;
+}
+
+/* Esconde o logo do YouTube */
+.ytp-watermark {
+  display: none !important;
+}
+/* Bloqueia interação com o iframe do YouTube nas áreas dos botões */
+.ytp-youtube-button,
+.ytp-share-button,
+.ytp-watermark {
+  pointer-events: none !important;
+  opacity: 0.3 !important;
+}
