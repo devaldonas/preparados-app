@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Play, Calendar, Users, Bell, BellOff, Share2, CheckCircle, Clock } from 'lucide-react';
+import { Play, Calendar, Users, Bell, BellOff, CheckCircle, Clock } from 'lucide-react';
 
 export default function MentoriaPage() {
   const router = useRouter();
@@ -61,20 +61,7 @@ export default function MentoriaPage() {
     // Aqui você pode salvar a preferência no Supabase
   };
 
-  const shareLive = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: 'Mentoria Preparado - Ao Vivo',
-        text: 'Assista à mentoria ao vivo!',
-        url: `https://preparado.vercel.app/mentoria`
-      });
-    } else {
-      navigator.clipboard.writeText(`https://preparado.vercel.app/mentoria`);
-      alert('Link copiado para a área de transferência!');
-    }
-  };
-
-  if (loading) {
+    if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
@@ -111,21 +98,14 @@ export default function MentoriaPage() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={toggleNotifications}
-              className="p-2 rounded-lg hover:bg-gray-100 transition"
-              title={notifications ? 'Desativar notificações' : 'Ativar notificações'}
-            >
-              {notifications ? <BellOff size={18} /> : <Bell size={18} />}
-            </button>
-            <button
-              onClick={shareLive}
-              className="p-2 rounded-lg hover:bg-gray-100 transition"
-              title="Compartilhar"
-            >
-              <Share2 size={18} />
-            </button>
-          </div>
+  <button
+    onClick={toggleNotifications}
+    className="p-2 rounded-lg hover:bg-gray-100 transition"
+    title={notifications ? 'Desativar notificações' : 'Ativar notificações'}
+  >
+    {notifications ? <BellOff size={18} /> : <Bell size={18} />}
+  </button>
+</div>
         </div>
 
         {/* Player do YouTube */}
@@ -148,7 +128,7 @@ export default function MentoriaPage() {
             <div>
               <h3 className="font-bold text-black text-lg">Mentoria Semanal</h3>
               <p className="text-gray-600 text-sm mt-1">
-                Toda semana, especialistas em preparação para emergências compartilham 
+                Toda semana, Michel Still, especialista em preparação para emergências, compartilha
                 conhecimentos valiosos para você e sua família.
               </p>
               <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
