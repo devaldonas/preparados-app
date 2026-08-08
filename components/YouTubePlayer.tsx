@@ -19,6 +19,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [player, setPlayer] = useState<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
   const isApiReady = useRef(false);
 
   const cleanId = videoId?.replace(/\?.*$/, '').trim() || '';
@@ -55,10 +56,10 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
   }, [cleanId]);
 
   const createPlayer = () => {
-    if (!containerRef.current || !window.YT) return;
+    if (!playerContainerRef.current || !window.YT) return;
 
     try {
-      const newPlayer = new window.YT.Player(containerRef.current, {
+      const newPlayer = new window.YT.Player(playerContainerRef.current, {
         videoId: cleanId,
         playerVars: {
           autoplay: 0,
@@ -77,7 +78,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
           },
           onStateChange: (event: any) => {
             const state = event.data;
-            // 1 = reproduzindo, 2 = pausado, 0 = terminado
             setIsPlaying(state === 1);
           },
           onError: (error: any) => {
@@ -104,11 +104,13 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
   };
 
   const toggleFullscreen = () => {
-    const iframe = document.querySelector('#youtube-player-container iframe');
-    if (iframe) {
-      if (iframe.requestFullscreen) {
-        iframe.requestFullscreen().catch(() => {});
-      }
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      container.requestFullscreen().catch(() => {});
     }
   };
 
@@ -121,7 +123,10 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
   }
 
   return (
-    <div className="bg-black rounded-xl overflow-hidden shadow-lg aspect-video w-full relative group">
+    <div 
+      ref={containerRef} 
+      className="bg-black rounded-xl overflow-hidden shadow-lg aspect-video w-full relative group"
+    >
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-10 bg-black">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
@@ -130,7 +135,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
 
       {/* Player */}
       <div 
-        ref={containerRef} 
+        ref={playerContainerRef} 
         id="youtube-player-container"
         className="w-full h-full"
       />
