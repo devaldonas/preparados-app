@@ -1,8 +1,9 @@
+// components/Notificacoes.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Bell, BellOff, X, CheckCircle, Calendar, ShoppingBag } from 'lucide-react';
+import { Bell, BellOff, X, Calendar, ShoppingBag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface Notificacao {
@@ -35,7 +36,7 @@ export default function Notificacoes() {
   }, []);
 
   const carregarNotificacoes = async (userId: string) => {
-    // Buscar notificações do usuário (integração com tabela mentoria_notificacoes)
+    // Buscar notificações do usuário
     const { data, error } = await supabase
       .from('mentoria_notificacoes')
       .select(`
@@ -55,15 +56,22 @@ export default function Notificacoes() {
       .limit(10);
 
     if (!error && data) {
-      const formatted = data.map(item => ({
-        id: item.id,
-        tipo: 'mentoria' as const,
-        titulo: 'Nova Live!',
-        mensagem: item.mentoria_lives?.titulo || 'Nova mentoria disponível',
-        link: '/mentoria',
-        lida: item.enviado || false,
-        created_at: item.created_at,
-      }));
+      const formatted = data.map((item: any) => {
+        // CORREÇÃO: verifica se mentoria_lives é um array ou objeto
+        const live = Array.isArray(item.mentoria_lives) 
+          ? item.mentoria_lives[0] 
+          : item.mentoria_lives;
+        
+        return {
+          id: item.id,
+          tipo: 'mentoria' as const,
+          titulo: 'Nova Live!',
+          mensagem: live?.titulo || 'Nova mentoria disponível',
+          link: '/mentoria',
+          lida: item.enviado || false,
+          created_at: item.created_at,
+        };
+      });
       setNotificacoes(formatted);
       setHasNew(formatted.some(n => !n.lida));
     }
@@ -82,7 +90,6 @@ export default function Notificacoes() {
           filter: `usuario_id=eq.${userId}`,
         },
         async (payload) => {
-          // Recarregar notificações
           await carregarNotificacoes(userId);
           setHasNew(true);
         }
@@ -91,7 +98,6 @@ export default function Notificacoes() {
   };
 
   const marcarComoLida = async (id: number) => {
-    // Marcar notificação como lida
     setNotificacoes(prev => 
       prev.map(n => n.id === id ? { ...n, lida: true } : n)
     );
@@ -102,13 +108,12 @@ export default function Notificacoes() {
     switch (tipo) {
       case 'mentoria': return <Calendar size={16} className="text-[#FFB800]" />;
       case 'pedido': return <ShoppingBag size={16} className="text-blue-500" />;
-      default: return <CheckCircle size={16} className="text-green-500" />;
+      default: return <Calendar size={16} className="text-green-500" />;
     }
   };
 
   return (
     <div className="relative">
-      {/* Botão de notificações */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-lg hover:bg-gray-100 transition"
@@ -123,10 +128,8 @@ export default function Notificacoes() {
         )}
       </button>
 
-      {/* Dropdown de notificações */}
       {isOpen && (
         <>
-          {/* Overlay para fechar ao clicar fora */}
           <div 
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
