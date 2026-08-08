@@ -14,7 +14,7 @@ export default function MentoriaPage() {
   const [userName, setUserName] = useState('');
 
   // ID do vídeo do YouTube (substitua pelo seu)
-  const VIDEO_ID = 'SEU_VIDEO_ID_AQUI';
+  const VIDEO_ID = 'BzS6zAEyrik';
   const embedUrl = `https://www.youtube.com/embed/${VIDEO_ID}?autoplay=0&modestbranding=1&rel=0`;
 
   useEffect(() => {
