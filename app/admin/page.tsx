@@ -11,6 +11,7 @@ import {
   Truck,
   DollarSign,
   Clock,
+  Video,
   BarChart3,
   ClipboardList,
   Store,
@@ -207,6 +208,17 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-500">Gerenciar envios</p>
             </div>
           </Link>
+
+<Link
+  href="/admin/mentoria"
+  className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition hover:border-[#FFB800]"
+>
+  <div className="w-12 h-12 bg-[#FFB800]/10 rounded-lg flex items-center justify-center mb-3">
+    <Video className="w-6 h-6 text-[#FFB800]" />
+  </div>
+  <h3 className="font-bold text-gray-900">Mentoria</h3>
+  <p className="text-sm text-gray-500 mt-1">Gerenciar lives e notificações</p>
+</Link>
 
           <Link href="/admin/relatorios">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">

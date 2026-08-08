@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useCart } from '@/lib/store/cart'
+import Notificacoes from './Notificacoes';
 import { 
   ShoppingBag, 
   Package, 
@@ -144,6 +145,9 @@ export default function NavBar({
               </div>
             )}
 
+            <div className="flex items-center gap-2">
+  <Notificacoes />
+</div>
             {/* Botão do Carrinho */}
             {showCart && (
               <Link
