@@ -18,13 +18,13 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [player, setPlayer] = useState<any>(null);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const isApiReady = useRef(false);
 
   const cleanId = videoId?.replace(/\?.*$/, '').trim() || '';
 
-  // Carrega a API do YouTube
   useEffect(() => {
     if (!cleanId) return;
 
@@ -70,11 +70,15 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
           fs: 0,
           iv_load_policy: 3,
           disablekb: 1,
+          cc_load_policy: 0,
+          hl: 'pt',
         },
         events: {
           onReady: () => {
             console.log('✅ Player do YouTube pronto!');
             setIsLoading(false);
+            setIsPlayerReady(true);
+            setPlayer(newPlayer);
           },
           onStateChange: (event: any) => {
             const state = event.data;
@@ -86,8 +90,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
           },
         },
       });
-
-      setPlayer(newPlayer);
     } catch (error) {
       console.error('❌ Erro ao criar player:', error);
       setIsLoading(false);
@@ -95,11 +97,19 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
   };
 
   const togglePlay = () => {
-    if (!player) return;
-    if (isPlaying) {
-      player.pauseVideo();
-    } else {
-      player.playVideo();
+    if (!player || !isPlayerReady) {
+      console.log('⏳ Player ainda não está pronto');
+      return;
+    }
+    
+    try {
+      if (isPlaying) {
+        player.pauseVideo();
+      } else {
+        player.playVideo();
+      }
+    } catch (error) {
+      console.error('❌ Erro ao controlar player:', error);
     }
   };
 
@@ -123,37 +133,31 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
   }
 
   return (
-    <div 
-      ref={containerRef} 
-      className="bg-black rounded-xl overflow-hidden shadow-lg aspect-video w-full relative group"
-    >
+    <div ref={containerRef} className="bg-black rounded-xl overflow-hidden shadow-lg aspect-video w-full relative group">
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-10 bg-black">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
+          <p className="text-gray-400 text-sm ml-3">Carregando vídeo...</p>
         </div>
       )}
 
-      {/* Player */}
-      <div 
-        ref={playerContainerRef} 
-        id="youtube-player-container"
-        className="w-full h-full"
-      />
+      <div ref={playerContainerRef} className="w-full h-full" />
 
-      {/* Overlay transparente para capturar cliques (apenas se não estiver reproduzindo) */}
-      {!isPlaying && (
+      {!isPlayerReady && !isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center z-15 bg-black/50">
+          <p className="text-white text-sm">Preparando player...</p>
+        </div>
+      )}
+
+      {isPlayerReady && !isPlaying && (
         <div 
           className="absolute inset-0 z-20"
-          style={{ 
-            pointerEvents: 'auto',
-            background: 'transparent',
-          }}
+          style={{ pointerEvents: 'auto', background: 'transparent' }}
           onClick={togglePlay}
         />
       )}
 
-      {/* Mensagem de ajuda - só aparece se não estiver reproduzindo */}
-      {!isPlaying && !isLoading && (
+      {isPlayerReady && !isPlaying && !isLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-15 pointer-events-none">
           <div className="bg-black/50 px-6 py-3 rounded-full backdrop-blur-sm">
             <p className="text-white/70 text-sm flex items-center gap-2">
@@ -166,25 +170,24 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
         </div>
       )}
 
-      {/* Indicador de reprodução */}
-      {isPlaying && (
+      {isPlaying && isPlayerReady && (
         <div className="absolute top-4 left-4 z-25 pointer-events-none">
           <span className="text-xs text-green-400 flex items-center gap-1">
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            Ao vivo
+            Reproduzindo
           </span>
         </div>
       )}
 
-      {/* Controles personalizados - aparecem no hover */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 p-4 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <div className="flex items-center gap-4">
+      <div className="absolute bottom-0 left-0 right-0 z-30 p-4 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+        <div className="flex items-center gap-4 pointer-events-auto">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePlay();
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              togglePlay(); 
             }}
-            className="text-white hover:text-[#FFB800] transition-colors"
+            className="text-white hover:text-[#FFB800] transition-colors disabled:opacity-50"
+            disabled={!isPlayerReady}
             title={isPlaying ? 'Pausar' : 'Reproduzir'}
           >
             {isPlaying ? (
@@ -204,10 +207,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
           </span>
 
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFullscreen();
-            }}
+            onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
             className="text-white hover:text-[#FFB800] transition-colors ml-auto"
             title="Tela cheia"
           >
@@ -220,6 +220,15 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId }) => {
           </button>
         </div>
       </div>
+
+      <style>{`
+        .ytp-subtitles-button { display: none !important; }
+        .ytp-subtitles { display: none !important; }
+        .captions-text { display: none !important; }
+        .ytp-caption-segment { display: none !important; }
+        .ytp-caption-window { display: none !important; }
+        .ytp-chrome-top { display: none !important; }
+      `}</style>
     </div>
   );
 };

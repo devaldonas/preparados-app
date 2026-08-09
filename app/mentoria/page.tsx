@@ -157,7 +157,7 @@ export default function MentoriaPage() {
               <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
                 <span className="flex items-center gap-1">
                   <Calendar size={14} />
-                  {live.data_hora ? new Date(live.data_hora).toLocaleString() : 'Data a definir'}
+                  {live.data_hora ? new Date(live.data_hora).toLocaleString('pt-BR') : 'Data a definir'}
                 </span>
                 <span className="flex items-center gap-1">
                   <Users size={14} />

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit, Trash2, Calendar, Video, Bell } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, Video, Bell, ArrowLeft } from 'lucide-react';
 
 interface Live {
   id: number;
@@ -25,7 +25,6 @@ export default function AdminMentoria() {
   const [editingLive, setEditingLive] = useState<Live | null>(null);
   const router = useRouter();
 
-  // Form state
   const [formData, setFormData] = useState({
     youtube_id: '',
     titulo: '',
@@ -64,12 +63,16 @@ export default function AdminMentoria() {
 
   const carregarLives = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('mentoria_lives')
       .select('*')
       .order('data_hora', { ascending: false });
 
-    if (data) setLives(data);
+    if (error) {
+      console.error('Erro ao carregar lives:', error);
+    } else {
+      setLives(data || []);
+    }
     setLoading(false);
   };
 
@@ -133,35 +136,43 @@ export default function AdminMentoria() {
   };
 
   const enviarNotificacao = async (liveId: number) => {
-    if (!confirm('Enviar notificação push para todos os usuários?')) return;
+  if (!confirm('Enviar notificação push para todos os usuários?')) return;
 
-    // Buscar todos os usuários
-    const { data: users } = await supabase
-      .from('profiles')
-      .select('id');
+  // Busca todos os usuários
+  const { data: users, error: usersError } = await supabase
+    .from('profiles')
+    .select('id');
 
-    if (!users || users.length === 0) {
-      alert('Nenhum usuário encontrado');
-      return;
-    }
+  if (usersError) {
+    console.error('Erro ao buscar usuários:', usersError);
+    alert('Erro ao buscar usuários');
+    return;
+  }
 
-    // Criar notificações para cada usuário
-    const notificacoes = users.map(user => ({
-      usuario_id: user.id,
-      live_id: liveId,
-      enviado: false,
-    }));
+  if (!users || users.length === 0) {
+    alert('Nenhum usuário encontrado');
+    return;
+  }
 
-    const { error } = await supabase
-      .from('mentoria_notificacoes')
-      .insert(notificacoes);
+  // Cria notificações com enviado = true
+  const notificacoes = users.map(user => ({
+    usuario_id: user.id,
+    live_id: liveId,
+    enviado: true,  // <-- MUDOU PARA TRUE
+    enviado_em: new Date().toISOString(),
+  }));
 
-    if (error) {
-      alert('Erro ao enviar notificações: ' + error.message);
-    } else {
-      alert(`Notificações enviadas para ${users.length} usuários!`);
-    }
-  };
+  const { error } = await supabase
+    .from('mentoria_notificacoes')
+    .insert(notificacoes);
+
+  if (error) {
+    console.error('Erro ao enviar notificações:', error);
+    alert('Erro ao enviar notificações: ' + error.message);
+  } else {
+    alert(`✅ Notificações enviadas para ${users.length} usuários!`);
+  }
+};
 
   const editarLive = (live: Live) => {
     setEditingLive(live);
@@ -188,8 +199,19 @@ export default function AdminMentoria() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
+        {/* Header com botão Voltar */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-black">Gerenciar Mentoria</h1>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/admin')}
+              className="p-2 rounded-lg hover:bg-gray-200 transition flex items-center gap-2"
+              title="Voltar ao Admin"
+            >
+              <ArrowLeft size={20} />
+              <span className="text-sm font-medium">Voltar</span>
+            </button>
+            <h1 className="text-2xl font-bold text-black">Gerenciar Mentoria</h1>
+          </div>
           <button
             onClick={() => {
               setEditingLive(null);
@@ -227,7 +249,7 @@ export default function AdminMentoria() {
                   value={formData.youtube_id}
                   onChange={(e) => setFormData({ ...formData, youtube_id: e.target.value })}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="Ex: BzS6zAEyrik"
+                  placeholder="Ex: dQw4w9WgXcQ"
                 />
               </div>
               <div>
@@ -272,7 +294,7 @@ export default function AdminMentoria() {
                 <input
                   type="number"
                   value={formData.duracao}
-                  onChange={(e) => setFormData({ ...formData, duracao: parseInt(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, duracao: parseInt(e.target.value) || 0 })}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
                   min="15"
                   max="180"
@@ -331,58 +353,61 @@ export default function AdminMentoria() {
                 </tr>
               </thead>
               <tbody>
-                {lives.map((live) => (
-                  <tr key={live.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium text-black">{live.titulo}</p>
-                        <p className="text-xs text-gray-500 truncate max-w-xs">{live.descricao}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-sm">{live.youtube_id}</td>
-                    <td className="px-4 py-3 text-sm">
-                      {live.data_hora ? new Date(live.data_hora).toLocaleString() : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`text-xs px-2 py-1 rounded-full ${live.is_live ? 'bg-red-500 text-white animate-pulse' : live.is_active ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                        {live.is_live ? 'AO VIVO' : live.is_active ? 'Ativo' : 'Inativo'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => editarLive(live)}
-                          className="p-1 hover:bg-gray-200 rounded transition"
-                          title="Editar"
-                        >
-                          <Edit size={16} className="text-gray-600" />
-                        </button>
-                        <button
-                          onClick={() => enviarNotificacao(live.id)}
-                          className="p-1 hover:bg-gray-200 rounded transition"
-                          title="Enviar notificação"
-                        >
-                          <Bell size={16} className="text-blue-500" />
-                        </button>
-                        <button
-                          onClick={() => deletarLive(live.id)}
-                          className="p-1 hover:bg-gray-200 rounded transition"
-                          title="Deletar"
-                        >
-                          <Trash2 size={16} className="text-red-500" />
-                        </button>
-                      </div>
+                {lives.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-8 text-gray-500">
+                      Nenhuma live cadastrada. Clique em "Nova Live" para começar.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  lives.map((live) => (
+                    <tr key={live.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="font-medium text-black">{live.titulo}</p>
+                          <p className="text-xs text-gray-500 truncate max-w-xs">{live.descricao}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-sm">{live.youtube_id}</td>
+                      <td className="px-4 py-3 text-sm">
+                        {live.data_hora ? new Date(live.data_hora).toLocaleString() : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`text-xs px-2 py-1 rounded-full ${live.is_live ? 'bg-red-500 text-white animate-pulse' : live.is_active ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
+                          {live.is_live ? 'AO VIVO' : live.is_active ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => editarLive(live)}
+                            className="p-1 hover:bg-gray-200 rounded transition"
+                            title="Editar"
+                          >
+                            <Edit size={16} className="text-gray-600" />
+                          </button>
+                          <button
+                            onClick={() => enviarNotificacao(live.id)}
+                            className="p-1 hover:bg-gray-200 rounded transition"
+                            title="Enviar notificação"
+                          >
+                            <Bell size={16} className="text-blue-500" />
+                          </button>
+                          <button
+                            onClick={() => deletarLive(live.id)}
+                            className="p-1 hover:bg-gray-200 rounded transition"
+                            title="Deletar"
+                          >
+                            <Trash2 size={16} className="text-red-500" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-          {lives.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              Nenhuma live cadastrada. Clique em "Nova Live" para começar.
-            </div>
-          )}
         </div>
       </div>
     </div>

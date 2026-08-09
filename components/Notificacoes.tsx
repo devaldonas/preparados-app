@@ -1,3 +1,4 @@
+// components/Notificacoes.tsx
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -48,6 +49,8 @@ export default function Notificacoes() {
     setIsLoading(true);
 
     try {
+      console.log('🔔 Carregando notificações para:', userId);
+
       const { data, error } = await supabase
         .from('mentoria_notificacoes')
         .select(`
@@ -231,7 +234,10 @@ export default function Notificacoes() {
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div 
+            className="fixed inset-0 z-40"
+            onClick={() => setIsOpen(false)}
+          />
           
           <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 z-50 max-h-96 overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center">
@@ -266,9 +272,13 @@ export default function Notificacoes() {
             
             <div className="overflow-y-auto max-h-72">
               {isLoading ? (
-                <div className="text-center py-8 text-gray-500 text-sm">Carregando...</div>
+                <div className="text-center py-8 text-gray-500 text-sm">
+                  Carregando...
+                </div>
               ) : notificacoes.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 text-sm">Nenhuma notificação</div>
+                <div className="text-center py-8 text-gray-500 text-sm">
+                  Nenhuma notificação
+                </div>
               ) : (
                 notificacoes.map((notif) => (
                   <div
@@ -287,8 +297,12 @@ export default function Notificacoes() {
                           setIsOpen(false);
                         }}
                       >
-                        <p className="text-sm font-semibold text-black truncate">{notif.titulo}</p>
-                        <p className="text-xs text-gray-500 truncate">{notif.mensagem}</p>
+                        <p className="text-sm font-semibold text-black truncate">
+                          {notif.titulo}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {notif.mensagem}
+                        </p>
                         <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1">
                           <Calendar size={10} />
                           {formatarData(notif.data_hora)}

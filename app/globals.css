@@ -278,3 +278,16 @@
   pointer-events: none !important;
   opacity: 0.3 !important;
 }
+/* Forçar remoção de legendas do YouTube */
+.ytp-subtitles-button,
+.ytp-subtitles,
+.captions-text,
+.ytp-caption-segment,
+.ytp-caption-window,
+.ytp-caption-window-container {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
