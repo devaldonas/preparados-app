@@ -21,20 +21,26 @@ function AdminEstoqueContent() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [newStock, setNewStock] = useState<number>(0)
   const [searchTerm, setSearchTerm] = useState('')
-  const router = useRouter()
 
   useEffect(() => {
     carregarProdutos()
   }, [])
 
   const carregarProdutos = async () => {
-    const { data } = await supabase
-      .from('products')
-      .select('*')
-      .order('name')
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('name')
 
-    setProducts(data || [])
-    setLoading(false)
+      if (error) throw error
+      setProducts((data as Product[]) || [])
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error)
+      setProducts([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   const atualizarEstoque = async (id: number, novoEstoque: number) => {
@@ -43,21 +49,27 @@ function AdminEstoqueContent() {
       return
     }
 
-    const { error } = await supabase
-      .from('products')
-      .update({ 
+    try {
+      // Cria o objeto de atualização
+      const updateData = {
         stock: novoEstoque,
         updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
+      }
 
-    if (error) {
-      console.error('Erro ao atualizar estoque:', error)
-      alert('Erro ao atualizar estoque')
-    } else {
+      // Passa o objeto diretamente, sem as any
+      const { error } = await (supabase
+        .from('products') as any)
+        .update(updateData)
+        .eq('id', id)
+
+      if (error) throw error
+
       await carregarProdutos()
       setEditingId(null)
       alert('Estoque atualizado com sucesso!')
+    } catch (error) {
+      console.error('Erro ao atualizar estoque:', error)
+      alert('Erro ao atualizar estoque')
     }
   }
 
