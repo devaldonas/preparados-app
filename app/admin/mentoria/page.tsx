@@ -37,43 +37,64 @@ export default function AdminMentoria() {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/auth/login');
-        return;
-      }
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push('/auth/login');
+          return;
+        }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
 
-      if (profile?.role !== 'admin') {
+        if (error) {
+          console.error('Erro ao buscar perfil:', error);
+          router.push('/dashboard');
+          return;
+        }
+
+        // CORRIGIDO: usando any para evitar erro de tipo
+        const profileData = profile as any;
+        if (profileData?.role !== 'admin') {
+          router.push('/dashboard');
+          return;
+        }
+
+        setIsAdmin(true);
+        await carregarLives();
+      } catch (error) {
+        console.error('Erro ao verificar admin:', error);
         router.push('/dashboard');
-        return;
+      } finally {
+        setLoading(false);
       }
-
-      setIsAdmin(true);
-      await carregarLives();
     };
 
     checkAdmin();
-  }, []);
+  }, [router]);
 
   const carregarLives = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('mentoria_lives')
-      .select('*')
-      .order('data_hora', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('mentoria_lives')
+        .select('*')
+        .order('data_hora', { ascending: false });
 
-    if (error) {
+      if (error) {
+        console.error('Erro ao carregar lives:', error);
+        setLives([]);
+      } else {
+        setLives(data as Live[] || []);
+      }
+    } catch (error) {
       console.error('Erro ao carregar lives:', error);
-    } else {
-      setLives(data || []);
+      setLives([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const salvarLive = async () => {
@@ -87,23 +108,23 @@ export default function AdminMentoria() {
       data_hora: formData.data_hora ? new Date(formData.data_hora).toISOString() : null,
     };
 
-    let error;
-    if (editingLive) {
-      const { error: updateError } = await supabase
-        .from('mentoria_lives')
-        .update(liveData)
-        .eq('id', editingLive.id);
-      error = updateError;
-    } else {
-      const { error: insertError } = await supabase
-        .from('mentoria_lives')
-        .insert([liveData]);
-      error = insertError;
-    }
+    try {
+      let error;
+      if (editingLive) {
+        const { error: updateError } = await (supabase
+          .from('mentoria_lives') as any)
+          .update(liveData)
+          .eq('id', editingLive.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await (supabase
+          .from('mentoria_lives') as any)
+          .insert([liveData]);
+        error = insertError;
+      }
 
-    if (error) {
-      alert('Erro ao salvar: ' + error.message);
-    } else {
+      if (error) throw error;
+
       alert('Live salva com sucesso!');
       setShowForm(false);
       setEditingLive(null);
@@ -117,62 +138,63 @@ export default function AdminMentoria() {
         is_live: false,
       });
       await carregarLives();
+    } catch (error) {
+      console.error('Erro ao salvar live:', error);
+      alert('Erro ao salvar: ' + (error as any).message);
     }
   };
 
   const deletarLive = async (id: number) => {
     if (!confirm('Tem certeza que deseja deletar esta live?')) return;
 
-    const { error } = await supabase
-      .from('mentoria_lives')
-      .delete()
-      .eq('id', id);
+    try {
+      const { error } = await (supabase
+        .from('mentoria_lives') as any)
+        .delete()
+        .eq('id', id);
 
-    if (error) {
-      alert('Erro ao deletar: ' + error.message);
-    } else {
+      if (error) throw error;
       await carregarLives();
+    } catch (error) {
+      console.error('Erro ao deletar live:', error);
+      alert('Erro ao deletar: ' + (error as any).message);
     }
   };
 
   const enviarNotificacao = async (liveId: number) => {
-  if (!confirm('Enviar notificação push para todos os usuários?')) return;
+    if (!confirm('Enviar notificação push para todos os usuários?')) return;
 
-  // Busca todos os usuários
-  const { data: users, error: usersError } = await supabase
-    .from('profiles')
-    .select('id');
+    try {
+      const { data: users, error: usersError } = await supabase
+        .from('profiles')
+        .select('id');
 
-  if (usersError) {
-    console.error('Erro ao buscar usuários:', usersError);
-    alert('Erro ao buscar usuários');
-    return;
-  }
+      if (usersError) throw usersError;
 
-  if (!users || users.length === 0) {
-    alert('Nenhum usuário encontrado');
-    return;
-  }
+      if (!users || users.length === 0) {
+        alert('Nenhum usuário encontrado');
+        return;
+      }
 
-  // Cria notificações com enviado = true
-  const notificacoes = users.map(user => ({
-    usuario_id: user.id,
-    live_id: liveId,
-    enviado: true,  // <-- MUDOU PARA TRUE
-    enviado_em: new Date().toISOString(),
-  }));
+      const notificacoes = users.map((user: any) => ({
+        usuario_id: user.id,
+        live_id: liveId,
+        enviado: true,
+        enviado_em: new Date().toISOString(),
+      }));
 
-  const { error } = await supabase
-    .from('mentoria_notificacoes')
-    .insert(notificacoes);
+      const { error } = await (supabase
+        .from('mentoria_notificacoes') as any)
+        .insert(notificacoes);
 
-  if (error) {
-    console.error('Erro ao enviar notificações:', error);
-    alert('Erro ao enviar notificações: ' + error.message);
-  } else {
-    alert(`✅ Notificações enviadas para ${users.length} usuários!`);
-  }
-};
+      if (error) throw error;
+
+      alert(`✅ Notificações enviadas para ${users.length} usuários!`);
+    } catch (error) {
+      console.error('Erro ao enviar notificações:', error);
+      alert('Erro ao enviar notificações: ' + (error as any).message);
+    }
+  };
 
   const editarLive = (live: Live) => {
     setEditingLive(live);
@@ -188,7 +210,7 @@ export default function AdminMentoria() {
     setShowForm(true);
   };
 
-  if (!isAdmin || loading) {
+  if (loading || !isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
