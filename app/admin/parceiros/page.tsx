@@ -1,144 +1,95 @@
-// app/admin/parceiros/page.tsx (CORRIGIDO)
 'use client'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Check, X, RefreshCw } from 'lucide-react'
-import { ArrowLeft, BarChart3, Users, ShoppingBag, DollarSign, TrendingUp } from 'lucide-react'
+import AdminGuard from '@/components/AdminGuard'
+import { Check, X, Eye, Store, Users } from 'lucide-react'
 
-export default function AdminParceiros() {
-  const [partners, setPartners] = useState<any[]>([])
+interface Partner {
+  id: number
+  user_id: string
+  status: string
+  created_at: string
+}
+
+function AdminParceirosContent() {
+  const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('todos')
-  const [message, setMessage] = useState('')
-
-  const carregar = async () => {
-    setLoading(true)
-    
-    // 🔥 QUERY SIMPLES
-    let query = supabase.from('partners').select('*').order('created_at', { ascending: false })
-    
-    if (filter !== 'todos') {
-      query = query.eq('status', filter)
-    }
-    
-    const { data, error } = await query
-    
-    if (!error && data) {
-      // Buscar perfis
-      const userIds = data.map(p => p.user_id).filter(id => id)
-      let profilesMap: Record<string, any> = {}
-      
-      if (userIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, full_name, role')
-          .in('id', userIds)
-        
-        if (profiles) {
-          profilesMap = profiles.reduce((acc, p) => ({ ...acc, [p.id]: p }), {})
-        }
-      }
-      
-      setPartners(data.map(p => ({
-        ...p,
-        full_name: profilesMap[p.user_id]?.full_name || 'Não definido'
-      })))
-    }
-    
-    setLoading(false)
-  }
+  const [profilesMap, setProfilesMap] = useState<Record<string, any>>({})
+  const router = useRouter()
 
   useEffect(() => {
-    carregar()
-  }, [filter])
+    carregarParceiros()
+  }, [])
 
-  const aprovar = async (id: string) => {
+  const carregarParceiros = async () => {
     try {
-      // 🔥 ATUALIZAR STATUS
-      const { error } = await supabase
-        .from('partners')
-        .update({ 
-          status: 'approved', 
-          approved_at: new Date().toISOString() 
-        })
-        .eq('id', id)
-      
-      if (error) {
-        console.error('Erro ao aprovar:', error)
-        setMessage('❌ Erro ao aprovar parceiro')
-        setTimeout(() => setMessage(''), 3000)
-        return
-      }
+      const { data, error } = await (supabase
+        .from('partners') as any)
+        .select('*')
+        .order('created_at', { ascending: false })
 
-      // 🔥 ATUALIZAR ROLE DO USUÁRIO
-      const partner = partners.find(p => p.id === id)
-      if (partner?.user_id) {
-        await supabase
-          .from('profiles')
-          .update({ role: 'partner' })
-          .eq('id', partner.user_id)
-      }
+      if (error) throw error
 
-      setMessage('✅ Parceiro aprovado com sucesso!')
-      setTimeout(() => setMessage(''), 3000)
-      
-      // 🔥 RECARREGAR LISTA
-      await carregar()
-      
+      const partnersData = (data as Partner[]) || []
+      setPartners(partnersData)
+
+      // Buscar perfis dos usuários
+      const userIds = partnersData.map(p => p.user_id).filter(id => id)
+      if (userIds.length > 0) {
+        const { data: profiles, error: profilesError } = await (supabase
+          .from('profiles') as any)
+          .select('id, full_name, email')
+          .in('id', userIds)
+
+        if (!profilesError && profiles) {
+          const map: Record<string, any> = {}
+          profiles.forEach((p: any) => {
+            map[p.id] = p
+          })
+          setProfilesMap(map)
+        }
+      }
     } catch (error) {
-      console.error('Erro:', error)
-      setMessage('❌ Erro ao aprovar parceiro')
-      setTimeout(() => setMessage(''), 3000)
+      console.error('Erro ao carregar parceiros:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const rejeitar = async (id: string) => {
+  const atualizarStatus = async (partnerId: number, novoStatus: string) => {
     try {
-      const { error } = await supabase
-        .from('partners')
+      const { error } = await (supabase
+        .from('partners') as any)
         .update({ 
-          status: 'rejected', 
-          rejected_at: new Date().toISOString() 
+          status: novoStatus,
+          updated_at: new Date().toISOString()
         })
-        .eq('id', id)
-      
-      if (error) {
-        console.error('Erro ao rejeitar:', error)
-        setMessage('❌ Erro ao rejeitar parceiro')
-        setTimeout(() => setMessage(''), 3000)
-        return
-      }
+        .eq('id', partnerId)
 
-      setMessage('❌ Parceiro rejeitado com sucesso!')
-      setTimeout(() => setMessage(''), 3000)
-      
-      await carregar()
-      
+      if (error) throw error
+
+      await carregarParceiros()
+      alert(`Parceiro ${novoStatus === 'approved' ? 'aprovado' : 'rejeitado'} com sucesso!`)
     } catch (error) {
-      console.error('Erro:', error)
-      setMessage('❌ Erro ao rejeitar parceiro')
-      setTimeout(() => setMessage(''), 3000)
+      console.error('Erro ao atualizar status:', error)
+      alert('Erro ao atualizar status')
     }
   }
 
-  const getStatus = (status: string) => {
-    const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      approved: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800'
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">Aprovado</span>
+      case 'pending':
+        return <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-semibold">Pendente</span>
+      case 'rejected':
+        return <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-semibold">Rejeitado</span>
+      default:
+        return <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">{status}</span>
     }
-    const labels = {
-      pending: 'Pendente',
-      approved: 'Aprovado',
-      rejected: 'Rejeitado'
-    }
-    return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status as keyof typeof colors] || 'bg-gray-100'}`}>
-        {labels[status as keyof typeof labels] || status}
-      </span>
-    )
   }
 
   if (loading) {
@@ -149,119 +100,111 @@ export default function AdminParceiros() {
     )
   }
 
-  const pendentes = partners.filter(p => p.status === 'pending').length
-
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      
       <div className="max-w-6xl mx-auto px-4 py-8">
-
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-black">Parceiros</h1>
+            <p className="text-gray-500 text-sm">Gerencie os parceiros vendedores</p>
+          </div>
           <Link
             href="/admin"
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition"
           >
-            <ArrowLeft size={20} />
+            ← Voltar
           </Link>
-          <div>
-
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900"> Parceiros</h1>
-
-
-          <button onClick={carregar} className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg flex items-center gap-2">
-            <RefreshCw size={18} />
-            Atualizar
-          </button>
         </div>
 
-        {message && (
-          <div className={`border px-4 py-3 rounded-lg mb-4 ${
-            message.includes('✅') 
-              ? 'bg-green-50 border-green-200 text-green-700' 
-              : 'bg-red-50 border-red-200 text-red-700'
-          }`}>
-            {message}
+        {partners.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <Store size={48} className="mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500">Nenhum parceiro cadastrado ainda.</p>
           </div>
-        )}
-
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setFilter('todos')}
-            className={`px-3 py-1 rounded-lg text-sm ${filter === 'todos' ? 'bg-[#FFB800] text-black' : 'bg-gray-200'}`}
-          >
-            Todos ({partners.length})
-          </button>
-          <button
-            onClick={() => setFilter('pending')}
-            className={`px-3 py-1 rounded-lg text-sm ${filter === 'pending' ? 'bg-yellow-500 text-white' : 'bg-gray-200'}`}
-          >
-            Pendentes ({pendentes})
-          </button>
-          <button
-            onClick={() => setFilter('approved')}
-            className={`px-3 py-1 rounded-lg text-sm ${filter === 'approved' ? 'bg-green-500 text-white' : 'bg-gray-200'}`}
-          >
-            Aprovados ({partners.filter(p => p.status === 'approved').length})
-          </button>
-          <button
-            onClick={() => setFilter('rejected')}
-            className={`px-3 py-1 rounded-lg text-sm ${filter === 'rejected' ? 'bg-red-500 text-white' : 'bg-gray-200'}`}
-          >
-            Rejeitados ({partners.filter(p => p.status === 'rejected').length})
-          </button>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-          {partners.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">Nenhum parceiro encontrado</div>
-          ) : (
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b">
+                <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Empresa</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Responsável</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Email</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Ações</th>
+                    <th className="text-left p-4 text-sm font-semibold text-gray-600">Parceiro</th>
+                    <th className="text-left p-4 text-sm font-semibold text-gray-600">Status</th>
+                    <th className="text-left p-4 text-sm font-semibold text-gray-600">Data</th>
+                    <th className="text-left p-4 text-sm font-semibold text-gray-600">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
-                  {partners.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium">{p.company_name}</td>
-                      <td className="px-4 py-3">{p.full_name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{p.email}</td>
-                      <td className="px-4 py-3">{getStatus(p.status)}</td>
-                      <td className="px-4 py-3">
-                        {p.status === 'pending' && (
-                          <div className="flex gap-2">
+                <tbody>
+                  {partners.map((partner) => {
+                    const profile = profilesMap[partner.user_id]
+                    return (
+                      <tr key={partner.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-[#FFB800]/10 rounded-full flex items-center justify-center">
+                              <Users size={18} className="text-[#FFB800]" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-black">
+                                {profile?.full_name || 'Usuário'}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                ID: {partner.user_id.slice(0, 8)}...
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          {getStatusBadge(partner.status)}
+                        </td>
+                        <td className="p-4 text-sm text-gray-500">
+                          {new Date(partner.created_at).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            {partner.status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => atualizarStatus(partner.id, 'approved')}
+                                  className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition"
+                                  title="Aprovar"
+                                >
+                                  <Check size={18} />
+                                </button>
+                                <button
+                                  onClick={() => atualizarStatus(partner.id, 'rejected')}
+                                  className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition"
+                                  title="Rejeitar"
+                                >
+                                  <X size={18} />
+                                </button>
+                              </>
+                            )}
                             <button
-                              onClick={() => aprovar(p.id)}
-                              className="p-1.5 text-green-600 hover:bg-green-50 rounded transition"
-                              title="Aprovar"
+                              onClick={() => router.push(`/admin/parceiros/${partner.id}`)}
+                              className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
+                              title="Ver detalhes"
                             >
-                              <Check size={18} />
-                            </button>
-                            <button
-                              onClick={() => rejeitar(p.id)}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded transition"
-                              title="Rejeitar"
-                            >
-                              <X size={18} />
+                              <Eye size={18} />
                             </button>
                           </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
+  )
+}
+
+export default function AdminParceiros() {
+  return (
+    <AdminGuard>
+      <AdminParceirosContent />
+    </AdminGuard>
   )
 }
