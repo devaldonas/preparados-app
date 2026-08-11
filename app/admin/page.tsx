@@ -18,6 +18,12 @@ import {
   Home
 } from 'lucide-react'
 
+interface Order {
+  id: number
+  payment_status: string
+  total_amount: number
+}
+
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
@@ -31,31 +37,62 @@ export default function AdminDashboard() {
   const router = useRouter()
 
   useEffect(() => {
-    carregarDados()
+    const checkAdmin = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/auth/login')
+          return
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+
+        if ((profile as any)?.role !== 'admin') {
+          router.push('/dashboard')
+          return
+        }
+
+        await carregarDados()
+      } catch (error) {
+        console.error('Erro ao verificar admin:', error)
+        router.push('/dashboard')
+      }
+    }
+
+    checkAdmin()
   }, [])
 
   const carregarDados = async () => {
     try {
-      const { count: productCount } = await supabase
-        .from('products')
+      // Produtos
+      const { count: productCount } = await (supabase
+        .from('products') as any)
         .select('*', { count: 'exact', head: true })
 
-      const { data: orders, count: orderCount } = await supabase
-        .from('orders')
+      // Pedidos
+      const { data: orders, count: orderCount } = await (supabase
+        .from('orders') as any)
         .select('*', { count: 'exact' })
 
-      const pendingOrders = orders?.filter(o => o.payment_status === 'pending').length || 0
+      const ordersData = (orders as Order[]) || []
+      const pendingOrders = ordersData.filter(o => o.payment_status === 'pending').length || 0
       
-      const revenue = orders
-        ?.filter(o => o.payment_status === 'paid')
-        .reduce((sum, o) => sum + o.total_amount, 0) || 0
+      const revenue = ordersData
+        .filter(o => o.payment_status === 'paid')
+        .reduce((sum, o) => sum + (o.total_amount || 0), 0)
 
-      const { count: userCount } = await supabase
-        .from('profiles')
+      // Usuários
+      const { count: userCount } = await (supabase
+        .from('profiles') as any)
         .select('*', { count: 'exact', head: true })
 
-      const { count: pendingPartners } = await supabase
-        .from('partners')
+      // Parceiros pendentes
+      const { count: pendingPartners } = await (supabase
+        .from('partners') as any)
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending')
 
@@ -88,6 +125,7 @@ export default function AdminDashboard() {
       </div>
     )
   }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -209,16 +247,15 @@ export default function AdminDashboard() {
             </div>
           </Link>
 
-<Link
-  href="/admin/mentoria"
-  className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition hover:border-[#FFB800]"
->
-  <div className="w-12 h-12 bg-[#FFB800]/10 rounded-lg flex items-center justify-center mb-3">
-    <Video className="w-6 h-6 text-[#FFB800]" />
-  </div>
-  <h3 className="font-bold text-gray-900">Mentoria</h3>
-  <p className="text-sm text-gray-500 mt-1">Gerenciar lives e notificações</p>
-</Link>
+          <Link href="/admin/mentoria">
+            <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
+              <div className="w-12 h-12 bg-[#FFB800]/10 rounded-lg flex items-center justify-center mb-3">
+                <Video size={24} className="text-[#FFB800]" />
+              </div>
+              <h3 className="font-display font-bold text-gray-900">Mentoria</h3>
+              <p className="text-sm text-gray-500">Gerenciar lives e notificações</p>
+            </div>
+          </Link>
 
           <Link href="/admin/relatorios">
             <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
@@ -231,7 +268,7 @@ export default function AdminDashboard() {
           </Link>
         </div>
 
-        {/* 🔥 BOTÃO VOLTAR AO INÍCIO - CORRIGIDO */}
+        {/* Botão Voltar ao Início */}
         <div className="mt-10 flex justify-center">
           <Link
             href="/dashboard"
