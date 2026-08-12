@@ -1,219 +1,237 @@
-// app/admin/usuarios/page.tsx (CORRIGIDO)
 'use client'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, BarChart3, Users, ShoppingBag, TrendingUp } from 'lucide-react'
-import { Search, User, Mail, Calendar, Check, X, MapPin, Package } from 'lucide-react'
-
-interface Profile {
-  id: string
-  full_name: string
-  email?: string
-  created_at: string
-  cep: string
-  mochila_tipo: string
-  group_id: number
-}
+import { Users, Search, Check, X, AlertCircle, Shield } from 'lucide-react'
 
 export default function AdminUsuarios() {
-  const [users, setUsers] = useState<Profile[]>([])
+  const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [filterRole, setFilterRole] = useState('todos')
+  const [successMessage, setSuccessMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const router = useRouter()
 
   useEffect(() => {
-    carregarUsuarios()
+    const checkAdmin = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/auth/login')
+          return
+        }
+
+        const { data: profile } = await (supabase
+          .from('profiles') as any)
+          .select('role')
+          .eq('id', user.id)
+          .single()
+
+        if (profile?.role !== 'admin') {
+          router.push('/dashboard')
+          return
+        }
+
+        await carregarUsuarios()
+      } catch (error) {
+        console.error('Erro ao verificar admin:', error)
+        router.push('/dashboard')
+      }
+    }
+
+    checkAdmin()
   }, [])
 
   const carregarUsuarios = async () => {
     try {
-      // 1. Buscar perfis
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
+      const { data, error } = await (supabase
+        .from('profiles') as any)
         .select('*')
         .order('created_at', { ascending: false })
 
-      if (profilesError) throw profilesError
-
-      if (!profilesData || profilesData.length === 0) {
-        setUsers([])
-        setLoading(false)
-        return
-      }
-
-      // 2. Buscar emails via RPC para cada usuário
-      const usersWithEmail = await Promise.all(
-        profilesData.map(async (profile) => {
-          let email = 'Sem email'
-
-          if (profile.id) {
-            try {
-              // Buscar email via RPC
-              const { data: emailData, error: emailError } = await supabase
-                .rpc('get_user_email', { user_id: profile.id })
-
-              if (!emailError && emailData) {
-                email = emailData
-              }
-            } catch (err) {
-              console.error('Erro ao buscar email:', err)
-            }
-          }
-
-          return {
-            ...profile,
-            email: email
-          }
-        })
-      )
-
-      setUsers(usersWithEmail)
+      if (error) throw error
+      setUsers(data || [])
     } catch (error) {
       console.error('Erro ao carregar usuários:', error)
-      setErrorMessage('Erro ao carregar usuários')
+      setUsers([])
     } finally {
       setLoading(false)
     }
   }
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
+  const atualizarRole = async (userId: string, novaRole: string) => {
+    try {
+      const { error } = await (supabase
+        .from('profiles') as any)
+        .update({ role: novaRole })
+        .eq('id', userId)
+
+      if (error) throw error
+
+      setUsers(users.map((u: any) => 
+        u.id === userId ? { ...u, role: novaRole } : u
+      ))
+
+      setSuccessMessage(`Role atualizada para ${novaRole}!`)
+      setTimeout(() => setSuccessMessage(''), 3000)
+    } catch (error) {
+      console.error('Erro ao atualizar role:', error)
+      setErrorMessage('Erro ao atualizar role')
+      setTimeout(() => setErrorMessage(''), 3000)
+    }
   }
 
-  const filteredUsers = users.filter(user =>
-    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-semibold">Admin</span>
+      case 'partner':
+        return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-semibold">Parceiro</span>
+      default:
+        return <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">Usuário</span>
+    }
+  }
+
+  const filtrarUsuarios = () => {
+    let filtered = users
+
+    if (searchTerm) {
+      filtered = filtered.filter((u: any) => 
+        u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    if (filterRole !== 'todos') {
+      filtered = filtered.filter((u: any) => u.role === filterRole)
+    }
+
+    return filtered
+  }
+
+  const usuariosFiltrados = filtrarUsuarios()
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-          
-          <div className="max-w-6xl mx-auto px-4 py-8">
-    
-            <div className="flex items-center gap-3 mb-6">
-              <Link
-                href="/admin"
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
-              >
-                <ArrowLeft size={20} />
-              </Link>
-              <div>
-            <h1 className="text-2xl font-bold text-gray-900"> Usuários</h1>
-            <p className="text-gray-500 text-sm">Gerencie todos os usuários do aplicativo</p>
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-black">Usuários</h1>
+            <p className="text-gray-500 text-sm">Gerencie todos os usuários da plataforma</p>
           </div>
-          <span className="text-sm text-gray-500">Total: {users.length}</span>
+          <Link
+            href="/admin"
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition"
+          >
+            ← Voltar
+          </Link>
         </div>
 
+        {/* Mensagens */}
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 flex items-center gap-2">
+            <Check size={18} />
+            {successMessage}
+          </div>
+        )}
         {errorMessage && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 flex items-center gap-2">
+            <AlertCircle size={18} />
             {errorMessage}
           </div>
         )}
 
-        {/* Busca */}
+        {/* Filtros */}
         <div className="bg-white rounded-xl border border-gray-100 p-4 mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Buscar por nome ou email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#FFB800] outline-none"
-            />
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Buscar usuários por nome ou email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#FFB800] outline-none"
+                />
+              </div>
+            </div>
+
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#FFB800] outline-none"
+            >
+              <option value="todos">Todas roles</option>
+              <option value="admin">Admin</option>
+              <option value="partner">Parceiro</option>
+              <option value="user">Usuário</option>
+            </select>
           </div>
         </div>
 
-        {/* Lista de Usuários */}
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        {/* Lista de usuários */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">
-                    Usuário
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">
-                    Cadastro
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">
-                    Localização
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-display font-bold text-gray-500 uppercase tracking-wider">
-                    Mochila
-                  </th>
+                  <th className="text-left p-3 text-sm font-semibold text-gray-600">Usuário</th>
+                  <th className="text-left p-3 text-sm font-semibold text-gray-600">Email</th>
+                  <th className="text-left p-3 text-sm font-semibold text-gray-600">Role</th>
+                  <th className="text-left p-3 text-sm font-semibold text-gray-600">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredUsers.length === 0 ? (
+              <tbody>
+                {usuariosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={4} className="text-center py-8 text-gray-500">
                       Nenhum usuário encontrado
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50 transition">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                            <User size={16} className="text-gray-600" />
+                  usuariosFiltrados.map((user: any) => (
+                    <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-[#FFB800]/10 rounded-full flex items-center justify-center">
+                            <span className="text-[#FFB800] font-bold">
+                              {user.full_name?.charAt(0) || 'U'}
+                            </span>
                           </div>
-                          <span className="font-medium text-sm text-gray-900">
-                            {user.full_name || 'Sem nome'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Mail size={14} className="text-gray-400" />
-                          <span className="text-sm text-gray-600">{user.email || 'Sem email'}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Calendar size={14} className="text-gray-400" />
-                          <span className="text-sm text-gray-500">
-                            {formatDate(user.created_at)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {user.cep ? (
-                          <div className="flex items-center gap-2">
-                            <MapPin size={14} className="text-gray-400" />
-                            <span className="text-sm text-gray-600">CEP: {user.cep}</span>
+                          <div>
+                            <p className="font-medium text-black">{user.full_name || 'Sem nome'}</p>
+                            <p className="text-xs text-gray-500">ID: {user.id.slice(0, 8)}...</p>
                           </div>
-                        ) : (
-                          <span className="text-sm text-gray-400">Não definido</span>
-                        )}
+                        </div>
                       </td>
-                      <td className="px-4 py-3">
-                        {user.mochila_tipo ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-[#FFB800]/10 text-[#FFB800] text-xs font-medium rounded-full">
-                            <Package size={12} />
-                            {user.mochila_tipo}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-400">Não definido</span>
-                        )}
+                      <td className="p-3 text-gray-600 text-sm">
+                        {user.email || 'Sem email'}
+                      </td>
+                      <td className="p-3">
+                        {getRoleBadge(user.role || 'user')}
+                      </td>
+                      <td className="p-3">
+                        <select
+                          value={user.role || 'user'}
+                          onChange={(e) => atualizarRole(user.id, e.target.value)}
+                          className="text-xs border border-gray-200 rounded px-2 py-1 focus:border-[#FFB800] outline-none"
+                        >
+                          <option value="user">Usuário</option>
+                          <option value="partner">Parceiro</option>
+                          <option value="admin">Admin</option>
+                        </select>
                       </td>
                     </tr>
                   ))
@@ -221,6 +239,11 @@ export default function AdminUsuarios() {
               </tbody>
             </table>
           </div>
+        </div>
+
+        <div className="mt-4 text-sm text-gray-500">
+          Total: {usuariosFiltrados.length} usuários
+          {searchTerm && ` (filtrados de ${users.length})`}
         </div>
       </div>
     </div>
