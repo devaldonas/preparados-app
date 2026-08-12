@@ -129,29 +129,31 @@ export default function CadastroPage() {
       const trialEndDate = new Date()
       trialEndDate.setDate(trialEndDate.getDate() + 7)
 
-      const { error: profileError } = await supabase.from('profiles').insert([{
-        id: authData.user.id,
-        full_name: formData.fullName,
-        mochila_tipo: 'BOB',
-        cep: cleanCep,
-        latitude: formData.latitude || null,
-        longitude: formData.longitude || null,
-        group_id: groupId,
-        street: formData.street,
-        number: formData.number,
-        complement: formData.complement,
-        neighborhood: formData.neighborhood,
-        city: formData.city,
-        state: formData.state,
-        trial_start_date: new Date().toISOString(),
-        trial_end_date: trialEndDate.toISOString(),
-        subscription_status: 'trial',
-        created_at: new Date().toISOString()
-      }])
+      const { error: profileError } = await (supabase
+  .from('profiles') as any)
+  .insert([{
+    id: authData.user.id,
+    full_name: formData.fullName,
+    mochila_tipo: 'BOB',
+    cep: cleanCep,
+    latitude: formData.latitude || null,
+    longitude: formData.longitude || null,
+    group_id: groupId,
+    street: formData.street,
+    number: formData.number,
+    complement: formData.complement,
+    neighborhood: formData.neighborhood,
+    city: formData.city,
+    state: formData.state,
+    trial_start_date: new Date().toISOString(),
+    trial_end_date: trialEndDate.toISOString(),
+    // 🔥 REMOVIDO: subscription_status: 'trial',
+    created_at: new Date().toISOString()
+  }])
 
-      if (profileError) throw profileError
+if (profileError) throw profileError
 
-      setSuccess(true)
+setSuccess(true)
       
       // 🔥 REDIRECIONAR PARA A PÁGINA DE PLANOS
       setTimeout(() => {

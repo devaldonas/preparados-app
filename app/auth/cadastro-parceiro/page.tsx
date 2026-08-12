@@ -271,61 +271,86 @@ export default function CadastroParceiro() {
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+  e.preventDefault()
+  setLoading(true)
+  setError('')
 
-    const cleanCep = cep.replace(/\D/g, '')
-    const cleanCnpj = cnpj.replace(/\D/g, '')
-    
-    if (cleanCep.length !== 8) {
-      setError('CEP inválido')
-      setLoading(false)
-      return
-    }
+  const cleanCep = cep.replace(/\D/g, '')
+  const cleanCnpj = cnpj.replace(/\D/g, '')
+  
+  if (cleanCep.length !== 8) {
+    setError('CEP inválido')
+    setLoading(false)
+    return
+  }
 
-    if (cleanCnpj.length !== 14) {
-      setError('CNPJ inválido')
-      setLoading(false)
-      return
-    }
+  if (cleanCnpj.length !== 14) {
+    setError('CNPJ inválido')
+    setLoading(false)
+    return
+  }
 
-    if (!validatePassword(password)) {
-      setError('Senha inválida')
-      setLoading(false)
-      return
-    }
+  if (!validatePassword(password)) {
+    setError('Senha inválida')
+    setLoading(false)
+    return
+  }
 
-    try {
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName } }
-      })
+  try {
+    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName } }
+    })
 
-      if (signUpError) throw signUpError
+    if (signUpError) throw signUpError
 
-      if (authData.user) {
-        const { latitude, longitude } = await getCoordinatesFromCEP(cep)
-        
-        let groupId = null
-        if (latitude && longitude) {
-          try {
-            const { data: grupoIdResult, error: grupoError } = await supabase.rpc(
-              'buscar_ou_criar_grupo',
-              { p_latitude: latitude, p_longitude: longitude, p_nome_usuario: fullName }
-            )
-            if (!grupoError) groupId = grupoIdResult
-          } catch (groupErr) {
-            console.error('Exceção ao criar grupo:', groupErr)
+    if (authData.user) {
+      const { latitude, longitude } = await getCoordinatesFromCEP(cep)
+      
+      let groupId = null
+
+      if (latitude && longitude) {
+        try {
+          const cidade = 'Localização do Usuário'
+          
+          const { data: existingGroup } = await (supabase
+            .from('groups') as any)
+            .select('id')
+            .eq('city_name', cidade)
+            .maybeSingle()
+
+          if (existingGroup) {
+            groupId = existingGroup.id
+          } else {
+            const { data: newGroup } = await (supabase
+              .from('groups') as any)
+              .insert([{
+                name: `Grupo ${cidade}`,
+                city_name: cidade,
+                center_latitude: latitude,
+                center_longitude: longitude,
+                member_count: 1,
+                is_active: true
+              }])
+              .select('id')
+              .single()
+            
+            if (newGroup) {
+              groupId = newGroup.id
+            }
           }
+        } catch (groupErr) {
+          console.error('Erro ao processar grupo:', groupErr)
         }
+      }
 
-        // Criar perfil como parceiro
-        const { error: profileError } = await supabase.from('profiles').insert([{
+      // 🔥 CRIAR PERFIL DO PARCEIRO
+      const { error: profileError } = await (supabase
+        .from('profiles') as any)
+        .insert([{
           id: authData.user.id,
           full_name: fullName,
-          mochila_tipo: 'BOB',
           role: 'partner',
           cep: cleanCep,
           latitude: latitude || null,
@@ -333,17 +358,18 @@ export default function CadastroParceiro() {
           group_id: groupId,
           trial_start_date: new Date().toISOString(),
           trial_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          subscription_status: 'trial',
           created_at: new Date().toISOString()
         }])
 
-        if (profileError) {
-          console.error('Erro ao criar perfil:', profileError)
-          throw new Error('Erro ao criar perfil')
-        }
+      if (profileError) {
+        console.error('Erro ao criar perfil:', profileError)
+        throw new Error('Erro ao criar perfil')
+      }
 
-        // Criar registro na tabela partners
-        const { error: partnerError } = await supabase.from('partners').insert([{
+      // 🔥 CRIAR REGISTRO DO PARCEIRO
+      const { error: partnerError } = await (supabase
+        .from('partners') as any)
+        .insert([{
           user_id: authData.user.id,
           company_name: companyName,
           cnpj: cleanCnpj,
@@ -351,20 +377,21 @@ export default function CadastroParceiro() {
           status: 'pending'
         }])
 
-        if (partnerError) {
-          console.error('Erro ao criar parceiro:', partnerError)
-          // Não bloquear o cadastro se falhar
-        }
-
-        router.push('/parceiro/dashboard')
+      if (partnerError) {
+        console.error('Erro ao criar parceiro:', partnerError)
+        // Não bloquear o cadastro se falhar
       }
-    } catch (err: any) {
-      console.error('Erro no cadastro:', err)
-      setError(err.message || 'Erro ao criar conta. Tente novamente.')
-    } finally {
-      setLoading(false)
+
+      // 🔥 REDIRECIONAR
+      router.push('/parceiro/dashboard')
     }
+  } catch (err: any) {
+    console.error('Erro no cadastro:', err)
+    setError(err.message || 'Erro ao criar conta. Tente novamente.')
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
