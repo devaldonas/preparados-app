@@ -51,12 +51,14 @@ export default function NavBar({
       setUser(user)
 
       if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, subscription_status')
-          .eq('id', user.id)
-          .single()
-        setUserProfile(profile)
+        const { data: userProfile } = await (supabase
+  .from('profiles') as any)
+  .select('role') // ← APENAS role
+  .eq('id', user.id)
+  .maybeSingle()
+
+// Remove a verificação de trial
+// const isTrial = userProfile?.subscription_status === 'trial'
       }
     } catch (error) {
       console.error('Erro ao carregar usuário:', error)

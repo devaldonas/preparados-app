@@ -40,22 +40,22 @@ export default function WelcomePage() {
 
       setUser(user)
 
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('trial_start_date, trial_end_date, subscription_status')
-        .eq('id', user.id)
-        .single()
+      const { data: profile, error } = await (supabase
+  .from('profiles') as any)
+  .select('trial_start_date, trial_end_date') // ← REMOVE subscription_status
+  .eq('id', user.id)
+  .maybeSingle() // ← MUDA para maybeSingle()
 
-      if (error) {
-        console.error('Erro ao carregar perfil:', error)
-        return
-      }
+if (error) {
+  console.error('Erro ao carregar perfil:', error)
+  return
+}
 
-      if (profile?.trial_end_date) {
-        const endDate = new Date(profile.trial_end_date)
-        setTrialEndDate(endDate)
-        calcularTempoRestante(endDate)
-      }
+if (profile?.trial_end_date) {
+  const endDate = new Date(profile.trial_end_date)
+  setTrialEndDate(endDate)
+  calcularTempoRestante(endDate)
+}
 
       if (profile?.subscription_status === 'active') {
         router.push('/dashboard')

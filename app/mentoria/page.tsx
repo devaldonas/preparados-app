@@ -17,6 +17,10 @@ interface Live {
   is_live: boolean;
 }
 
+interface Profile {
+  full_name: string;
+}
+
 export default function MentoriaPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -34,14 +38,15 @@ export default function MentoriaPage() {
       }
       setUser(user);
 
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('full_name')
         .eq('id', user.id)
         .single();
-      
-      if (profile) {
-        setUserName(profile.full_name || 'Preparado');
+
+      if (!error && profile) {
+        const profileData = profile as Profile;
+        setUserName(profileData.full_name || 'Preparado');
       }
 
       await carregarLive();
@@ -52,18 +57,32 @@ export default function MentoriaPage() {
   }, []);
 
   const carregarLive = async () => {
-    const { data } = await supabase
-      .from('mentoria_lives')
-      .select('*')
-      .eq('is_active', true)
-      .order('data_hora', { ascending: false })
-      .limit(1)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('mentoria_lives')
+        .select('*')
+        .eq('is_active', true)
+        .order('data_hora', { ascending: false })
+        .limit(1)
+        .single();
 
-    if (data) {
-      console.log('🎬 Live carregada:', data);
-      console.log('📹 YouTube ID:', data.youtube_id);
-      setLive(data);
+      if (error) {
+        console.error('Erro ao carregar live:', error);
+        setLive(null);
+        return;
+      }
+
+      if (data) {
+        const liveData = data as Live;
+        console.log('🎬 Live carregada:', liveData);
+        console.log('📹 YouTube ID:', liveData.youtube_id);
+        setLive(liveData);
+      } else {
+        setLive(null);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar live:', error);
+      setLive(null);
     }
   };
 
@@ -140,7 +159,7 @@ export default function MentoriaPage() {
           </div>
         </div>
 
-        {/* Player do YouTube - Usando o componente */}
+        {/* Player do YouTube */}
         <YouTubePlayer videoId={live.youtube_id} />
 
         {/* Informações da Live */}

@@ -44,71 +44,74 @@ export default function Notificacoes() {
     };
   }, []);
 
-  const carregarNotificacoes = async (userId: string) => {
-    if (isLoading) return;
-    setIsLoading(true);
+ const carregarNotificacoes = async (userId: string) => {
+  if (isLoading) return;
+  setIsLoading(true);
 
-    try {
-      console.log('🔔 Carregando notificações para:', userId);
+  try {
+    // 🔥 VERSÃO MAIS SIMPLES
+    const { data, error } = await (supabase
+      .from('mentoria_notificacoes') as any)
+      .select('*')
+      .eq('usuario_id', userId)
+      .eq('enviado', true)
+      .order('created_at', { ascending: false })
+      .limit(10)
 
-      const { data, error } = await supabase
-        .from('mentoria_notificacoes')
-        .select(`
-          id,
-          live_id,
-          enviado,
-          enviado_em,
-          created_at,
-          mentoria_lives (
-            titulo,
-            descricao,
-            youtube_id,
-            data_hora
-          )
-        `)
-        .eq('usuario_id', userId)
-        .eq('enviado', true)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        console.error('❌ Erro ao carregar notificações:', error);
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        setNotificacoes([]);
-        setHasNew(false);
-        return;
-      }
-
-      const formatted = data
-        .filter(item => item.mentoria_lives)
-        .map((item: any) => {
-          const live = Array.isArray(item.mentoria_lives) 
-            ? item.mentoria_lives[0] 
-            : item.mentoria_lives;
-
-          return {
-            id: item.id,
-            tipo: 'mentoria' as const,
-            titulo: '📺 Nova Live!',
-            mensagem: live?.titulo || 'Nova mentoria disponível',
-            link: '/mentoria',
-            lida: false,
-            created_at: item.created_at,
-            data_hora: live?.data_hora || null,
-          };
-        });
-
-      setNotificacoes(formatted);
-      setHasNew(formatted.length > 0);
-    } catch (error) {
-      console.error('❌ Erro:', error);
-    } finally {
-      setIsLoading(false);
+    if (error) {
+      console.error('❌ Erro:', error)
+      setNotificacoes([])
+      setHasNew(false)
+      return
     }
-  };
+
+    if (!data || data.length === 0) {
+      setNotificacoes([])
+      setHasNew(false)
+      return
+    }
+
+    // Buscar os detalhes das lives separadamente
+    const liveIds = data.map((item: any) => item.live_id).filter(Boolean)
+    let livesMap: Record<string, any> = {}
+    
+    if (liveIds.length > 0) {
+      const { data: livesData } = await (supabase
+        .from('mentoria_lives') as any)
+        .select('id, titulo, descricao, youtube_id, data_hora')
+        .in('id', liveIds)
+
+      if (livesData) {
+        livesData.forEach((live: any) => {
+          livesMap[live.id] = live
+        })
+      }
+    }
+
+    const formatted = data.map((item: any) => {
+      const live = livesMap[item.live_id]
+      return {
+        id: item.id,
+        tipo: 'mentoria' as const,
+        titulo: '📺 Nova Live!',
+        mensagem: live?.titulo || 'Nova mentoria disponível',
+        link: '/mentoria',
+        lida: false,
+        created_at: item.created_at,
+        data_hora: live?.data_hora || null,
+      }
+    })
+
+    setNotificacoes(formatted)
+    setHasNew(formatted.length > 0)
+  } catch (error) {
+    console.error('❌ Erro:', error)
+    setNotificacoes([])
+    setHasNew(false)
+  } finally {
+    setIsLoading(false)
+  }
+}
 
   const configurarListener = async (userId: string) => {
     if (channelRef.current) {
