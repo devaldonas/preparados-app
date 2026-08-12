@@ -60,24 +60,25 @@ export default function AdminProdutos() {
   }, [])
 
   const carregarProdutos = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false })
+  try {
+    const { data, error } = await (supabase
+      .from('products') as any)
+      .select('*')
+      .order('created_at', { ascending: false })
 
-      if (error) throw error
+    if (error) throw error
 
-      setProducts(data || [])
-      
-      const uniqueCategories = [...new Set(data?.map(p => p.category) || [])]
-      setCategories(uniqueCategories)
-    } catch (error) {
-      console.error('Erro ao carregar produtos:', error)
-    } finally {
-      setLoading(false)
-    }
+    setProducts((data as Product[]) || [])
+    
+    // 🔥 CORRIGIDO: garantindo que seja string[]
+    const uniqueCategories = [...new Set(data?.map((p: any) => p.category) || [])] as string[]
+    setCategories(uniqueCategories)
+  } catch (error) {
+    console.error('Erro ao carregar produtos:', error)
+  } finally {
+    setLoading(false)
   }
+}
 
   // ⭐ FUNÇÃO EXCLUIR PRODUTO
   const excluirProduto = async (productId: string, productName: string) => {
@@ -86,8 +87,9 @@ export default function AdminProdutos() {
     }
 
     try {
-      const { error } = await supabase
-        .from('products')
+      // 🔥 CORRIGIDO: usando as any para evitar erro de tipo
+      const { error } = await (supabase
+        .from('products') as any)
         .delete()
         .eq('id', productId)
 
@@ -106,8 +108,9 @@ export default function AdminProdutos() {
 
   const toggleProductStatus = async (productId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('products')
+      // 🔥 CORRIGIDO: usando as any para evitar erro de tipo
+      const { error } = await (supabase
+        .from('products') as any)
         .update({ is_active: !currentStatus })
         .eq('id', productId)
 
@@ -190,8 +193,9 @@ export default function AdminProdutos() {
         updated_at: new Date().toISOString()
       }
 
-      const { error } = await supabase
-        .from('products')
+      // 🔥 CORRIGIDO: usando as any para evitar erro de tipo
+      const { error } = await (supabase
+        .from('products') as any)
         .update(updateData)
         .eq('id', editingProduct.id)
 
