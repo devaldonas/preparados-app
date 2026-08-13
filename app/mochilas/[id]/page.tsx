@@ -48,69 +48,92 @@ export default function MochilaChecklist() {
     carregarDados()
   }, [backpackId])
 
+  // 🔥 CORRIGIDO: carregarDados com as any
   const carregarDados = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/auth/login')
-      return
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+
+      // 🔥 CORRIGIDO: buscar mochila com as any
+      const { data: backpackData } = await (supabase
+        .from('user_backpacks') as any)
+        .select('*')
+        .eq('id', parseInt(backpackId))
+        .maybeSingle()
+
+      if (backpackData) {
+        setBackpack(backpackData)
+      }
+
+      await loadCategories()
+      await loadItems(backpackData?.tipo || 'BOB')
+      await loadUserProgress(user.id, parseInt(backpackId))
+
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error)
+    } finally {
+      setLoading(false)
     }
-
-    const { data: backpackData } = await supabase
-      .from('user_backpacks')
-      .select('*')
-      .eq('id', backpackId)
-      .single()
-
-    if (backpackData) {
-      setBackpack(backpackData)
-    }
-
-    await loadCategories()
-    await loadItems(backpackData?.tipo || 'BOB')
-    await loadUserProgress(user.id, parseInt(backpackId))
-
-    setLoading(false)
   }
 
+  // 🔥 CORRIGIDO: loadCategories com as any
   const loadCategories = async () => {
-    const { data } = await supabase
-      .from('categories')
-      .select('*')
-      .order('order', { ascending: true })
-    
-    if (data) setCategories(data)
+    try {
+      const { data } = await (supabase
+        .from('categories') as any)
+        .select('*')
+        .order('order', { ascending: true })
+      
+      if (data) setCategories(data)
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error)
+    }
   }
 
+  // 🔥 CORRIGIDO: loadItems com as any
   const loadItems = async (tipo: string) => {
-    const { data } = await supabase
-      .from('checklist_items')
-      .select('*')
-      .order('order', { ascending: true })
-    
-    if (data) {
-      const filteredItems = data.filter(item => 
-        item.tipo?.includes(tipo) || item.tipo?.length === 0
-      )
-      setItems(filteredItems)
+    try {
+      const { data } = await (supabase
+        .from('checklist_items') as any)
+        .select('*')
+        .order('order', { ascending: true })
+      
+      if (data) {
+        const filteredItems = data.filter((item: any) => 
+          item.tipo?.includes(tipo) || item.tipo?.length === 0
+        )
+        setItems(filteredItems)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar itens:', error)
     }
   }
 
+  // 🔥 CORRIGIDO: loadUserProgress com as any
   const loadUserProgress = async (userId: string, backpackId: number) => {
-    const { data } = await supabase
-      .from('user_progress')
-      .select('item_id, completed')
-      .eq('user_id', userId)
-      .eq('backpack_id', backpackId)
-    
-    if (data) {
-      const progressMap: Record<number, boolean> = {}
-      data.forEach((p) => {
-        progressMap[p.item_id] = p.completed
-      })
-      setUserProgress(progressMap)
+    try {
+      const { data } = await (supabase
+        .from('user_progress') as any)
+        .select('item_id, completed')
+        .eq('user_id', userId)
+        .eq('backpack_id', backpackId)
+      
+      if (data) {
+        const progressMap: Record<number, boolean> = {}
+        data.forEach((p: any) => {
+          progressMap[p.item_id] = p.completed
+        })
+        setUserProgress(progressMap)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar progresso:', error)
     }
   }
 
+  // 🔥 CORRIGIDO: toggleItem com as any
   const toggleItem = async (itemId: number, currentStatus: boolean) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -120,8 +143,8 @@ export default function MochilaChecklist() {
 
     setUserProgress(prev => ({ ...prev, [itemId]: newStatus }))
 
-    const { error } = await supabase
-      .from('user_progress')
+    const { error } = await (supabase
+      .from('user_progress') as any)
       .upsert({
         user_id: user.id,
         backpack_id: parseInt(backpackId),
@@ -139,16 +162,24 @@ export default function MochilaChecklist() {
     setSaving(null)
   }
 
+  // 🔥 CORRIGIDO: atualizarProgressoMochila com as any
   const atualizarProgressoMochila = async () => {
-    const completedCount = items.filter(item => userProgress[item.id]).length
-    const newProgress = Math.round((completedCount / items.length) * 100)
+    try {
+      const completedCount = items.filter(item => userProgress[item.id]).length
+      const newProgress = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0
 
-    await supabase
-      .from('user_backpacks')
-      .update({ progress: newProgress, updated_at: new Date().toISOString() })
-      .eq('id', backpackId)
+      await (supabase
+        .from('user_backpacks') as any)
+        .update({ 
+          progress: newProgress, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', parseInt(backpackId))
 
-    setBackpack(prev => prev ? { ...prev, progress: newProgress } : null)
+      setBackpack(prev => prev ? { ...prev, progress: newProgress } : null)
+    } catch (error) {
+      console.error('Erro ao atualizar progresso:', error)
+    }
   }
 
   const getItemsByCategory = (categoryId: number) => {
@@ -258,13 +289,6 @@ export default function MochilaChecklist() {
                           className="w-6 h-6 object-contain"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none'
-                            const parent = e.currentTarget.parentElement
-                            if (parent) {
-                              const fallback = document.createElement('span')
-                              fallback.className = 'text-[#FFB800] font-bold text-lg'
-                              fallback.textContent = category.name.charAt(0)
-                              parent.appendChild(fallback)
-                            }
                           }}
                         />
                       </div>
@@ -289,41 +313,39 @@ export default function MochilaChecklist() {
 
                 <div className="divide-y divide-gray-100">
                   {categoryItems.map((item) => {
-                    // 🔥 BUSCA A DESCRIÇÃO NO MAPEAMENTO CENTRALIZADO
                     const descricao = getDescricaoItem(item.name)
                     
-  return (
-  <div className="flex items-center p-3 hover:bg-gray-50 transition">
-  <button
-    onClick={() => toggleItem(item.id, userProgress[item.id] || false)}
-    disabled={saving === item.id}
-    className="flex-shrink-0"
-  >
-    <div
-      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
-        userProgress[item.id]
-          ? 'bg-[#FFB800] border-[#FFB800]'
-          : 'border-gray-300 hover:border-[#FFB800]'
-      }`}
-    >
-      {userProgress[item.id] && (
-        <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-        </svg>
-      )}
-    </div>
-  </button>
-  
-  <div className="ml-3 flex-1">
-    {/* Nome do item */}
-    <div className="flex items-center justify-between gap-2">
-      <span className={`text-sm ${userProgress[item.id] ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
-        {item.name}
-      </span>
-      {descricao && <InfoTooltip descricao={descricao} />}
-    </div>
-  </div>
-</div>
+                    return (
+                      <div className="flex items-center p-3 hover:bg-gray-50 transition" key={item.id}>
+                        <button
+                          onClick={() => toggleItem(item.id, userProgress[item.id] || false)}
+                          disabled={saving === item.id}
+                          className="flex-shrink-0"
+                        >
+                          <div
+                            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
+                              userProgress[item.id]
+                                ? 'bg-[#FFB800] border-[#FFB800]'
+                                : 'border-gray-300 hover:border-[#FFB800]'
+                            }`}
+                          >
+                            {userProgress[item.id] && (
+                              <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                        </button>
+                        
+                        <div className="ml-3 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={`text-sm ${userProgress[item.id] ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+                              {item.name}
+                            </span>
+                            {descricao && <InfoTooltip descricao={descricao} />}
+                          </div>
+                        </div>
+                      </div>
                     )
                   })}
                 </div>
