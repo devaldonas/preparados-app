@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Check, AlertCircle } from 'lucide-react';
 
 export default function ResetPassword() {
@@ -16,18 +16,92 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [isValidToken, setIsValidToken] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Verifica se o token de recuperação está presente na URL
-    const hash = window.location.hash;
-    if (hash && hash.includes('access_token')) {
-      setIsValidToken(true);
-      console.log('✅ Token de recuperação encontrado');
-    } else {
-      setError('Link de recuperação inválido ou expirado. Solicite um novo link.');
-    }
-  }, []);
+    const verifyToken = async () => {
+      setIsVerifying(true);
+      
+      // 1. Verificar se há token na URL (query params ou hash)
+      const hasQueryToken = searchParams?.has('access_token') || searchParams?.has('refresh_token');
+      const hasHashToken = window.location.hash && window.location.hash.includes('access_token');
+      
+      // 2. Extrair token do hash se existir
+      if (hasHashToken) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        
+        if (accessToken) {
+          try {
+            // Tenta definir a sessão com o token do hash
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+            });
+            
+            if (error) {
+              console.error('Erro ao definir sessão:', error);
+              setError('Link de recuperação inválido ou expirado. Solicite um novo link.');
+              setIsValidToken(false);
+            } else {
+              console.log('✅ Token verificado com sucesso via hash');
+              setIsValidToken(true);
+            }
+          } catch (err) {
+            console.error('Erro ao verificar token:', err);
+            setError('Erro ao verificar o link de recuperação.');
+            setIsValidToken(false);
+          }
+        }
+      } 
+      // 3. Verificar se há token na query string
+      else if (hasQueryToken) {
+        const accessToken = searchParams?.get('access_token');
+        const refreshToken = searchParams?.get('refresh_token');
+        
+        if (accessToken) {
+          try {
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+            });
+            
+            if (error) {
+              console.error('Erro ao definir sessão:', error);
+              setError('Link de recuperação inválido ou expirado. Solicite um novo link.');
+              setIsValidToken(false);
+            } else {
+              console.log('✅ Token verificado com sucesso via query params');
+              setIsValidToken(true);
+            }
+          } catch (err) {
+            console.error('Erro ao verificar token:', err);
+            setError('Erro ao verificar o link de recuperação.');
+            setIsValidToken(false);
+          }
+        }
+      } 
+      // 4. Verificar se o usuário já está autenticado (fallback)
+      else {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('✅ Usuário já autenticado via sessão');
+          setIsValidToken(true);
+        } else {
+          console.log('❌ Nenhum token encontrado');
+          setError('Link de recuperação inválido ou expirado. Solicite um novo link.');
+          setIsValidToken(false);
+        }
+      }
+      
+      setIsVerifying(false);
+    };
+
+    verifyToken();
+  }, [searchParams]);
 
   const checkPasswordStrength = (pass: string) => {
     let strength = 0;
@@ -79,13 +153,15 @@ export default function ResetPassword() {
       if (error) throw error;
 
       setMessage('✅ Senha atualizada com sucesso!');
+      
+      // Redireciona para o login após 2 segundos
       setTimeout(() => {
-        router.push('/auth/login');
+        router.push('/auth/login?reset=success');
       }, 2000);
 
     } catch (err: any) {
       console.error('Erro ao atualizar senha:', err);
-      setError(err.message || 'Erro ao atualizar senha');
+      setError(err.message || 'Erro ao atualizar senha. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -93,6 +169,22 @@ export default function ResetPassword() {
 
   const strengthInfo = getStrengthLabel(passwordStrength);
 
+  // Estado de verificação
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-12 h-12 border-4 border-[#FFB800] border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">Verificando link...</h1>
+          <p className="text-gray-600 text-sm mt-2">Aguarde enquanto verificamos seu link de recuperação.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Token inválido
   if (!isValidToken) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -100,9 +192,9 @@ export default function ResetPassword() {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertCircle size={32} className="text-red-600" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Link Inválido</h1>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Link Inválido ou Expirado</h1>
           <p className="text-gray-600 text-sm mb-6">
-            {error || 'O link de redefinição de senha é inválido ou expirou.'}
+            {error || 'O link de redefinição de senha é inválido ou expirou. Solicite um novo link.'}
           </p>
           <button
             onClick={() => router.push('/auth/recuperar-senha')}
@@ -115,25 +207,31 @@ export default function ResetPassword() {
     );
   }
 
+  // Formulário de redefinição
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-100 p-8">
         <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-[#FFB800]/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-[#FFB800]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
           <h1 className="text-2xl font-bold text-black">Redefinir Senha</h1>
-          <p className="text-gray-600 text-sm mt-2">Digite sua nova senha</p>
+          <p className="text-gray-600 text-sm mt-2">Digite sua nova senha abaixo</p>
         </div>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded-lg mb-4 flex items-center gap-2">
             <AlertCircle size={16} />
-            {error}
+            <span>{error}</span>
           </div>
         )}
 
         {message && (
           <div className="bg-green-50 border border-green-200 text-green-600 text-sm p-3 rounded-lg mb-4 flex items-center gap-2">
             <Check size={16} />
-            {message}
+            <span>{message}</span>
           </div>
         )}
 
@@ -149,9 +247,10 @@ export default function ResetPassword() {
                 value={password}
                 onChange={handlePasswordChange}
                 placeholder="Mínimo 6 caracteres"
-                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
+                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800] focus:border-transparent transition"
                 disabled={loading}
                 required
+                autoFocus
               />
               <button
                 type="button"
@@ -198,7 +297,7 @@ export default function ResetPassword() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirme sua nova senha"
-                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
+                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800] focus:border-transparent transition"
                 disabled={loading}
                 required
               />
@@ -211,10 +310,14 @@ export default function ResetPassword() {
               </button>
             </div>
             {confirmPassword.length > 0 && password !== confirmPassword && (
-              <p className="text-xs text-red-500 mt-1">As senhas não coincidem</p>
+              <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                <AlertCircle size={12} /> As senhas não coincidem
+              </p>
             )}
             {confirmPassword.length > 0 && password === confirmPassword && password.length > 0 && (
-              <p className="text-xs text-green-500 mt-1">✓ Senhas coincidem</p>
+              <p className="text-xs text-green-500 mt-1 flex items-center gap-1">
+                <Check size={12} /> Senhas coincidem
+              </p>
             )}
           </div>
 
@@ -237,10 +340,16 @@ export default function ResetPassword() {
         <div className="mt-6 text-center">
           <button
             onClick={() => router.push('/auth/login')}
-            className="text-sm text-gray-500 hover:text-gray-700 transition"
+            className="text-sm text-gray-500 hover:text-gray-700 transition flex items-center justify-center gap-1"
           >
-            ← Voltar para o login
+            <span>←</span> Voltar para o login
           </button>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+          <p className="text-xs text-gray-400">
+            Precisa de ajuda? Entre em contato com nosso suporte.
+          </p>
         </div>
       </div>
     </div>
