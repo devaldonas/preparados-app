@@ -1,9 +1,10 @@
+// app/mentoria/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { Play, Calendar, Users, Bell, BellOff, CheckCircle, Clock } from 'lucide-react';
+import { Play, Calendar, Users, Bell, BellOff, Clock } from 'lucide-react';
 import YouTubePlayer from '@/components/YouTubePlayer';
 
 interface Live {
@@ -17,16 +18,12 @@ interface Live {
   is_live: boolean;
 }
 
-interface Profile {
-  full_name: string;
-}
-
 export default function MentoriaPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState<Live | null>(null);
-  const [notifications, setNotifications] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
@@ -38,15 +35,16 @@ export default function MentoriaPage() {
       }
       setUser(user);
 
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('full_name')
+      // USAR ANY PARA CONTORNAR ERRO DE TIPO
+      const { data: profile, error } = await (supabase
+        .from('profiles') as any)
+        .select('full_name, mentoria_notificacoes')
         .eq('id', user.id)
         .single();
 
       if (!error && profile) {
-        const profileData = profile as Profile;
-        setUserName(profileData.full_name || 'Preparado');
+        setUserName(profile.full_name || 'Preparado');
+        setNotificationsEnabled(profile.mentoria_notificacoes || false);
       }
 
       await carregarLive();
@@ -58,36 +56,59 @@ export default function MentoriaPage() {
 
   const carregarLive = async () => {
     try {
-      const { data, error } = await supabase
-        .from('mentoria_lives')
+      console.log('📡 Buscando live ativa...');
+      
+      const { data, error } = await (supabase
+        .from('mentoria_lives') as any)
         .select('*')
         .eq('is_active', true)
         .order('data_hora', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        console.error('Erro ao carregar live:', error);
+        console.error('❌ Erro ao carregar live:', error);
         setLive(null);
         return;
       }
 
       if (data) {
-        const liveData = data as Live;
-        console.log('🎬 Live carregada:', liveData);
-        console.log('📹 YouTube ID:', liveData.youtube_id);
-        setLive(liveData);
+        console.log('✅ Live carregada:', data);
+        setLive(data as Live);
       } else {
+        console.log('ℹ️ Nenhuma live ativa encontrada');
         setLive(null);
       }
     } catch (error) {
-      console.error('Erro ao carregar live:', error);
+      console.error('❌ Erro ao carregar live:', error);
       setLive(null);
     }
   };
 
-  const toggleNotifications = () => {
-    setNotifications(!notifications);
+  const toggleNotifications = async () => {
+    if (!user) {
+      setNotificationsEnabled(!notificationsEnabled);
+      return;
+    }
+
+    try {
+      const newValue = !notificationsEnabled;
+      
+      const { error } = await (supabase
+        .from('profiles') as any)
+        .update({ mentoria_notificacoes: newValue })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Erro ao salvar preferência:', error);
+        return;
+      }
+
+      setNotificationsEnabled(newValue);
+      console.log('✅ Preferência salva:', newValue);
+    } catch (error) {
+      console.error('Erro ao salvar preferência:', error);
+    }
   };
 
   if (loading) {
@@ -152,9 +173,9 @@ export default function MentoriaPage() {
             <button
               onClick={toggleNotifications}
               className="p-2 rounded-lg hover:bg-gray-100 transition"
-              title={notifications ? 'Desativar notificações' : 'Ativar notificações'}
+              title={notificationsEnabled ? 'Desativar notificações' : 'Ativar notificações'}
             >
-              {notifications ? <BellOff size={18} /> : <Bell size={18} />}
+              {notificationsEnabled ? <BellOff size={18} /> : <Bell size={18} />}
             </button>
           </div>
         </div>
@@ -182,7 +203,7 @@ export default function MentoriaPage() {
                   <Users size={14} />
                   {live.is_live ? 'Ao vivo agora!' : 'Próxima live em breve'}
                 </span>
-                {live.duracao && (
+                {live.duracao && live.duracao > 0 && (
                   <span className="flex items-center gap-1">
                     <Clock size={14} />
                     {live.duracao} min
