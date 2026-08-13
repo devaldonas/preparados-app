@@ -25,8 +25,9 @@ export async function POST(request: NextRequest) {
 
     // Atualizar pedido no Supabase
     if (event.status === 'confirmed') {
-      const { error } = await supabase
-        .from('orders')
+      // 🔥 CORRIGIDO: usando as any
+      const { error } = await (supabase
+        .from('orders') as any)
         .update({
           payment_status: 'paid',
           status: 'paid',

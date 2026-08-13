@@ -49,11 +49,12 @@ export default function CommissionList({ partnerId, showFilters = true }: Commis
     }
   }, [partnerId, filterStatus])
 
+  // 🔥 CORRIGIDO: carregarComissoes com as any
   const carregarComissoes = async () => {
     setLoading(true)
     try {
-      let query = supabase
-        .from('partner_commissions')
+      let query = (supabase
+        .from('partner_commissions') as any)
         .select(`
           *,
           products:product_id (
@@ -83,11 +84,11 @@ export default function CommissionList({ partnerId, showFilters = true }: Commis
 
       // Calcular resumo
       const total = data?.length || 0
-      const pending = data?.filter(c => c.status === 'pending').length || 0
-      const paid = data?.filter(c => c.status === 'paid').length || 0
-      const totalAmount = data?.reduce((sum, c) => sum + c.commission_amount, 0) || 0
-      const pendingAmount = data?.filter(c => c.status === 'pending')
-        .reduce((sum, c) => sum + c.commission_amount, 0) || 0
+      const pending = data?.filter((c: any) => c.status === 'pending').length || 0
+      const paid = data?.filter((c: any) => c.status === 'paid').length || 0
+      const totalAmount = data?.reduce((sum: number, c: any) => sum + c.commission_amount, 0) || 0
+      const pendingAmount = data?.filter((c: any) => c.status === 'pending')
+        .reduce((sum: number, c: any) => sum + c.commission_amount, 0) || 0
 
       setSummary({
         total,

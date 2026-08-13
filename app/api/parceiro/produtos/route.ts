@@ -1,4 +1,4 @@
-// app/api/parceiros/route.ts
+// app/api/parceiro/produtos/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
 
@@ -13,12 +13,12 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Verificar se é admin
-    const { data: profile } = await supabase
-      .from('profiles')
+    // 🔥 CORRIGIDO: verificar admin com as any
+    const { data: profile } = await (supabase
+      .from('profiles') as any)
       .select('role')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     if (profile?.role !== 'admin') {
       return NextResponse.json(
@@ -30,8 +30,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
 
-    let query = supabase
-      .from('partners')
+    // 🔥 CORRIGIDO: query com as any
+    let query = (supabase
+      .from('partners') as any)
       .select('*')
       .order('created_at', { ascending: false })
 
@@ -92,12 +93,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar se já é parceiro
-    const { data: existing, error: existingError } = await supabase
-      .from('partners')
+    // 🔥 CORRIGIDO: verificar se já é parceiro com as any
+    const { data: existing, error: existingError } = await (supabase
+      .from('partners') as any)
       .select('id')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (existing) {
       return NextResponse.json(
@@ -106,12 +107,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar se o CNPJ já está cadastrado
-    const { data: existingCnpj } = await supabase
-      .from('partners')
+    // 🔥 CORRIGIDO: verificar CNPJ com as any
+    const { data: existingCnpj } = await (supabase
+      .from('partners') as any)
       .select('id')
       .eq('cnpj', cnpj)
-      .single()
+      .maybeSingle()
 
     if (existingCnpj) {
       return NextResponse.json(
@@ -120,9 +121,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Criar parceiro
-    const { data: partner, error: insertError } = await supabase
-      .from('partners')
+    // 🔥 CORRIGIDO: criar parceiro com as any
+    const { data: partner, error: insertError } = await (supabase
+      .from('partners') as any)
       .insert({
         user_id: user.id,
         company_name,
@@ -170,12 +171,12 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Verificar se é admin
-    const { data: profile } = await supabase
-      .from('profiles')
+    // 🔥 CORRIGIDO: verificar admin com as any
+    const { data: profile } = await (supabase
+      .from('profiles') as any)
       .select('role')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     if (profile?.role !== 'admin') {
       return NextResponse.json(
@@ -200,12 +201,12 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Verificar se parceiro existe
-    const { data: existing, error: existingError } = await supabase
-      .from('partners')
+    // 🔥 CORRIGIDO: verificar parceiro com as any
+    const { data: existing, error: existingError } = await (supabase
+      .from('partners') as any)
       .select('id')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
     if (existingError || !existing) {
       return NextResponse.json(
@@ -234,8 +235,9 @@ export async function PUT(request: NextRequest) {
       updatePayload.commission_rate = commission_rate
     }
 
-    const { data: partner, error: updateError } = await supabase
-      .from('partners')
+    // 🔥 CORRIGIDO: atualizar parceiro com as any
+    const { data: partner, error: updateError } = await (supabase
+      .from('partners') as any)
       .update(updatePayload)
       .eq('id', id)
       .select()

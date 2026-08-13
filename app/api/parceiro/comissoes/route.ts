@@ -13,12 +13,12 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Buscar parceiro
-    const { data: partner, error: partnerError } = await supabase
-      .from('partners')
+    // 🔥 CORRIGIDO: buscar parceiro com as any
+    const { data: partner, error: partnerError } = await (supabase
+      .from('partners') as any)
       .select('id')
       .eq('user_id', user.id)
-      .single()
+      .maybeSingle()
 
     if (partnerError || !partner) {
       return NextResponse.json(
@@ -30,8 +30,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
 
-    let query = supabase
-      .from('partner_commissions')
+    // 🔥 CORRIGIDO: query com as any
+    let query = (supabase
+      .from('partner_commissions') as any)
       .select(`
         *,
         products:product_id (
@@ -58,11 +59,11 @@ export async function GET(request: NextRequest) {
 
     // Calcular resumo
     const total = commissions?.length || 0
-    const pending = commissions?.filter(c => c.status === 'pending').length || 0
-    const paid = commissions?.filter(c => c.status === 'paid').length || 0
-    const totalAmount = commissions?.reduce((sum, c) => sum + c.commission_amount, 0) || 0
-    const pendingAmount = commissions?.filter(c => c.status === 'pending')
-      .reduce((sum, c) => sum + c.commission_amount, 0) || 0
+    const pending = commissions?.filter((c: any) => c.status === 'pending').length || 0
+    const paid = commissions?.filter((c: any) => c.status === 'paid').length || 0
+    const totalAmount = commissions?.reduce((sum: number, c: any) => sum + (c.commission_amount || 0), 0) || 0
+    const pendingAmount = commissions?.filter((c: any) => c.status === 'pending')
+      .reduce((sum: number, c: any) => sum + (c.commission_amount || 0), 0) || 0
 
     return NextResponse.json({
       success: true,
@@ -96,12 +97,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar se é admin
-    const { data: profile } = await supabase
-      .from('profiles')
+    // 🔥 CORRIGIDO: verificar admin com as any
+    const { data: profile } = await (supabase
+      .from('profiles') as any)
       .select('role')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     if (profile?.role !== 'admin') {
       return NextResponse.json(
@@ -128,12 +129,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar se parceiro existe
-    const { data: partner, error: partnerError } = await supabase
-      .from('partners')
+    // 🔥 CORRIGIDO: verificar parceiro com as any
+    const { data: partner, error: partnerError } = await (supabase
+      .from('partners') as any)
       .select('id')
       .eq('id', partner_id)
-      .single()
+      .maybeSingle()
 
     if (partnerError || !partner) {
       return NextResponse.json(
@@ -142,12 +143,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar se pedido existe
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
+    // 🔥 CORRIGIDO: verificar pedido com as any
+    const { data: order, error: orderError } = await (supabase
+      .from('orders') as any)
       .select('id')
       .eq('id', order_id)
-      .single()
+      .maybeSingle()
 
     if (orderError || !order) {
       return NextResponse.json(
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Calcular comissão se não for fornecida
+    // Calcular comissão
     let finalCommissionAmount = commission_amount
     let finalCommissionRate = commission_rate
 
@@ -165,9 +166,9 @@ export async function POST(request: NextRequest) {
       finalCommissionAmount = (amount * rate) / 100
     }
 
-    // Registrar comissão
-    const { data: commission, error: insertError } = await supabase
-      .from('partner_commissions')
+    // 🔥 CORRIGIDO: registrar comissão com as any
+    const { data: commission, error: insertError } = await (supabase
+      .from('partner_commissions') as any)
       .insert({
         partner_id,
         order_id,
@@ -210,12 +211,12 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Verificar se é admin
-    const { data: profile } = await supabase
-      .from('profiles')
+    // 🔥 CORRIGIDO: verificar admin com as any
+    const { data: profile } = await (supabase
+      .from('profiles') as any)
       .select('role')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     if (profile?.role !== 'admin') {
       return NextResponse.json(
@@ -238,12 +239,12 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Verificar se comissão existe
-    const { data: existing, error: existingError } = await supabase
-      .from('partner_commissions')
+    // 🔥 CORRIGIDO: verificar comissão com as any
+    const { data: existing, error: existingError } = await (supabase
+      .from('partner_commissions') as any)
       .select('id')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
     if (existingError || !existing) {
       return NextResponse.json(
@@ -264,8 +265,9 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    const { data: commission, error: updateError } = await supabase
-      .from('partner_commissions')
+    // 🔥 CORRIGIDO: atualizar comissão com as any
+    const { data: commission, error: updateError } = await (supabase
+      .from('partner_commissions') as any)
       .update(updatePayload)
       .eq('id', id)
       .select()

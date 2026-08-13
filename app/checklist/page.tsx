@@ -69,68 +69,83 @@ export default function Checklist() {
     getUser()
   }, [])
 
+  // 🔥 CORRIGIDO: loadProfile com as any
   const loadProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('mochila_tipo')
-      .eq('id', userId)
-      .single()
-    
-    if (data) {
-      setMochilaTipo(data.mochila_tipo)
+    try {
+      const { data } = await (supabase
+        .from('profiles') as any)
+        .select('mochila_tipo')
+        .eq('id', userId)
+        .maybeSingle()
+      
+      if (data) {
+        setMochilaTipo(data.mochila_tipo || 'BOB')
+      }
+    } catch (error) {
+      console.error('Erro ao carregar perfil:', error)
     }
   }
 
+  // 🔥 CORRIGIDO: loadCategories com as any
   const loadCategories = async () => {
-    const { data } = await supabase
-      .from('categories')
-      .select('*')
-      .order('order', { ascending: true })
-    
-    if (data && data.length > 0) {
-      setCategories(data)
-    } else {
-      await createDefaultCategories()
+    try {
+      const { data } = await (supabase
+        .from('categories') as any)
+        .select('*')
+        .order('order', { ascending: true })
+      
+      if (data && data.length > 0) {
+        setCategories(data)
+      } else {
+        await createDefaultCategories()
+      }
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error)
     }
   }
 
+  // 🔥 CORRIGIDO: loadItems com as any
   const loadItems = async () => {
-    const { data } = await supabase
-      .from('checklist_items')
-      .select('*')
-      .order('order', { ascending: true })
-    
-    if (data && data.length > 0) {
-      const filteredItems = data.filter(item => 
-        item.tipo?.includes(mochilaTipo) || item.tipo?.length === 0
-      )
-      setItems(filteredItems)
-    } else {
-      await createDefaultItems()
+    try {
+      const { data } = await (supabase
+        .from('checklist_items') as any)
+        .select('*')
+        .order('order', { ascending: true })
+      
+      if (data && data.length > 0) {
+        const filteredItems = data.filter((item: any) => 
+          item.tipo?.includes(mochilaTipo) || item.tipo?.length === 0
+        )
+        setItems(filteredItems)
+      } else {
+        await createDefaultItems()
+      }
+    } catch (error) {
+      console.error('Erro ao carregar itens:', error)
     }
   }
 
   const createDefaultCategories = async () => {
-  setInitializing(true)
-  const defaultCategories = [
-    { name: 'Documentos', icon: '/images/documentos.jpeg', order: 1 },
-    { name: 'Água', icon: '/images/agua.jpeg', order: 2 },
-    { name: 'Abrigo', icon: '/images/abrigo.jpeg', order: 3 },
-    { name: 'Fogo', icon: '/images/fogo.jpeg', order: 4 },
-    { name: 'Primeiros Socorros', icon: '/images/socorro.jpeg', order: 5 },
-    { name: 'Higiene', icon: '/images/higiene.jpeg', order: 6 },
-    { name: 'Tecnologia', icon: '/images/tecnologia.jpeg', order: 7 },
-    { name: 'Ferramentas', icon: '/images/equipamentos.jpeg', order: 8 },
-    { name: 'Alimentação', icon: '/images/alimento.jpeg', order: 9 },
-    { name: 'Roupas', icon: '/images/roupas.jpeg', order: 10 },
-  ]
+    setInitializing(true)
+    const defaultCategories = [
+      { name: 'Documentos', icon: '/images/documentos.jpeg', order: 1 },
+      { name: 'Água', icon: '/images/agua.jpeg', order: 2 },
+      { name: 'Abrigo', icon: '/images/abrigo.jpeg', order: 3 },
+      { name: 'Fogo', icon: '/images/fogo.jpeg', order: 4 },
+      { name: 'Primeiros Socorros', icon: '/images/socorro.jpeg', order: 5 },
+      { name: 'Higiene', icon: '/images/higiene.jpeg', order: 6 },
+      { name: 'Tecnologia', icon: '/images/tecnologia.jpeg', order: 7 },
+      { name: 'Ferramentas', icon: '/images/equipamentos.jpeg', order: 8 },
+      { name: 'Alimentação', icon: '/images/alimento.jpeg', order: 9 },
+      { name: 'Roupas', icon: '/images/roupas.jpeg', order: 10 },
+    ]
 
-  for (const cat of defaultCategories) {
-    await supabase.from('categories').insert(cat)
+    for (const cat of defaultCategories) {
+      await (supabase.from('categories') as any).insert(cat)
+    }
+    await loadCategories()
+    setInitializing(false)
   }
-  await loadCategories()
-  setInitializing(false)
-}
 
   const createDefaultItems = async () => {
     setInitializing(true)
@@ -185,27 +200,33 @@ export default function Checklist() {
     ]
 
     for (const item of defaultItems) {
-      await supabase.from('checklist_items').insert(item)
+      await (supabase.from('checklist_items') as any).insert(item)
     }
     await loadItems()
     setInitializing(false)
   }
 
+  // 🔥 CORRIGIDO: loadUserProgress com as any
   const loadUserProgress = async (userId: string) => {
-    const { data } = await supabase
-      .from('user_progress')
-      .select('item_id, completed')
-      .eq('user_id', userId)
-    
-    if (data) {
-      const progressMap: Record<number, boolean> = {}
-      data.forEach((p) => {
-        progressMap[p.item_id] = p.completed
-      })
-      setUserProgress(progressMap)
+    try {
+      const { data } = await (supabase
+        .from('user_progress') as any)
+        .select('item_id, completed')
+        .eq('user_id', userId)
+      
+      if (data) {
+        const progressMap: Record<number, boolean> = {}
+        data.forEach((p: any) => {
+          progressMap[p.item_id] = p.completed
+        })
+        setUserProgress(progressMap)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar progresso:', error)
     }
   }
 
+  // 🔥 CORRIGIDO: toggleItem com as any
   const toggleItem = async (itemId: number, currentStatus: boolean) => {
     if (!user) return
 
@@ -214,8 +235,8 @@ export default function Checklist() {
 
     setUserProgress(prev => ({ ...prev, [itemId]: newStatus }))
 
-    const { error } = await supabase
-      .from('user_progress')
+    const { error } = await (supabase
+      .from('user_progress') as any)
       .upsert({
         user_id: user.id,
         item_id: itemId,
@@ -246,13 +267,14 @@ export default function Checklist() {
     }, 500)
   }
 
+  // 🔥 CORRIGIDO: trocarMochila com as any
   const trocarMochila = async (novoTipo: string) => {
     if (!user) return
     
     setTrocando(true)
     
-    const { error } = await supabase
-      .from('profiles')
+    const { error } = await (supabase
+      .from('profiles') as any)
       .update({ mochila_tipo: novoTipo })
       .eq('id', user.id)
     
@@ -302,350 +324,341 @@ export default function Checklist() {
     )
   }
 
-const totalProgress = getTotalProgress()
+  const totalProgress = getTotalProgress()
 
-return (
-  <div className="min-h-screen bg-gray-50 pb-20">
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Header - apenas título e ícone */}
-      <div className="text-center mb-6">
-        <div className="flex justify-center items-center gap-3 mb-2">
-          <img 
-            src="/images/mochila-icon.png" 
-            alt="Minha Mochila" 
-            className="h-16 w-auto object-contain"
-            onError={(e) => { e.currentTarget.style.display = 'none' }}
-          />
-          <h1 className="text-3xl font-bold text-black">MINHA MOCHILA</h1>
-        </div>
-        <p className="text-gray-400 italic">
-          {mochilaTipo === 'EDC' && 'Every Day Carry - Itens para o dia a dia'}
-          {mochilaTipo === 'BOB' && 'Bug Out Bag - 72 horas de emergência'}
-          {mochilaTipo === 'BOLT' && 'Bug Out Long Term - Autossuficiência'}
-        </p>
-      </div>
-
-      {/* Card do tipo de mochila com botão */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <span className="text-xs text-gray-500 uppercase tracking-wide">Tipo de mochila atual</span>
-            <h2 className="text-xl font-bold text-[#FFB800] mt-1">
-              {mochilaTipo === 'EDC' && 'EDC - Dia a Dia'}
-              {mochilaTipo === 'BOB' && 'BOB - 72 horas'}
-              {mochilaTipo === 'BOLT' && 'BOLT - Autossuficiência'}
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">
-              {mochilaTipo === 'EDC' && 'Itens essenciais para o dia a dia, que você já carrega na bolsa ou mochila comum.'}
-              {mochilaTipo === 'BOB' && 'Mochila preparada para 72 horas de emergência, com itens de sobrevivência básica.'}
-              {mochilaTipo === 'BOLT' && 'Kit completo para situações prolongadas, com equipamentos mais robustos.'}
-            </p>
+  return (
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className="flex justify-center items-center gap-3 mb-2">
+            <img 
+              src="/images/mochila-icon.png" 
+              alt="Minha Mochila" 
+              className="h-16 w-auto object-contain"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
+            <h1 className="text-3xl font-bold text-black">MINHA MOCHILA</h1>
           </div>
-          <button
-  onClick={() => setShowModalTroca(true)}
-  disabled={trocando}
-  className="bg-[#FFB800] text-black px-5 py-2 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition flex items-center gap-2 whitespace-nowrap"
->
-  <img 
-    src="/images/botaoatualizar.png" 
-    alt="Atualizar" 
-    className="w-4 h-4 object-contain"
-    onError={(e) => {
-      e.currentTarget.style.display = 'none'
-    }}
-  />
-  Trocar Mochila
-</button>
+          <p className="text-gray-400 italic">
+            {mochilaTipo === 'EDC' && 'Every Day Carry - Itens para o dia a dia'}
+            {mochilaTipo === 'BOB' && 'Bug Out Bag - 72 horas de emergência'}
+            {mochilaTipo === 'BOLT' && 'Bug Out Long Term - Autossuficiência'}
+          </p>
         </div>
-      </div>
 
-      {/* Progresso Total */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-        <div className="flex justify-between text-sm text-gray-600 mb-2">
-          <span>Progresso Total</span>
-          <span>{totalProgress}%</span>
+        {/* Card do tipo de mochila */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <span className="text-xs text-gray-500 uppercase tracking-wide">Tipo de mochila atual</span>
+              <h2 className="text-xl font-bold text-[#FFB800] mt-1">
+                {mochilaTipo === 'EDC' && 'EDC - Dia a Dia'}
+                {mochilaTipo === 'BOB' && 'BOB - 72 horas'}
+                {mochilaTipo === 'BOLT' && 'BOLT - Autossuficiência'}
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {mochilaTipo === 'EDC' && 'Itens essenciais para o dia a dia, que você já carrega na bolsa ou mochila comum.'}
+                {mochilaTipo === 'BOB' && 'Mochila preparada para 72 horas de emergência, com itens de sobrevivência básica.'}
+                {mochilaTipo === 'BOLT' && 'Kit completo para situações prolongadas, com equipamentos mais robustos.'}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowModalTroca(true)}
+              disabled={trocando}
+              className="bg-[#FFB800] text-black px-5 py-2 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition flex items-center gap-2 whitespace-nowrap"
+            >
+              <img 
+                src="/images/botaoatualizar.png" 
+                alt="Atualizar" 
+                className="w-4 h-4 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+              Trocar Mochila
+            </button>
+          </div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-4">
-          <div
-            className="bg-[#FFB800] h-4 rounded-full transition-all duration-500"
-            style={{ width: `${totalProgress}%` }}
-          />
+
+        {/* Progresso Total */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+          <div className="flex justify-between text-sm text-gray-600 mb-2">
+            <span>Progresso Total</span>
+            <span>{totalProgress}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-4">
+            <div
+              className="bg-[#FFB800] h-4 rounded-full transition-all duration-500"
+              style={{ width: `${totalProgress}%` }}
+            />
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            {items.filter(i => userProgress[i.id]).length} de {items.length} itens marcados
+          </p>
         </div>
-        <p className="text-xs text-gray-500 mt-2">
-          {items.filter(i => userProgress[i.id]).length} de {items.length} itens marcados
-        </p>
-      </div>
 
         {/* Modal de Troca de Mochila */}
-{showModalTroca && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">Escolha seu tipo de mochila</h2>
-      <p className="text-sm text-gray-600 mb-6">
-        Selecione o tipo de mochila que melhor se adapta à sua necessidade:
-      </p>
-      <div className="space-y-3">
-        {/* EDC */}
-        <button
-          onClick={() => trocarMochila('EDC')}
-          className="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 transition flex items-center gap-3"
-        >
-          <img 
-            src="/images/mochila-icon.png" 
-            alt="EDC" 
-            className="w-6 h-6 object-contain"
-            onError={(e) => { e.currentTarget.style.display = 'none' }}
-          />
-          <div>
-            <p className="font-bold text-gray-900">EDC</p>
-            <p className="text-xs text-gray-500">Every Day Carry - Itens para o dia a dia</p>
-          </div>
-        </button>
-        
-        {/* BOB */}
-        <button
-          onClick={() => trocarMochila('BOB')}
-          className="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 transition flex items-center gap-3"
-        >
-          <img 
-            src="/images/mochila-icon.png" 
-            alt="BOB" 
-            className="w-6 h-6 object-contain"
-            onError={(e) => { e.currentTarget.style.display = 'none' }}
-          />
-          <div>
-            <p className="font-bold text-gray-900">BOB</p>
-            <p className="text-xs text-gray-500">Bug Out Bag - 72 horas de emergência</p>
-          </div>
-        </button>
-        
-        {/* BOLT */}
-        <button
-          onClick={() => trocarMochila('BOLT')}
-          className="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 transition flex items-center gap-3"
-        >
-          <img 
-            src="/images/mochila-icon.png" 
-            alt="BOLT" 
-            className="w-6 h-6 object-contain"
-            onError={(e) => { e.currentTarget.style.display = 'none' }}
-          />
-          <div>
-            <p className="font-bold text-gray-900">BOLT</p>
-            <p className="text-xs text-gray-500">Bug Out Long Term - Autossuficiência</p>
-          </div>
-        </button>
-      </div>
-      <button
-        onClick={() => setShowModalTroca(false)}
-        className="w-full mt-6 bg-gray-100 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-200 transition"
-      >
-        Cancelar
-      </button>
-    </div>
-  </div>
-)}
-
- {/* Tipos de Mochila */}
-<div className="bg-white rounded-xl p-5 mb-8 border border-gray-100">
-  <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-    <img src="/images/mochila-icon.png" alt="Mochila" className="w-6 h-6 object-contain" />
-    Qual tipo de mochila você está montando?
-  </h2>
-  
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-    <div className={`bg-gray-50 rounded-lg p-4 border-2 ${mochilaTipo === 'EDC' ? 'border-[#FFB800] shadow-md' : 'border-gray-200'}`}>
-      <div className="flex items-center gap-2 mb-2">
-        <img src="/images/mochila-icon.png" alt="EDC" className="w-6 h-6 object-contain" />
-        <h3 className="font-bold text-gray-900">EDC</h3>
-        {mochilaTipo === 'EDC' && <span className="text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full">Atual</span>}
-      </div>
-      <p className="text-xs text-gray-500 mb-1">Every Day Carry</p>
-      <p className="text-sm text-gray-600">Itens para o dia a dia</p>
-    </div>
-
-    <div className={`bg-gray-50 rounded-lg p-4 border-2 ${mochilaTipo === 'BOB' ? 'border-[#FFB800] shadow-md' : 'border-gray-200'}`}>
-      <div className="flex items-center gap-2 mb-2">
-        <img src="/images/mochila-icon.png" alt="BOB" className="w-6 h-6 object-contain" />
-        <h3 className="font-bold text-gray-900">BOB</h3>
-        {mochilaTipo === 'BOB' && <span className="text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full">Atual</span>}
-      </div>
-      <p className="text-xs text-gray-500 mb-1">Bug Out Bag</p>
-      <p className="text-sm text-gray-600">72 horas - emergência</p>
-    </div>
-
-    <div className={`bg-gray-50 rounded-lg p-4 border-2 ${mochilaTipo === 'BOLT' ? 'border-[#FFB800] shadow-md' : 'border-gray-200'}`}>
-      <div className="flex items-center gap-2 mb-2">
-        <img src="/images/mochila-icon.png" alt="BOB" className="w-6 h-6 object-contain" />
-        <h3 className="font-bold text-gray-900">BOLT</h3>
-        {mochilaTipo === 'BOLT' && <span className="text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full">Atual</span>}
-      </div>
-      <p className="text-xs text-gray-500 mb-1">Bug Out Long Term</p>
-      <p className="text-sm text-gray-600">Autossuficiência</p>
-    </div>
-  </div>
-</div>
-
-{/* Regra Defesa - Pilares da Preparação */}
-<div className="bg-white rounded-xl p-5 mb-8 border border-gray-100">
-  <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-    <img src="/images/logo.jpeg" alt="Defesa" className="w-6 h-6 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-    Pilares da Preparação
-  </h2>
-  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-    <div className="bg-gray-50 rounded-lg p-3 text-center">
-      <img src="/images/defesa.jpeg" alt="Defesa" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-      <p className="font-bold text-gray-900 text-sm">Defesa</p>
-      <p className="text-xs text-gray-500">Atitude mental</p>
-    </div>
-    <div className="bg-gray-50 rounded-lg p-3 text-center">
-      <img src="/images/agua.jpeg" alt="Água" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-      <p className="font-bold text-gray-900 text-sm">Água</p>
-      <p className="text-xs text-gray-500">Hidratação</p>
-    </div>
-    <div className="bg-gray-50 rounded-lg p-3 text-center">
-      <img src="/images/abrigo.jpeg" alt="Abrigo" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-      <p className="font-bold text-gray-900 text-sm">Abrigo</p>
-      <p className="text-xs text-gray-500">Proteção</p>
-    </div>
-    <div className="bg-gray-50 rounded-lg p-3 text-center">
-      <img src="/images/alimento.jpeg" alt="Alimento" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-      <p className="font-bold text-gray-900 text-sm">Alimento</p>
-      <p className="text-xs text-gray-500">Energia</p>
-    </div>
-    <div className="bg-gray-50 rounded-lg p-3 text-center">
-      <img src="/images/fogo.jpeg" alt="Fogo" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-      <p className="font-bold text-gray-900 text-sm">Fogo</p>
-      <p className="text-xs text-gray-500">Calor e preparo</p>
-    </div>
-  </div>
-  <p className="text-xs text-center text-gray-500 mt-3">
-     A Defesa é o primeiro pilar: esteja mentalmente preparado para qualquer situação.
-  </p>
-</div>
-
-
-
-{/* Mensagem de salvamento */}
-{saveMessage && (
-  <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-pulse">
-    {saveMessage}
-  </div>
-)}
-
-
-
-{/* Categorias do Checklist */}
-<div className="space-y-6">
-  {categories.map((category) => {
-    const categoryItems = getItemsByCategory(category.id)
-    if (categoryItems.length === 0) return null
-    const progress = getCategoryProgress(category.id)
-    const completedCount = categoryItems.filter(i => userProgress[i.id]).length
-
-    return (
-      <div key={category.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="bg-gradient-to-r from-gray-50 to-white p-4 border-b border-gray-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* Ícone da categoria - substituído o emoji */}
-              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                <img 
-                  src={category.icon}
-                  alt={category.name}
-                  className="w-6 h-6 object-contain"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                    const parent = e.currentTarget.parentElement
-                    if (parent) {
-                      const fallback = document.createElement('span')
-                      fallback.className = 'text-[#FFB800] font-bold text-lg'
-                      fallback.textContent = category.name.charAt(0)
-                      parent.appendChild(fallback)
-                    }
-                  }}
-                />
+        {showModalTroca && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Escolha seu tipo de mochila</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Selecione o tipo de mochila que melhor se adapta à sua necessidade:
+              </p>
+              <div className="space-y-3">
+                <button
+                  onClick={() => trocarMochila('EDC')}
+                  className="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 transition flex items-center gap-3"
+                >
+                  <img 
+                    src="/images/mochila-icon.png" 
+                    alt="EDC" 
+                    className="w-6 h-6 object-contain"
+                    onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  />
+                  <div>
+                    <p className="font-bold text-gray-900">EDC</p>
+                    <p className="text-xs text-gray-500">Every Day Carry - Itens para o dia a dia</p>
+                  </div>
+                </button>
+                
+                <button
+                  onClick={() => trocarMochila('BOB')}
+                  className="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 transition flex items-center gap-3"
+                >
+                  <img 
+                    src="/images/mochila-icon.png" 
+                    alt="BOB" 
+                    className="w-6 h-6 object-contain"
+                    onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  />
+                  <div>
+                    <p className="font-bold text-gray-900">BOB</p>
+                    <p className="text-xs text-gray-500">Bug Out Bag - 72 horas de emergência</p>
+                  </div>
+                </button>
+                
+                <button
+                  onClick={() => trocarMochila('BOLT')}
+                  className="w-full text-left p-4 rounded-lg border-2 border-gray-200 hover:border-green-500 transition flex items-center gap-3"
+                >
+                  <img 
+                    src="/images/mochila-icon.png" 
+                    alt="BOLT" 
+                    className="w-6 h-6 object-contain"
+                    onError={(e) => { e.currentTarget.style.display = 'none' }}
+                  />
+                  <div>
+                    <p className="font-bold text-gray-900">BOLT</p>
+                    <p className="text-xs text-gray-500">Bug Out Long Term - Autossuficiência</p>
+                  </div>
+                </button>
               </div>
-              <div>
-                <h2 className="font-semibold text-gray-900">{category.name}</h2>
-                <p className="text-xs text-gray-500">
-                  {completedCount} de {categoryItems.length} itens
-                </p>
-              </div>
+              <button
+                onClick={() => setShowModalTroca(false)}
+                className="w-full mt-6 bg-gray-100 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-200 transition"
+              >
+                Cancelar
+              </button>
             </div>
-            <div className="text-right">
-              <span className="text-sm font-medium text-[#FFB800]">{progress}%</span>
-              <div className="w-16 bg-gray-200 rounded-full h-1.5 mt-1">
-                <div
-                  className="bg-[#FFB800] h-1.5 rounded-full"
-                  style={{ width: `${progress}%` }}
-                />
+          </div>
+        )}
+
+        {/* Tipos de Mochila */}
+        <div className="bg-white rounded-xl p-5 mb-8 border border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <img src="/images/mochila-icon.png" alt="Mochila" className="w-6 h-6 object-contain" />
+            Qual tipo de mochila você está montando?
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className={`bg-gray-50 rounded-lg p-4 border-2 ${mochilaTipo === 'EDC' ? 'border-[#FFB800] shadow-md' : 'border-gray-200'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <img src="/images/mochila-icon.png" alt="EDC" className="w-6 h-6 object-contain" />
+                <h3 className="font-bold text-gray-900">EDC</h3>
+                {mochilaTipo === 'EDC' && <span className="text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full">Atual</span>}
               </div>
+              <p className="text-xs text-gray-500 mb-1">Every Day Carry</p>
+              <p className="text-sm text-gray-600">Itens para o dia a dia</p>
+            </div>
+
+            <div className={`bg-gray-50 rounded-lg p-4 border-2 ${mochilaTipo === 'BOB' ? 'border-[#FFB800] shadow-md' : 'border-gray-200'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <img src="/images/mochila-icon.png" alt="BOB" className="w-6 h-6 object-contain" />
+                <h3 className="font-bold text-gray-900">BOB</h3>
+                {mochilaTipo === 'BOB' && <span className="text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full">Atual</span>}
+              </div>
+              <p className="text-xs text-gray-500 mb-1">Bug Out Bag</p>
+              <p className="text-sm text-gray-600">72 horas - emergência</p>
+            </div>
+
+            <div className={`bg-gray-50 rounded-lg p-4 border-2 ${mochilaTipo === 'BOLT' ? 'border-[#FFB800] shadow-md' : 'border-gray-200'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <img src="/images/mochila-icon.png" alt="BOB" className="w-6 h-6 object-contain" />
+                <h3 className="font-bold text-gray-900">BOLT</h3>
+                {mochilaTipo === 'BOLT' && <span className="text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full">Atual</span>}
+              </div>
+              <p className="text-xs text-gray-500 mb-1">Bug Out Long Term</p>
+              <p className="text-sm text-gray-600">Autossuficiência</p>
             </div>
           </div>
         </div>
 
-        <div className="divide-y divide-gray-100">
-  {categoryItems.map((item) => (
-    <div key={item.id} className="flex items-start p-4 hover:bg-gray-50 transition">
-      <button
-        onClick={() => toggleItem(item.id, userProgress[item.id] || false)}
-        disabled={saving === item.id}
-        className="flex-shrink-0 mt-0.5"
-      >
-        <div
-          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
-            userProgress[item.id]
-              ? 'bg-[#FFB800] border-[#FFB800]'
-              : 'border-gray-300 hover:border-[#FFB800]'
-          }`}
-        >
-          {userProgress[item.id] && (
-            <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </svg>
-          )}
-        </div>
-      </button>
-              <div className="ml-3 flex-1">
-                <p className={`text-sm ${userProgress[item.id] ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                  {item.name}
-                </p>
-                {item.description && (
-                  <p className="text-xs text-gray-400 mt-0.5">{item.description}</p>
-                )}
-              </div>
+        {/* Regra Defesa - Pilares da Preparação */}
+        <div className="bg-white rounded-xl p-5 mb-8 border border-gray-100">
+          <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+            <img src="/images/logo.jpeg" alt="Defesa" className="w-6 h-6 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+            Pilares da Preparação
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="bg-gray-50 rounded-lg p-3 text-center">
+              <img src="/images/defesa.jpeg" alt="Defesa" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+              <p className="font-bold text-gray-900 text-sm">Defesa</p>
+              <p className="text-xs text-gray-500">Atitude mental</p>
             </div>
-          ))}
+            <div className="bg-gray-50 rounded-lg p-3 text-center">
+              <img src="/images/agua.jpeg" alt="Água" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+              <p className="font-bold text-gray-900 text-sm">Água</p>
+              <p className="text-xs text-gray-500">Hidratação</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3 text-center">
+              <img src="/images/abrigo.jpeg" alt="Abrigo" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+              <p className="font-bold text-gray-900 text-sm">Abrigo</p>
+              <p className="text-xs text-gray-500">Proteção</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3 text-center">
+              <img src="/images/alimento.jpeg" alt="Alimento" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+              <p className="font-bold text-gray-900 text-sm">Alimento</p>
+              <p className="text-xs text-gray-500">Energia</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3 text-center">
+              <img src="/images/fogo.jpeg" alt="Fogo" className="w-10 h-10 mx-auto mb-2 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+              <p className="font-bold text-gray-900 text-sm">Fogo</p>
+              <p className="text-xs text-gray-500">Calor e preparo</p>
+            </div>
+          </div>
+          <p className="text-xs text-center text-gray-500 mt-3">
+            A Defesa é o primeiro pilar: esteja mentalmente preparado para qualquer situação.
+          </p>
+        </div>
+
+        {/* Mensagem de salvamento */}
+        {saveMessage && (
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-pulse">
+            {saveMessage}
+          </div>
+        )}
+
+        {/* Categorias do Checklist */}
+        <div className="space-y-6">
+          {categories.map((category) => {
+            const categoryItems = getItemsByCategory(category.id)
+            if (categoryItems.length === 0) return null
+            const progress = getCategoryProgress(category.id)
+            const completedCount = categoryItems.filter(i => userProgress[i.id]).length
+
+            return (
+              <div key={category.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-gradient-to-r from-gray-50 to-white p-4 border-b border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <img 
+                          src={category.icon}
+                          alt={category.name}
+                          className="w-6 h-6 object-contain"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                            const parent = e.currentTarget.parentElement
+                            if (parent) {
+                              const fallback = document.createElement('span')
+                              fallback.className = 'text-[#FFB800] font-bold text-lg'
+                              fallback.textContent = category.name.charAt(0)
+                              parent.appendChild(fallback)
+                            }
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <h2 className="font-semibold text-gray-900">{category.name}</h2>
+                        <p className="text-xs text-gray-500">
+                          {completedCount} de {categoryItems.length} itens
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-medium text-[#FFB800]">{progress}%</span>
+                      <div className="w-16 bg-gray-200 rounded-full h-1.5 mt-1">
+                        <div
+                          className="bg-[#FFB800] h-1.5 rounded-full"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="divide-y divide-gray-100">
+                  {categoryItems.map((item) => (
+                    <div key={item.id} className="flex items-start p-4 hover:bg-gray-50 transition">
+                      <button
+                        onClick={() => toggleItem(item.id, userProgress[item.id] || false)}
+                        disabled={saving === item.id}
+                        className="flex-shrink-0 mt-0.5"
+                      >
+                        <div
+                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
+                            userProgress[item.id]
+                              ? 'bg-[#FFB800] border-[#FFB800]'
+                              : 'border-gray-300 hover:border-[#FFB800]'
+                          }`}
+                        >
+                          {userProgress[item.id] && (
+                            <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+                      <div className="ml-3 flex-1">
+                        <p className={`text-sm ${userProgress[item.id] ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                          {item.name}
+                        </p>
+                        {item.description && (
+                          <p className="text-xs text-gray-400 mt-0.5">{item.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Botões */}
+        <div className="mt-8 space-y-3">
+          <button
+            onClick={handleSaveAndContinue}
+            disabled={savingAll}
+            className="w-full bg-[#1A1A1A] text-white py-3 px-4 rounded-lg font-semibold hover:bg-black transition disabled:opacity-50"
+          >
+            {savingAll ? 'Salvando...' : 'Salvar e Continuar'}
+          </button>
+          
+          <Link
+            href="/dashboard"
+            className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition"
+          >
+            Voltar ao Início
+          </Link>
+
+          <div className="mb-6">
+            <BotaoIndicarAmigo />
+          </div>
         </div>
       </div>
-    )
-  })}
-</div>
-
-{/* Botões */}
-<div className="mt-8 space-y-3">
-  <button
-    onClick={handleSaveAndContinue}
-    disabled={savingAll}
-    className="w-full bg-[#1A1A1A] text-white py-3 px-4 rounded-lg font-semibold hover:bg-black transition disabled:opacity-50"
-  >
-    {savingAll ? 'Salvando...' : 'Salvar e Continuar'}
-  </button>
-  
-  <Link
-    href="/dashboard"
-    className="block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition"
-  >
-    Voltar ao Início
-  </Link>
-
-<div className="mb-6">
-          <BotaoIndicarAmigo />
-        </div>
-
-</div>
-</div>
-</div>
+    </div>
   )
 }

@@ -10,7 +10,6 @@ import { useCart } from '@/lib/store/cart'
 import { ArrowLeft, Loader2, Check, Copy, Banknote, Coins, AlertCircle, Truck } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { enviarEbookPorEmail } from '@/lib/email'
-// import { gerarPIX } from '@/lib/pix'; // Não é mais necessário para o fluxo via Mercado Pago
 
 interface OpcaoFrete {
   transportadora: string
@@ -66,12 +65,12 @@ function CheckoutContent() {
         throw new Error('ID do pedido inválido')
       }
 
-      // 1. Buscar o pedido
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
+      // 🔥 CORRIGIDO: buscar pedido com as any
+      const { data: orderData, error: orderError } = await (supabase
+        .from('orders') as any)
         .select('*')
         .eq('id', orderIdNumber)
-        .single()
+        .maybeSingle()
 
       if (orderError) {
         console.error('❌ Erro ao buscar pedido:', orderError)
@@ -79,9 +78,9 @@ function CheckoutContent() {
       }
       console.log('✅ Pedido encontrado:', orderData)
 
-      // 2. Buscar itens do pedido
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('order_items')
+      // 🔥 CORRIGIDO: buscar itens com as any
+      const { data: itemsData, error: itemsError } = await (supabase
+        .from('order_items') as any)
         .select(`
           *,
           products:product_id (
@@ -101,15 +100,15 @@ function CheckoutContent() {
 
       console.log('📦 Itens encontrados:', itemsData)
 
-      // 3. Buscar parceiro (para frete)
+      // 🔥 CORRIGIDO: buscar parceiro com as any
       let partnerZip = null
       if (itemsData && itemsData.length > 0) {
         const firstItem = itemsData[0]
         const partnerId = firstItem.products?.partner_id
 
         if (partnerId) {
-          const { data: partnerData, error: partnerError } = await supabase
-            .from('partners')
+          const { data: partnerData, error: partnerError } = await (supabase
+            .from('partners') as any)
             .select('zip, company_name')
             .eq('id', partnerId)
             .maybeSingle()
@@ -123,11 +122,9 @@ function CheckoutContent() {
         }
       }
 
-      // 4. Atualizar estado do pedido
       setOrder({ ...orderData, items: itemsData || [] })
       setCepParceiro(partnerZip || '')
 
-      // 5. Verificar se todos os produtos são digitais
       const todosDigitais = itemsData?.every((item: any) => item.products?.is_digital) || false
 
       if (todosDigitais) {
@@ -137,16 +134,12 @@ function CheckoutContent() {
         setFreteError(null)
       }
 
-      // 6. Se já estiver pago, redirecionar
       if (orderData.payment_status === 'paid') {
         router.push(`/loja/pedidos/${orderData.id}`)
         return
       }
 
-      // 7. Se for PIX, buscar QR Code (opcional)
       if (paymentMethod === 'pix') {
-        // Não geramos mais QR Code interno, pois será feito pelo Mercado Pago
-        // Removemos a chamada para gerarPIX
         console.log('ℹ️ PIX via Mercado Pago - aguardando redirecionamento')
       }
 
@@ -159,57 +152,56 @@ function CheckoutContent() {
   }
 
   // ===================== CONFIRMAR PAGAMENTO PIX =====================
-const confirmarPagamentoPIX = async () => {
-  if (!order) return
+  const confirmarPagamentoPIX = async () => {
+    if (!order) return
 
-  setProcessing(true)
-  setError(null)
+    setProcessing(true)
+    setError(null)
 
-  try {
-    // 🔥 VERIFICAR STATUS DO PAGAMENTO NO MERCADO PAGO
-    const response = await fetch(`/api/mercadopago/status?paymentId=${pixData?.paymentId}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    })
+    try {
+      const response = await fetch(`/api/mercadopago/status?paymentId=${pixData?.paymentId}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      })
 
-    const result = await response.json()
+      const result = await response.json()
 
-    if (!result.success) {
-      throw new Error(result.error || 'Erro ao verificar pagamento')
-    }
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao verificar pagamento')
+      }
 
-    if (result.status === 'approved') {
-      // 🔥 ATUALIZAR PEDIDO COMO PAGO
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({
-          payment_status: 'paid',
-          status: 'paid',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', order.id)
+      if (result.status === 'approved') {
+        // 🔥 CORRIGIDO: atualizar pedido com as any
+        const { error: updateError } = await (supabase
+          .from('orders') as any)
+          .update({
+            payment_status: 'paid',
+            status: 'paid',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', order.id)
 
-      if (updateError) throw updateError
+        if (updateError) throw updateError
 
-      clearCart()
-      router.push(`/loja/pedidos/${order.id}`)
-    } else if (result.status === 'pending') {
-      setError('Pagamento ainda está pendente. Aguarde a confirmação.')
+        clearCart()
+        router.push(`/loja/pedidos/${order.id}`)
+      } else if (result.status === 'pending') {
+        setError('Pagamento ainda está pendente. Aguarde a confirmação.')
+        setProcessing(false)
+      } else {
+        setError('Status do pagamento desconhecido. Entre em contato com o suporte.')
+        setProcessing(false)
+      }
+
+    } catch (error) {
+      console.error('❌ Erro ao confirmar pagamento:', error)
+      setError('Erro ao confirmar pagamento. Tente novamente.')
       setProcessing(false)
-    } else {
-      setError('Status do pagamento desconhecido. Entre em contato com o suporte.')
-      setProcessing(false)
     }
-
-  } catch (error) {
-    console.error('❌ Erro ao confirmar pagamento:', error)
-    setError('Erro ao confirmar pagamento. Tente novamente.')
-    setProcessing(false)
   }
-}
+
   // ===================== FUNÇÃO CALCULAR FRETE =====================
   const calcularFrete = async () => {
-    // ... (mantenha sua função existente)
     if (!cepCliente || cepCliente.replace(/\D/g, '').length !== 8) {
       setFreteError('Digite um CEP válido com 8 dígitos')
       return
@@ -266,159 +258,149 @@ const confirmarPagamentoPIX = async () => {
     }
   }
 
- // ===================== PAGAMENTO PIX VIA MERCADO PAGO (QR CODE DIRETO) =====================
-const processarPagamentoPIX = async () => {
-  console.log('💳 Iniciando pagamento PIX...')
-  
-  if (!order) {
-    console.error('❌ Pedido não encontrado')
-    setError('Pedido não encontrado')
-    return
-  }
-
-  setProcessing(true)
-  setError(null)
-
-  try {
-    // 🔥 BUSCAR E-MAIL DO USUÁRIO
-    console.log('🔍 Buscando sessão do usuário...')
-    const { data: { session } } = await supabase.auth.getSession()
+  // ===================== PAGAMENTO PIX VIA MERCADO PAGO =====================
+  const processarPagamentoPIX = async () => {
+    console.log('💳 Iniciando pagamento PIX...')
     
-    if (!session?.user?.email) {
-      console.error('❌ E-mail do usuário não encontrado na sessão')
-      throw new Error('E-mail do usuário não encontrado')
+    if (!order) {
+      console.error('❌ Pedido não encontrado')
+      setError('Pedido não encontrado')
+      return
     }
 
-    const userEmail = session.user.email
-    console.log('📧 E-mail do usuário:', userEmail)
-    console.log('💰 Total do pedido:', total)
-    console.log('📦 Order ID:', order.id)
+    setProcessing(true)
+    setError(null)
 
-    // 🔥 CRIAR PAGAMENTO PIX NO MERCADO PAGO
-    console.log('🔑 Chamando API /api/mercadopago/criar-pix...')
-    const response = await fetch('/api/mercadopago/criar-pix', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pedidoId: order.id,
-        valor: total,
-        descricao: `Pedido #${order.id} - PREPARADO`,
-        cliente: {
-          email: userEmail,
-          nome: session.user.user_metadata?.full_name || 'Cliente'
-        }
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.user?.email) {
+        console.error('❌ E-mail do usuário não encontrado na sessão')
+        throw new Error('E-mail do usuário não encontrado')
+      }
+
+      const userEmail = session.user.email
+      console.log('📧 E-mail do usuário:', userEmail)
+      console.log('💰 Total do pedido:', total)
+      console.log('📦 Order ID:', order.id)
+
+      const response = await fetch('/api/mercadopago/criar-pix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pedidoId: order.id,
+          valor: total,
+          descricao: `Pedido #${order.id} - PREPARADO`,
+          cliente: {
+            email: userEmail,
+            nome: session.user.user_metadata?.full_name || 'Cliente'
+          }
+        })
       })
-    })
 
-    console.log('📨 Resposta recebida, status:', response.status)
-    const result = await response.json()
-    console.log('📦 Dados da resposta:', result)
+      console.log('📨 Resposta recebida, status:', response.status)
+      const result = await response.json()
+      console.log('📦 Dados da resposta:', result)
 
-    if (!result.success) {
-      console.error('❌ API retornou erro:', result.error)
-      throw new Error(result.error || 'Erro ao gerar pagamento PIX')
+      if (!result.success) {
+        console.error('❌ API retornou erro:', result.error)
+        throw new Error(result.error || 'Erro ao gerar pagamento PIX')
+      }
+
+      console.log('✅ Pagamento PIX criado:', result.paymentId)
+
+      setPixData({
+        qrCode: `data:image/png;base64,${result.qrCode}`,
+        copyPaste: result.qrCodeText,
+        paymentId: result.paymentId,
+        valor: result.valor
+      })
+
+      // 🔥 CORRIGIDO: atualizar pedido com as any
+      await (supabase
+        .from('orders') as any)
+        .update({
+          transaction_id: result.paymentId,
+          payment_method: 'pix'
+        })
+        .eq('id', order.id)
+
+      setProcessing(false)
+
+    } catch (error) {
+      console.error('❌ Erro no pagamento PIX:', error)
+      setError(error instanceof Error ? error.message : 'Erro ao processar pagamento')
+      setProcessing(false)
     }
-
-    console.log('✅ Pagamento PIX criado:', result.paymentId)
-
-    // 🔥 MOSTRAR QR CODE DIRETAMENTE NA PÁGINA
-    setPixData({
-      qrCode: `data:image/png;base64,${result.qrCode}`,
-      copyPaste: result.qrCodeText,
-      paymentId: result.paymentId,
-      valor: result.valor
-    })
-
-    // 🔥 ATUALIZAR PEDIDO COM O PAYMENT_ID
-    await supabase
-      .from('orders')
-      .update({
-        transaction_id: result.paymentId,
-        payment_method: 'pix'
-      })
-      .eq('id', order.id)
-
-    setProcessing(false)
-
-  } catch (error) {
-    console.error('❌ Erro no pagamento PIX:', error)
-    setError(error instanceof Error ? error.message : 'Erro ao processar pagamento')
-    setProcessing(false)
-  }
-}
-// ===================== PAGAMENTO COM CARTÃO DE CRÉDITO =====================
-const processarPagamentoCartao = async () => {
-  console.log('💳💳💳 processarPagamentoCartao FOI CHAMADA!')
-  console.log('💳 Iniciando pagamento com cartão...')
-  
-  if (!order) {
-    console.error('❌ Pedido não encontrado')
-    return
   }
 
-  setProcessing(true)
-  setError(null)
-
-  try {
-    // 🔥 BUSCAR E-MAIL DO USUÁRIO
-    console.log('🔍 Buscando sessão do usuário...')
-    const { data: { session } } = await supabase.auth.getSession()
+  // ===================== PAGAMENTO COM CARTÃO =====================
+  const processarPagamentoCartao = async () => {
+    console.log('💳💳💳 processarPagamentoCartao FOI CHAMADA!')
+    console.log('💳 Iniciando pagamento com cartão...')
     
-    if (!session?.user?.email) {
-      console.error('❌ E-mail do usuário não encontrado na sessão')
-      throw new Error('E-mail do usuário não encontrado')
+    if (!order) {
+      console.error('❌ Pedido não encontrado')
+      return
     }
 
-    const userEmail = session.user.email
-    console.log('📧 E-mail do usuário:', userEmail)
-    console.log('💰 Total do pedido:', total)
-    console.log('📦 Order ID:', order.id)
+    setProcessing(true)
+    setError(null)
 
-    // 🔥 CRIAR PREFERÊNCIA NO MERCADO PAGO (CARTÃO)
-    console.log('🔑 Chamando API /api/mercadopago/cartao...')
-    const response = await fetch('/api/mercadopago/cartao', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pedidoId: order.id,
-        valor: total,
-        descricao: `Pedido #${order.id} - PREPARADO`,
-        cliente: {
-          email: userEmail,
-          nome: session.user.user_metadata?.full_name || 'Cliente'
-        }
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.user?.email) {
+        console.error('❌ E-mail do usuário não encontrado na sessão')
+        throw new Error('E-mail do usuário não encontrado')
+      }
+
+      const userEmail = session.user.email
+      console.log('📧 E-mail do usuário:', userEmail)
+      console.log('💰 Total do pedido:', total)
+      console.log('📦 Order ID:', order.id)
+
+      const response = await fetch('/api/mercadopago/cartao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pedidoId: order.id,
+          valor: total,
+          descricao: `Pedido #${order.id} - PREPARADO`,
+          cliente: {
+            email: userEmail,
+            nome: session.user.user_metadata?.full_name || 'Cliente'
+          }
+        })
       })
-    })
 
-    console.log('📨 Resposta recebida, status:', response.status)
-    const result = await response.json()
-    console.log('📦 Dados da resposta:', result)
+      console.log('📨 Resposta recebida, status:', response.status)
+      const result = await response.json()
+      console.log('📦 Dados da resposta:', result)
 
-    if (!result.success) {
-      console.error('❌ API retornou erro:', result.error)
-      throw new Error(result.error || 'Erro ao gerar pagamento')
+      if (!result.success) {
+        console.error('❌ API retornou erro:', result.error)
+        throw new Error(result.error || 'Erro ao gerar pagamento')
+      }
+
+      console.log('✅ Preferência criada:', result.preferenceId)
+      console.log('🔗 Link:', result.initPoint)
+
+      if (result.initPoint) {
+        console.log('🚀 Redirecionando para:', result.initPoint)
+        window.location.href = result.initPoint
+      } else {
+        throw new Error('Link de pagamento não gerado')
+      }
+
+    } catch (error) {
+      console.error('❌ Erro no pagamento com cartão:', error)
+      setError(error instanceof Error ? error.message : 'Erro ao processar pagamento')
+      setProcessing(false)
     }
-
-    console.log('✅ Preferência criada:', result.preferenceId)
-    console.log('🔗 Link:', result.initPoint)
-
-    // 🔥 REDIRECIONAR PARA O CHECKOUT DO MERCADO PAGO
-    if (result.initPoint) {
-      console.log('🚀 Redirecionando para:', result.initPoint)
-      window.location.href = result.initPoint
-    } else {
-      throw new Error('Link de pagamento não gerado')
-    }
-
-  } catch (error) {
-    console.error('❌ Erro no pagamento com cartão:', error)
-    setError(error instanceof Error ? error.message : 'Erro ao processar pagamento')
-    setProcessing(false)
   }
-}
 
   // ===================== PAGAMENTO BDM =====================
-  // (mantenha sua função existente)
   const buscarCotacaoBDM = async () => {
     try {
       const response = await fetch('/api/bdm/cotacao', {
@@ -499,9 +481,9 @@ const processarPagamentoCartao = async () => {
         throw new Error(result.error || 'Erro ao gerar pagamento BDM');
       }
 
-      // 🔥 Atualizar pedido
-      const { error: updateError } = await supabase
-        .from('orders')
+      // 🔥 CORRIGIDO: atualizar pedido com as any
+      const { error: updateError } = await (supabase
+        .from('orders') as any)
         .update({
           transaction_id: result.billingCode,
           payment_method: 'bdm'
@@ -733,281 +715,285 @@ const processarPagamentoCartao = async () => {
             )}
           </div>
 
-         {/* Escolha do Método de Pagamento */}
-<div className="space-y-6">
-  <div>
-    <h3 className="font-display font-bold text-gray-900 text-sm mb-3">
-      Forma de Pagamento
-    </h3>
-    <div className="grid grid-cols-3 gap-3">
-      {/* PIX */}
-      <button
-        onClick={() => setPaymentMethod('pix')}
-        className={`p-4 rounded-lg border-2 transition-colors text-left ${
-          paymentMethod === 'pix' ? 'border-[#FFB800] bg-yellow-50' : 'border-gray-200'
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <Banknote size={20} className="text-[#FFB800]" />
-          <p className="font-display font-bold text-gray-900">PIX</p>
-        </div>
-        <p className="text-xs text-gray-600 mt-1">Instantâneo</p>
-      </button>
-
-      {/* CARTÃO */}
-      <button
-        onClick={() => setPaymentMethod('cartao')}
-        className={`p-4 rounded-lg border-2 transition-colors text-left ${
-          paymentMethod === 'cartao' ? 'border-[#FFB800] bg-yellow-50' : 'border-gray-200'
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <svg className="w-5 h-5 text-[#FFB800]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-          <p className="font-display font-bold text-gray-900">Cartão</p>
-        </div>
-        <p className="text-xs text-gray-600 mt-1">Crédito/Débito</p>
-      </button>
-
-      {/* BDM Digital */}
-      <button
-        onClick={() => {
-          setPaymentMethod('bdm')
-          if (!bdmData && !processing) {
-            gerarPagamentoBDM()
-          }
-        }}
-        className={`p-4 rounded-lg border-2 transition-colors text-left ${
-          paymentMethod === 'bdm' ? 'border-[#FFB800] bg-yellow-50' : 'border-gray-200'
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <Coins size={20} className="text-[#FFB800]" />
-          <p className="font-display font-bold text-gray-900">BDM</p>
-        </div>
-        <p className="text-xs text-gray-600 mt-1">Saldo digital</p>
-      </button>
-    </div>
-  </div>
-
-  {/* PIX - Conteúdo */}
-  {paymentMethod === 'pix' && (
-    <div className="text-center space-y-4">
-      {!pixData ? (
-        <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-700">
-              Clique no botão abaixo para gerar o QR Code PIX
-            </p>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          <button
-            onClick={processarPagamentoPIX}
-            disabled={processing}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-display font-bold py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {processing ? (
-              <>
-                <Loader2 size={20} className="animate-spin" />
-                Gerando PIX...
-              </>
-            ) : (
-              <>
-                <Banknote size={20} />
-                Gerar PIX - {formatPrice(total)}
-              </>
-            )}
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Escaneie o QR Code abaixo para pagar com PIX
-          </p>
-
-          <div className="bg-white p-4 rounded-xl inline-block mx-auto border border-gray-200">
-            {pixData.qrCode ? (
-              <img 
-                src={pixData.qrCode}
-                alt="QR Code PIX"
-                className="w-48 h-48"
-                onError={(e) => {
-                  e.currentTarget.src = '/images/pix-placeholder.png'
-                }}
-              />
-            ) : (
-              <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
-                <span className="text-gray-400 text-sm">Gerando QR Code...</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-center gap-2">
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(pixData.copyPaste)
-                setCopied(true)
-                setTimeout(() => setCopied(false), 3000)
-              }}
-              className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#FFB800] transition-colors"
-            >
-              {copied ? <Check size={16} /> : <Copy size={16} />}
-              {copied ? 'Copiado!' : 'Copiar código PIX'}
-            </button>
-          </div>
-
-          <p className="text-xs text-gray-400">
-            O código PIX é válido por 30 minutos
-          </p>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          <button
-            onClick={confirmarPagamentoPIX}
-            disabled={processing}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-display font-bold py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {processing ? (
-              <>
-                <Loader2 size={20} className="animate-spin" />
-                Confirmando...
-              </>
-            ) : (
-              <>
-                <Check size={20} />
-                Finalizar Pedido - {formatPrice(total)}
-              </>
-            )}
-          </button>
-        </div>
-      )}
-    </div>
-  )}
-
-  {/* CARTÃO - Conteúdo */}
-  {paymentMethod === 'cartao' && (
-    <div className="text-center space-y-4">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-700">
-          Você será redirecionado para o ambiente seguro do Mercado Pago
-        </p>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
-          {error}
-        </div>
-      )}
-
-      <button
-  onClick={() => {
-    console.log('🔵 Botão CARTÃO clicado!')
-    processarPagamentoCartao()
-  }}
-  className={`p-4 rounded-lg border-2 transition-colors text-left ${
-    paymentMethod === 'cartao' ? 'border-[#FFB800] bg-yellow-50' : 'border-gray-200'
-  }`}
->
-  <div className="flex items-center gap-2">
-    <svg className="w-5 h-5 text-[#FFB800]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-    </svg>
-    <p className="font-display font-bold text-gray-900">Cartão</p>
-  </div>
-  <p className="text-xs text-gray-600 mt-1">Crédito/Débito</p>
-</button>
-
-      <p className="text-xs text-gray-400">
-        Pagamento seguro via Mercado Pago
-      </p>
-    </div>
-  )}
-
-  {/* BDM - Conteúdo */}
-  {paymentMethod === 'bdm' && (
-    <div className="text-center space-y-4">
-      {processing && !bdmData && (
-        <div className="flex flex-col items-center justify-center py-8">
-          <Loader2 size={40} className="animate-spin text-[#FFB800]" />
-          <p className="text-sm text-gray-600 mt-4">Gerando pagamento BDM...</p>
-        </div>
-      )}
-
-      {bdmError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-left">
-          <div className="flex items-start gap-3">
-            <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+          {/* Escolha do Método de Pagamento */}
+          <div className="space-y-6">
             <div>
-              <p className="text-sm font-medium text-red-800">Erro ao gerar BDM</p>
-              <p className="text-sm text-red-600">{bdmError}</p>
+              <h3 className="font-display font-bold text-gray-900 text-sm mb-3">
+                Forma de Pagamento
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                {/* PIX */}
+                <button
+                  onClick={() => setPaymentMethod('pix')}
+                  className={`p-4 rounded-lg border-2 transition-colors text-left ${
+                    paymentMethod === 'pix' ? 'border-[#FFB800] bg-yellow-50' : 'border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Banknote size={20} className="text-[#FFB800]" />
+                    <p className="font-display font-bold text-gray-900">PIX</p>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Instantâneo</p>
+                </button>
+
+                {/* CARTÃO */}
+                <button
+                  onClick={() => setPaymentMethod('cartao')}
+                  className={`p-4 rounded-lg border-2 transition-colors text-left ${
+                    paymentMethod === 'cartao' ? 'border-[#FFB800] bg-yellow-50' : 'border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-[#FFB800]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <p className="font-display font-bold text-gray-900">Cartão</p>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Crédito/Débito</p>
+                </button>
+
+                {/* BDM Digital */}
+                <button
+                  onClick={() => {
+                    setPaymentMethod('bdm')
+                    if (!bdmData && !processing) {
+                      gerarPagamentoBDM()
+                    }
+                  }}
+                  className={`p-4 rounded-lg border-2 transition-colors text-left ${
+                    paymentMethod === 'bdm' ? 'border-[#FFB800] bg-yellow-50' : 'border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Coins size={20} className="text-[#FFB800]" />
+                    <p className="font-display font-bold text-gray-900">BDM</p>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">Saldo digital</p>
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {bdmData && (
-        <>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 max-w-sm mx-auto">
-            <p className="text-sm text-blue-800">
-              💰 <strong>1 BDM = R$ {bdmData.cotacao?.toFixed(4) || '13.5500'}</strong>
-            </p>
-            <p className="text-sm text-blue-600 mt-1">
-              Total: <strong>{bdmData.valorBDM || '0.00'} BDM</strong>
-              <span className="text-gray-500 text-xs ml-2">
-                (R$ {bdmData.valorBRL?.toFixed(2) || '0.00'})
-              </span>
-            </p>
-          </div>
+            {/* PIX - Conteúdo */}
+            {paymentMethod === 'pix' && (
+              <div className="text-center space-y-4">
+                {!pixData ? (
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-700">
+                        Clique no botão abaixo para gerar o QR Code PIX
+                      </p>
+                    </div>
 
-          <p className="text-sm text-gray-600">
-            Escaneie o QR Code abaixo para pagar com BDM Digital
-          </p>
+                    {error && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+                        {error}
+                      </div>
+                    )}
 
-          <div className="bg-white p-4 rounded-xl inline-block mx-auto border border-gray-200">
-            {bdmData.qrCode ? (
-              <img
-                src={bdmData.qrCode}
-                alt="QR Code BDM"
-                className="w-48 h-48"
-                onError={(e) => {
-                  e.currentTarget.src = '/images/pix-placeholder.png'
-                }}
-              />
-            ) : (
-              <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
-                <span className="text-gray-400 text-sm">QR Code indisponível</span>
+                    <button
+                      onClick={processarPagamentoPIX}
+                      disabled={processing}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-display font-bold py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 size={20} className="animate-spin" />
+                          Gerando PIX...
+                        </>
+                      ) : (
+                        <>
+                          <Banknote size={20} />
+                          Gerar PIX - {formatPrice(total)}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      Escaneie o QR Code abaixo para pagar com PIX
+                    </p>
+
+                    <div className="bg-white p-4 rounded-xl inline-block mx-auto border border-gray-200">
+                      {pixData.qrCode ? (
+                        <img 
+                          src={pixData.qrCode}
+                          alt="QR Code PIX"
+                          className="w-48 h-48"
+                          onError={(e) => {
+                            e.currentTarget.src = '/images/pix-placeholder.png'
+                          }}
+                        />
+                      ) : (
+                        <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <span className="text-gray-400 text-sm">Gerando QR Code...</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(pixData.copyPaste)
+                          setCopied(true)
+                          setTimeout(() => setCopied(false), 3000)
+                        }}
+                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#FFB800] transition-colors"
+                      >
+                        {copied ? <Check size={16} /> : <Copy size={16} />}
+                        {copied ? 'Copiado!' : 'Copiar código PIX'}
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-gray-400">
+                      O código PIX é válido por 30 minutos
+                    </p>
+
+                    {error && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+                        {error}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={confirmarPagamentoPIX}
+                      disabled={processing}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-display font-bold py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 size={20} className="animate-spin" />
+                          Confirmando...
+                        </>
+                      ) : (
+                        <>
+                          <Check size={20} />
+                          Finalizar Pedido - {formatPrice(total)}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-          </div>
 
-          <div className="flex items-center justify-center gap-2">
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(bdmData.billingCode)
-                setCopied(true)
-                setTimeout(() => setCopied(false), 3000)
-              }}
-              className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#FFB800] transition-colors"
-            >
-              {copied ? <Check size={16} /> : <Copy size={16} />}
-              {copied ? 'Copiado!' : 'Copiar código BDM'}
-            </button>
-          </div>
+            {/* CARTÃO - Conteúdo */}
+            {paymentMethod === 'cartao' && (
+              <div className="text-center space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-700">
+                    Você será redirecionado para o ambiente seguro do Mercado Pago
+                  </p>
+                </div>
 
-          <p className="text-xs text-gray-500">
-            O pagamento será confirmado automaticamente após a transação.
-          </p>
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => {
+                    console.log('🔵 Botão CARTÃO clicado!')
+                    processarPagamentoCartao()
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-display font-bold py-3 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin" />
+                      Redirecionando...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Pagar com Cartão - {formatPrice(total)}
+                    </>
+                  )}
+                </button>
+
+                <p className="text-xs text-gray-400">
+                  Pagamento seguro via Mercado Pago
+                </p>
+              </div>
+            )}
+
+            {/* BDM - Conteúdo */}
+            {paymentMethod === 'bdm' && (
+              <div className="text-center space-y-4">
+                {processing && !bdmData && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Loader2 size={40} className="animate-spin text-[#FFB800]" />
+                    <p className="text-sm text-gray-600 mt-4">Gerando pagamento BDM...</p>
+                  </div>
+                )}
+
+                {bdmError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-left">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-red-800">Erro ao gerar BDM</p>
+                        <p className="text-sm text-red-600">{bdmError}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {bdmData && (
+                  <>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 max-w-sm mx-auto">
+                      <p className="text-sm text-blue-800">
+                        💰 <strong>1 BDM = R$ {bdmData.cotacao?.toFixed(4) || '13.5500'}</strong>
+                      </p>
+                      <p className="text-sm text-blue-600 mt-1">
+                        Total: <strong>{bdmData.valorBDM || '0.00'} BDM</strong>
+                        <span className="text-gray-500 text-xs ml-2">
+                          (R$ {bdmData.valorBRL?.toFixed(2) || '0.00'})
+                        </span>
+                      </p>
+                    </div>
+
+                    <p className="text-sm text-gray-600">
+                      Escaneie o QR Code abaixo para pagar com BDM Digital
+                    </p>
+
+                    <div className="bg-white p-4 rounded-xl inline-block mx-auto border border-gray-200">
+                      {bdmData.qrCode ? (
+                        <img
+                          src={bdmData.qrCode}
+                          alt="QR Code BDM"
+                          className="w-48 h-48"
+                          onError={(e) => {
+                            e.currentTarget.src = '/images/pix-placeholder.png'
+                          }}
+                        />
+                      ) : (
+                        <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <span className="text-gray-400 text-sm">QR Code indisponível</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(bdmData.billingCode)
+                          setCopied(true)
+                          setTimeout(() => setCopied(false), 3000)
+                        }}
+                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#FFB800] transition-colors"
+                      >
+                        {copied ? <Check size={16} /> : <Copy size={16} />}
+                        {copied ? 'Copiado!' : 'Copiar código BDM'}
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-gray-500">
+                      O pagamento será confirmado automaticamente após a transação.
+                    </p>
                   </>
                 )}
               </div>

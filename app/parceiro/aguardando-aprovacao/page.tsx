@@ -25,11 +25,12 @@ export default function AguardandoAprovacao() {
         return
       }
 
-      const { data: partnerData, error } = await supabase
-        .from('partners')
+      // 🔥 CORRIGIDO: usar as any e maybeSingle
+      const { data: partnerData, error } = await (supabase
+        .from('partners') as any)
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (error || !partnerData) {
         router.push('/parceiro/cadastro')

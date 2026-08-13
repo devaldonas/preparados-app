@@ -18,22 +18,21 @@ interface UserLocation {
 interface GroupMapProps {
   userLocations: UserLocation[]
   onGroupSelect?: (groupId: number | null) => void
-  showGroupsList?: boolean          // ← NOVO
-  setShowGroupsList?: (value: boolean) => void  // ← NOVO
+  showGroupsList?: boolean
+  setShowGroupsList?: (value: boolean) => void
 }
 
 export default function GroupMap({ 
   userLocations, 
   onGroupSelect,
-  showGroupsList = false,           // ← DEFAULT
-  setShowGroupsList                 // ← NOVO
+  showGroupsList = false,
+  setShowGroupsList
 }: GroupMapProps) {
   const mapRef = useRef<google.maps.Map | null>(null)
   const markersRef = useRef<google.maps.Marker[]>([])
   const groupMarkersRef = useRef<google.maps.Marker[]>([])
   const [mapReady, setMapReady] = useState(false)
   const [allGroups, setAllGroups] = useState<any[]>([])
-  // Remove o estado local showGroupsList
   const router = useRouter()
 
   const handleMapReady = (map: google.maps.Map) => {
@@ -50,26 +49,32 @@ export default function GroupMap({
     }
   }
 
+  // 🔥 CORRIGIDO: carregarTodosGrupos com as any
   const carregarTodosGrupos = async () => {
-    const { data, error } = await supabase
-      .from('groups')
-      .select('id, name, member_count, center_latitude, center_longitude')
-      .not('center_latitude', 'is', null)
-      .not('center_longitude', 'is', null)
-      .order('member_count', { ascending: false })
-    
-    if (error) {
+    try {
+      const { data, error } = await (supabase
+        .from('groups') as any)
+        .select('id, name, member_count, center_latitude, center_longitude')
+        .not('center_latitude', 'is', null)
+        .not('center_longitude', 'is', null)
+        .order('member_count', { ascending: false })
+      
+      if (error) {
+        console.error('Erro ao carregar grupos:', error)
+        return
+      }
+      
+      if (data) {
+        console.log('Grupos carregados:', data.length)
+        setAllGroups(data)
+        return data
+      }
+      
+      return []
+    } catch (error) {
       console.error('Erro ao carregar grupos:', error)
-      return
+      return []
     }
-    
-    if (data) {
-      console.log('Grupos carregados:', data.length)
-      setAllGroups(data)
-      return data
-    }
-    
-    return []
   }
 
   const abrirChatDoGrupo = (groupId: number | null, nomeGrupo?: string) => {
@@ -106,8 +111,7 @@ export default function GroupMap({
 
       const position = new google.maps.LatLng(lat, lng)
 
-      // Usar imagem personalizada em vez do SVG com letra "G"
-const markerUrl = '/images/markmap.png'
+      const markerUrl = '/images/markmap.png'
 
       const marker = new google.maps.Marker({
         position,

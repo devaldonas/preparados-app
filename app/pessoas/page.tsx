@@ -63,13 +63,14 @@ export default function PessoasProximas() {
     getUser()
   }, [])
 
+  // 🔥 CORRIGIDO: loadUserData com as any
   const loadUserData = async (userId: string) => {
     try {
-      const { data } = await supabase
-        .from('profiles')
+      const { data } = await (supabase
+        .from('profiles') as any)
         .select('full_name, cep, latitude, longitude, mochila_tipo, city, state')
         .eq('id', userId)
-        .single()
+        .maybeSingle()
       
       if (data) {
         setUserCep(data.cep || '')
@@ -79,10 +80,11 @@ export default function PessoasProximas() {
     }
   }
 
+  // 🔥 CORRIGIDO: loadUserLocations com as any
   const loadUserLocations = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
+      const { data, error } = await (supabase
+        .from('profiles') as any)
         .select('id, full_name, cep, latitude, longitude, mochila_tipo, group_id, city, state')
         .not('latitude', 'is', null)
         .not('longitude', 'is', null)
@@ -94,7 +96,7 @@ export default function PessoasProximas() {
       }
 
       if (data && data.length > 0) {
-        setUserLocations(data.map(p => ({
+        setUserLocations(data.map((p: any) => ({
           userId: p.id,
           userName: p.full_name,
           latitude: p.latitude,
@@ -114,10 +116,11 @@ export default function PessoasProximas() {
     }
   }
 
+  // 🔥 CORRIGIDO: loadTotalPreparados com as any
   const loadTotalPreparados = async () => {
     try {
-      const { count, error } = await supabase
-        .from('profiles')
+      const { count, error } = await (supabase
+        .from('profiles') as any)
         .select('*', { count: 'exact', head: true })
       
       if (error) {
@@ -135,6 +138,7 @@ export default function PessoasProximas() {
     }
   }
 
+  // 🔥 CORRIGIDO: atualizarCep com as any
   const atualizarCep = async () => {
     const novoCep = prompt('Digite seu CEP para encontrar pessoas próximas:', userCep)
     if (novoCep && novoCep.length >= 8) {
@@ -143,8 +147,8 @@ export default function PessoasProximas() {
         const data = await response.json()
         
         if (!data.erro) {
-          await supabase
-            .from('profiles')
+          await (supabase
+            .from('profiles') as any)
             .update({ 
               cep: novoCep,
               city: data.localidade,
@@ -162,13 +166,14 @@ export default function PessoasProximas() {
     }
   }
 
+  // 🔥 CORRIGIDO: abrirChatDoGrupo com as any
   const abrirChatDoGrupo = async (userId: string) => {
     try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
+      const { data: profile, error } = await (supabase
+        .from('profiles') as any)
         .select('group_id')
         .eq('id', userId)
-        .single()
+        .maybeSingle()
 
       if (error) {
         console.error('Erro ao buscar grupo do usuário:', error)

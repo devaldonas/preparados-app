@@ -30,22 +30,24 @@ export default function PartnerDashboard() {
         return
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
+      // 🔥 CORRIGIDO: buscar profile com as any
+      const { data: profile } = await (supabase
+        .from('profiles') as any)
         .select('role')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (profile?.role !== 'partner') {
         router.push('/dashboard')
         return
       }
 
-      const { data: partnerData, error: partnerError } = await supabase
-        .from('partners')
+      // 🔥 CORRIGIDO: buscar parceiro com as any
+      const { data: partnerData, error: partnerError } = await (supabase
+        .from('partners') as any)
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (partnerError || !partnerData) {
         router.push('/parceiro/cadastro')
@@ -59,9 +61,9 @@ export default function PartnerDashboard() {
 
       setPartner(partnerData)
 
-      // 🔥 Estatísticas: produtos do parceiro
-      const { data: products, count: productCount } = await supabase
-        .from('products')
+      // 🔥 CORRIGIDO: buscar produtos com as any
+      const { data: products, count: productCount } = await (supabase
+        .from('products') as any)
         .select('*', { count: 'exact' })
         .eq('partner_id', partnerData.id)
 

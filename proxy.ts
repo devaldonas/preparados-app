@@ -1,3 +1,4 @@
+// middleware/proxy.ts
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { supabase } from './lib/supabaseClient'
@@ -34,12 +35,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/login', request.url))
   }
 
-  // Buscar role do usuário
-  const { data: profile, error } = await supabase
-    .from('profiles')
+  // 🔥 CORRIGIDO: buscar perfil com as any
+  const { data: profile, error } = await (supabase
+    .from('profiles') as any)
     .select('role, subscription_status, trial_end_date, subscription_end_date')
     .eq('id', session.user.id)
-    .single()
+    .maybeSingle()
 
   if (error || !profile) {
     return NextResponse.redirect(new URL('/auth/login', request.url))

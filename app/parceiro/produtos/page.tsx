@@ -38,12 +38,12 @@ export default function PartnerProducts() {
         return
       }
 
-      // Buscar parceiro
-      const { data: partnerData, error: partnerError } = await supabase
-        .from('partners')
+      // 🔥 CORRIGIDO: buscar parceiro com as any
+      const { data: partnerData, error: partnerError } = await (supabase
+        .from('partners') as any)
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (partnerError || !partnerData) {
         router.push('/parceiro/cadastro')
@@ -52,9 +52,9 @@ export default function PartnerProducts() {
 
       setPartner(partnerData)
 
-      // 🔥 Buscar produtos do parceiro (criados por ele)
-      const { data: productsData, error: productsError } = await supabase
-        .from('products')
+      // 🔥 CORRIGIDO: buscar produtos com as any
+      const { data: productsData, error: productsError } = await (supabase
+        .from('products') as any)
         .select('*')
         .eq('partner_id', partnerData.id)
         .order('created_at', { ascending: false })
@@ -70,10 +70,11 @@ export default function PartnerProducts() {
     }
   }
 
+  // 🔥 CORRIGIDO: toggleStatus com as any
   const toggleStatus = async (productId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('products')
+      const { error } = await (supabase
+        .from('products') as any)
         .update({ is_active: !currentStatus })
         .eq('id', productId)
 
@@ -88,12 +89,13 @@ export default function PartnerProducts() {
     }
   }
 
+  // 🔥 CORRIGIDO: excluirProduto com as any
   const excluirProduto = async (productId: string, productName: string) => {
     if (!confirm(`Tem certeza que deseja excluir "${productName}"?`)) return
 
     try {
-      const { error } = await supabase
-        .from('products')
+      const { error } = await (supabase
+        .from('products') as any)
         .delete()
         .eq('id', productId)
 

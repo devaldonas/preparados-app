@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Package, ChevronRight, Clock, CheckCircle, Truck, AlertCircle, Eye } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
+
 interface Order {
   id: number
   user_id: string
@@ -31,45 +31,51 @@ export default function PedidosPage() {
   }, [])
 
   const carregarUsuario = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/auth/login')
-      return
-    }
-    setUser(user)
-    await carregarPedidos(user.id)
-  }
-
-  const carregarPedidos = async (userId: string) => {
     try {
-      // Buscar pedidos do usuário
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-
-      if (ordersError) throw ordersError
-
-      // Buscar itens de cada pedido
-      const ordersWithItems = await Promise.all(
-        (ordersData || []).map(async (order) => {
-          const { data: items } = await supabase
-            .from('order_items')
-            .select('*')
-            .eq('order_id', order.id)
-          
-          return { ...order, items: items || [] }
-        })
-      )
-
-      setOrders(ordersWithItems)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+      setUser(user)
+      await carregarPedidos(user.id)
     } catch (error) {
-      console.error('Erro ao carregar pedidos:', error)
-    } finally {
+      console.error('Erro ao carregar usuário:', error)
       setLoading(false)
     }
   }
+
+  const carregarPedidos = async (userId: string) => {
+  try {
+    // Buscar pedidos do usuário
+    const { data: ordersData, error: ordersError } = await (supabase
+      .from('orders') as any)
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (ordersError) throw ordersError
+
+    // 🔥 CORRIGIDO: adicionar tipo any para order
+    const ordersWithItems = await Promise.all(
+      (ordersData || []).map(async (order: any) => {
+        const { data: items } = await (supabase
+          .from('order_items') as any)
+          .select('*')
+          .eq('order_id', order.id)
+        
+        return { ...order, items: items || [] }
+      })
+    )
+
+    setOrders(ordersWithItems)
+  } catch (error) {
+    console.error('Erro ao carregar pedidos:', error)
+    setOrders([])
+  } finally {
+    setLoading(false)
+  }
+}
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -78,30 +84,30 @@ export default function PedidosPage() {
     }).format(price)
   }
 
-  const formatDate = (date: string) => {
-  if (!date) return 'Data não disponível'
-  
-  try {
-    const data = new Date(date)
-    if (isNaN(data.getTime())) {
+  const formatarData = (date: string) => {
+    if (!date) return 'Data não disponível'
+    
+    try {
+      const data = new Date(date)
+      if (isNaN(data.getTime())) {
+        return 'Data inválida'
+      }
+      
+      // Subtrair 3 horas para Brasília (UTC-3)
+      const horaBrasilia = new Date(data.getTime() - 3 * 60 * 60 * 1000)
+      
+      return horaBrasilia.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch (error) {
+      console.error('Erro ao formatar data:', error)
       return 'Data inválida'
     }
-    
-    // 🔥 SUBTRAIR 3 HORAS PARA BRASÍLIA (UTC-3)
-    const horaBrasilia = new Date(data.getTime() - 3 * 60 * 60 * 1000)
-    
-    return horaBrasilia.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  } catch (error) {
-    console.error('Erro ao formatar data:', error)
-    return 'Data inválida'
   }
-}
 
   const getStatusInfo = (status: string) => {
     const map: Record<string, { label: string; icon: any; color: string }> = {
@@ -185,7 +191,7 @@ export default function PedidosPage() {
                           Pedido #{order.id}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {formatDate(order.created_at)}  {/* 🔥 JÁ ESTÁ CORRETO */}
+                          {formatarData(order.created_at)}
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1">

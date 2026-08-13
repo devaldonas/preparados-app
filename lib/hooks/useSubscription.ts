@@ -35,12 +35,12 @@ export function useSubscription() {
         return
       }
 
-      // Verificar se é admin
-      const { data: profileRole } = await supabase
-        .from('profiles')
+      // 🔥 CORRIGIDO: verificar admin com as any
+      const { data: profileRole } = await (supabase
+        .from('profiles') as any)
         .select('role')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (profileRole?.role === 'admin') {
         setIsAdmin(true)
@@ -48,11 +48,12 @@ export function useSubscription() {
         return
       }
 
-      const { data: profile, error } = await supabase
-        .from('profiles')
+      // 🔥 CORRIGIDO: buscar perfil com as any
+      const { data: profile, error } = await (supabase
+        .from('profiles') as any)
         .select('subscription_status, trial_end_date')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (error) throw error
 
@@ -61,8 +62,8 @@ export function useSubscription() {
         const startDate = new Date()
         const endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000)
         
-        await supabase
-          .from('profiles')
+        await (supabase
+          .from('profiles') as any)
           .update({
             trial_start_date: startDate.toISOString(),
             trial_end_date: endDate.toISOString(),
