@@ -35,8 +35,9 @@ export default function PlanosPage() {
       }
       setUser(user)
 
-      const { data, error } = await supabase
-        .from('plans')
+      // 🔥 CORRIGIDO: buscar planos com as any
+      const { data, error } = await (supabase
+        .from('plans') as any)
         .select('*')
         .eq('is_active', true)
         .order('price', { ascending: true })
@@ -44,7 +45,7 @@ export default function PlanosPage() {
       if (error) throw error
       setPlans(data || [])
       
-      const annualPlan = data?.find(p => p.interval === 'year')
+      const annualPlan = data?.find((p: any) => p.interval === 'year')
       if (annualPlan) {
         setSelectedPlan(annualPlan.id)
       } else if (data && data.length > 0) {
@@ -196,7 +197,7 @@ export default function PlanosPage() {
           })}
         </div>
 
-        {/* 🔥 BOTÃO E INFORMAÇÃO DO CARTÃO */}
+        {/* Botão e informação do cartão */}
         <div className="mt-10 flex flex-col items-center">
           <button
             onClick={handleAssinar}
@@ -213,7 +214,6 @@ export default function PlanosPage() {
             )}
           </button>
 
-          {/* 🔥 INFORMAÇÃO SOBRE O CARTÃO - COM FUNDO DESTACADO */}
           <div className="mt-4 text-sm text-gray-600 bg-yellow-50 border border-yellow-200 px-4 py-3 rounded-lg text-center max-w-md">
             <p>
               Seu cartão <strong>não será cobrado</strong> durante os 7 dias de teste.

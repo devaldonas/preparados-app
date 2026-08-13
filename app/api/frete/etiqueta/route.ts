@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Buscar pedido
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
+    // 🔥 CORRIGIDO: buscar pedido com as any
+    const { data: order, error: orderError } = await (supabase
+      .from('orders') as any)
       .select('*')
       .eq('id', orderId)
       .single()
@@ -59,15 +59,16 @@ export async function POST(request: NextRequest) {
       state: 'SP'
     }
 
-    // Dados do destinatário
+    // 🔥 CORRIGIDO: dados do destinatário com fallback seguro
+    const shippingAddress = order.shipping_address || {}
     const to = destinatario || {
-      zip: order.shipping_address?.zip || '',
-      street: order.shipping_address?.street || '',
-      number: order.shipping_address?.number || '',
-      complement: order.shipping_address?.complement || '',
-      neighborhood: order.shipping_address?.neighborhood || '',
-      city: order.shipping_address?.city || '',
-      state: order.shipping_address?.state || ''
+      zip: shippingAddress?.zip || '',
+      street: shippingAddress?.street || '',
+      number: shippingAddress?.number || '',
+      complement: shippingAddress?.complement || '',
+      neighborhood: shippingAddress?.neighborhood || '',
+      city: shippingAddress?.city || '',
+      state: shippingAddress?.state || ''
     }
 
     // Criar etiqueta
@@ -87,9 +88,9 @@ export async function POST(request: NextRequest) {
     // Gerar etiqueta (pagar)
     const label = await melhorEnvio.generateShipmentLabel(shipment.id)
 
-    // Atualizar pedido
-    await supabase
-      .from('orders')
+    // 🔥 CORRIGIDO: atualizar pedido com as any
+    await (supabase
+      .from('orders') as any)
       .update({
         tracking_code: label.tracking,
         shipping_status: 'label_generated',

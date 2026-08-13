@@ -1,3 +1,4 @@
+// app/api/mercadopago/webhook/route.ts
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
 import { enviarEbookPorEmail } from '@/lib/email'
@@ -58,9 +59,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: true })
           }
 
-          // 🔥 ATUALIZAR PEDIDO
-          const { error: updateError } = await supabase
-            .from('orders')
+          // 🔥 CORRIGIDO: usando as any
+          const { error: updateError } = await (supabase
+            .from('orders') as any)
             .update({
               payment_status: 'paid',
               status: 'paid',
@@ -76,9 +77,9 @@ export async function POST(request: Request) {
             console.log(`✅ Pedido ${orderIdNumber} atualizado para PAGO`)
           }
 
-          // 🔥 BUSCAR O PEDIDO
-          const { data: orderData, error: orderError } = await supabase
-            .from('orders')
+          // Buscar o pedido
+          const { data: orderData, error: orderError } = await (supabase
+            .from('orders') as any)
             .select('user_id')
             .eq('id', orderIdNumber)
             .single()
@@ -90,9 +91,9 @@ export async function POST(request: Request) {
           if (orderData) {
             console.log('📦 Pedido encontrado:', orderData)
 
-            // 🔥 BUSCAR OS ITENS
-            const { data: itemsData, error: itemsError } = await supabase
-              .from('order_items')
+            // Buscar os itens
+            const { data: itemsData, error: itemsError } = await (supabase
+              .from('order_items') as any)
               .select(`
                 *,
                 products:product_id (
@@ -119,13 +120,13 @@ export async function POST(request: Request) {
               console.log('📦 Produtos digitais encontrados:', produtosDigitais.length)
 
               if (produtosDigitais.length > 0) {
-                // 🔥 BUSCAR NOME E E-MAIL DO USUÁRIO
+                // Buscar nome do usuário
                 let userEmail = null
                 let userNome = null
 
                 console.log('🔍 Buscando dados do usuário via profiles...')
-                const { data: profileData, error: profileError } = await supabase
-                  .from('profiles')
+                const { data: profileData, error: profileError } = await (supabase
+                  .from('profiles') as any)
                   .select('full_name')
                   .eq('id', orderData.user_id)
                   .single()
@@ -141,29 +142,32 @@ export async function POST(request: Request) {
                   console.log('⚠️ Nome não encontrado no profiles')
                 }
 
-                // 🔥 SE NOME CONTINUAR NULL, USAR 'Cliente'
                 if (!userNome) {
                   userNome = 'Cliente'
                   console.log('⚠️ Usando nome padrão:', userNome)
                 }
 
-                // 🔥 BUSCAR E-MAIL VIA RPC
-                console.log('🔍 Buscando email via RPC...')
-                try {
-                  const { data: emailData, error: emailError } = await supabase
-                    .rpc('get_user_email', { user_id: orderData.user_id })
+                // Buscar email via RPC
+                // Buscar email via RPC
+console.log('🔍 Buscando email via RPC...')
+try {
+  // 🔥 CORRIGIDO: as any no rpc, não nos parâmetros
+  const { data: emailData, error: emailError } = await (supabase
+    .rpc('get_user_email', { 
+      user_id: orderData.user_id 
+    } as any) as any)  // ← as any em toda a chamada
 
-                  if (emailError) {
-                    console.error('❌ Erro na RPC:', emailError)
-                  } else if (emailData) {
-                    userEmail = emailData
-                    console.log('📧 E-mail via RPC:', userEmail)
-                  }
-                } catch (rpcError) {
-                  console.error('❌ Exceção na RPC:', rpcError)
-                }
+  if (emailError) {
+    console.error('❌ Erro na RPC:', emailError)
+  } else if (emailData) {
+    userEmail = emailData
+    console.log('📧 E-mail via RPC:', userEmail)
+  }
+} catch (rpcError) {
+  console.error('❌ Exceção na RPC:', rpcError)
+}
 
-                // 🔥 FALLBACK FINAL
+
                 if (!userEmail) {
                   userEmail = 'cliente@preparado.com'
                   console.log('⚠️ Usando email fallback:', userEmail)
@@ -172,7 +176,7 @@ export async function POST(request: Request) {
                 console.log('📧 E-mail final:', userEmail)
                 console.log('👤 Nome final:', userNome)
 
-                // 🔥 ENVIAR E-BOOK
+                // Enviar e-book
                 for (const item of produtosDigitais) {
                   console.log('📚 Produto:', item.products?.name)
                   console.log('🔗 Link:', item.products?.file_url)

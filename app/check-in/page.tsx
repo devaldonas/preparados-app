@@ -14,7 +14,7 @@ export default function CheckIn() {
   const [saving, setSaving] = useState(false)
   const router = useRouter()
 
-  // Perguntas do check-in baseadas no material do Michel
+  // Perguntas do check-in
   const questions = [
     {
       id: 'mochila',
@@ -110,18 +110,23 @@ export default function CheckIn() {
     getUser()
   }, [])
 
+  // 🔥 CORRIGIDO: loadPreviousAnswers com as any
   const loadPreviousAnswers = async (userId: string) => {
-    const { data } = await supabase
-      .from('checkin_answers')
-      .select('question, answer, score')
-      .eq('user_id', userId)
+    try {
+      const { data } = await (supabase
+        .from('checkin_answers') as any)
+        .select('question, answer, score')
+        .eq('user_id', userId)
 
-    if (data && data.length > 0) {
-      const savedAnswers: Record<string, any> = {}
-      data.forEach((item) => {
-        savedAnswers[item.question] = { value: item.answer, score: item.score }
-      })
-      setAnswers(savedAnswers)
+      if (data && data.length > 0) {
+        const savedAnswers: Record<string, any> = {}
+        data.forEach((item: any) => {
+          savedAnswers[item.question] = { value: item.answer, score: item.score }
+        })
+        setAnswers(savedAnswers)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar respostas:', error)
     }
   }
 
@@ -146,43 +151,50 @@ export default function CheckIn() {
     }
   }
 
+  // 🔥 CORRIGIDO: saveAnswers com as any
   const saveAnswers = async () => {
     if (!user) return
 
     setSaving(true)
     setLoading(true)
 
-    const { data: existing } = await supabase
-      .from('checkin_answers')
-      .select('id')
-      .eq('user_id', user.id)
-
-    if (existing && existing.length > 0) {
-      await supabase
-        .from('checkin_answers')
-        .delete()
+    try {
+      // Deletar respostas anteriores
+      const { data: existing } = await (supabase
+        .from('checkin_answers') as any)
+        .select('id')
         .eq('user_id', user.id)
-    }
 
-    const answersToSave = Object.entries(answers).map(([questionId, data]: [string, any]) => ({
-      user_id: user.id,
-      question: questionId,
-      answer: data.value,
-      score: data.score,
-    }))
+      if (existing && existing.length > 0) {
+        await (supabase
+          .from('checkin_answers') as any)
+          .delete()
+          .eq('user_id', user.id)
+      }
 
-    const { error } = await supabase
-      .from('checkin_answers')
-      .insert(answersToSave)
+      // Salvar novas respostas
+      const answersToSave = Object.entries(answers).map(([questionId, data]: [string, any]) => ({
+        user_id: user.id,
+        question: questionId,
+        answer: data.value,
+        score: data.score,
+      }))
 
-    if (error) {
-      console.error('Erro ao salvar:', error)
-    } else {
-      const totalScore = Object.values(answers).reduce((acc: number, curr: any) => acc + curr.score, 0)
-      const maxScore = questions.reduce((acc, q) => acc + (q.options[0]?.score || 0), 0)
-      const percentage = Math.round((totalScore / maxScore) * 100)
-      
-      router.push(`/check-in/resultado?score=${totalScore}&max=${maxScore}&percentage=${percentage}`)
+      const { error } = await (supabase
+        .from('checkin_answers') as any)
+        .insert(answersToSave)
+
+      if (error) {
+        console.error('Erro ao salvar:', error)
+      } else {
+        const totalScore = Object.values(answers).reduce((acc: number, curr: any) => acc + curr.score, 0)
+        const maxScore = questions.reduce((acc, q) => acc + (q.options[0]?.score || 0), 0)
+        const percentage = Math.round((totalScore / maxScore) * 100)
+        
+        router.push(`/check-in/resultado?score=${totalScore}&max=${maxScore}&percentage=${percentage}`)
+      }
+    } catch (error) {
+      console.error('Erro ao salvar respostas:', error)
     }
 
     setSaving(false)
@@ -206,7 +218,7 @@ export default function CheckIn() {
           <p className="text-gray-600">Descubra seu nível de preparação</p>
         </div>
 
-        {/* Progress Bar - Amarela */}
+        {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex justify-between text-sm text-gray-600 mb-2">
             <span>Questão {currentStep + 1} de {questions.length}</span>
@@ -276,25 +288,24 @@ export default function CheckIn() {
           </button>
         </div>
 
-          {/* Botão Voltar ao Início */}
-  <div className="mt-4">
-    <Link
-      href="/dashboard"
-      className="block w-full text-center py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition"
-    >
-      ← Voltar ao Início
-    </Link>
-    
-    <div className="mb-6">
-          <BotaoIndicarAmigo />
+        {/* Botão Voltar ao Início */}
+        <div className="mt-4">
+          <Link
+            href="/dashboard"
+            className="block w-full text-center py-3 px-4 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition"
+          >
+            ← Voltar ao Início
+          </Link>
+          
+          <div className="mb-6">
+            <BotaoIndicarAmigo />
+          </div>
         </div>
-  </div>
 
-  <p className="text-center text-sm text-gray-500 mt-6">
-    Baseado nos princípios da Escola de Guerreiros
-  </p>
-</div>
+        <p className="text-center text-sm text-gray-500 mt-6">
+          Baseado nos princípios da Escola de Guerreiros
+        </p>
+      </div>
     </div>
-    
   )
 }

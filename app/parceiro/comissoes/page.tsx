@@ -1,4 +1,4 @@
-// app/parceiro/comissoes/page.tsx (CORRIGIDO - SEM COMENTÁRIOS NO SQL)
+// app/parceiro/comissoes/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -49,12 +49,12 @@ export default function PartnerComissoes() {
         return
       }
 
-      // Buscar dados do parceiro
-      const { data: partnerData, error: partnerError } = await supabase
-        .from('partners')
+      // 🔥 CORRIGIDO: buscar parceiro com as any
+      const { data: partnerData, error: partnerError } = await (supabase
+        .from('partners') as any)
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (partnerError || !partnerData) {
         router.push('/parceiro/cadastro')
@@ -63,9 +63,9 @@ export default function PartnerComissoes() {
 
       setPartner(partnerData)
 
-      // Buscar comissões - SEM COMENTÁRIOS NA STRING
-      const { data: commissionsData, error: commissionsError } = await supabase
-        .from('partner_commissions')
+      // 🔥 CORRIGIDO: buscar comissões com as any
+      const { data: commissionsData, error: commissionsError } = await (supabase
+        .from('partner_commissions') as any)
         .select(`
           *,
           product:product_id (
@@ -82,9 +82,9 @@ export default function PartnerComissoes() {
         setCommissions(commissionsData || [])
         
         const total = commissionsData?.length || 0
-        const pending = commissionsData?.filter(c => c.status === 'pending').length || 0
-        const paid = commissionsData?.filter(c => c.status === 'paid').length || 0
-        const totalAmount = commissionsData?.reduce((sum, c) => sum + c.commission_amount, 0) || 0
+        const pending = commissionsData?.filter((c: any) => c.status === 'pending').length || 0
+        const paid = commissionsData?.filter((c: any) => c.status === 'paid').length || 0
+        const totalAmount = commissionsData?.reduce((sum: number, c: any) => sum + c.commission_amount, 0) || 0
 
         setStats({
           total,

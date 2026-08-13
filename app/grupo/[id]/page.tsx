@@ -37,49 +37,54 @@ export default function GrupoChat() {
 
   useEffect(() => {
     const carregarDados = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
-        return
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/auth/login')
+          return
+        }
+        
+        setUser(user)
+
+        // 🔥 CORRIGIDO: load profile com as any
+        const { data: profileData } = await (supabase
+          .from('profiles') as any)
+          .select('group_id, full_name')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        setProfile(profileData)
+
+        // 🔥 CORRIGIDO: load group com as any
+        const { data: groupData } = await (supabase
+          .from('groups') as any)
+          .select('*')
+          .eq('id', grupoId)
+          .maybeSingle()
+
+        if (groupData) {
+          setGroupInfo(groupData)
+          const nomeExibicao = groupData.city_name || groupData.name || 'Chat do Grupo'
+          setGroupName(`Grupo ${nomeExibicao}`)
+        } else {
+          // Buscar a cidade do usuário
+          const { data: userProfile } = await (supabase
+            .from('profiles') as any)
+            .select('city')
+            .eq('id', user.id)
+            .maybeSingle()
+          
+          if (userProfile?.city) {
+            setGroupName(`Grupo ${userProfile.city}`)
+          } else {
+            setGroupName('Chat do Grupo')
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error)
+      } finally {
+        setLoading(false)
       }
-      
-      setUser(user)
-
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('group_id, full_name')
-        .eq('id', user.id)
-        .single()
-
-      setProfile(profileData)
-
-      const { data: groupData } = await supabase
-  .from('groups')
-  .select('*')
-  .eq('id', grupoId)
-  .single()
-
-if (groupData) {
-  setGroupInfo(groupData)
-  // 🔥 Usar city_name se existir, senão usar o nome do grupo
-  const nomeExibicao = groupData.city_name || groupData.name || 'Chat do Grupo'
-  setGroupName(`Grupo ${nomeExibicao}`)
-} else {
-  // 🔥 Se não encontrar o grupo, buscar a cidade do usuário
-  const { data: userProfile } = await supabase
-    .from('profiles')
-    .select('city')
-    .eq('id', user.id)
-    .single()
-  
-  if (userProfile?.city) {
-    setGroupName(`Grupo ${userProfile.city}`)
-  } else {
-    setGroupName('Chat do Grupo')
-  }
-}
-
-      setLoading(false)
     }
 
     carregarDados()
@@ -89,26 +94,31 @@ if (groupData) {
     if (!user || !grupoId) return
 
     const carregarMensagens = async () => {
-      const { data, error } = await supabase
-        .from('group_messages')
-        .select('*')
-        .eq('group_id', grupoId)
-        .order('created_at', { ascending: true })
-        .limit(100)
+      try {
+        // 🔥 CORRIGIDO: load messages com as any
+        const { data, error } = await (supabase
+          .from('group_messages') as any)
+          .select('*')
+          .eq('group_id', grupoId)
+          .order('created_at', { ascending: true })
+          .limit(100)
 
-      if (error) {
+        if (error) {
+          console.error('Erro ao carregar mensagens:', error)
+          return
+        }
+
+        if (data) {
+          setMessages(data.map((m: any) => ({
+            id: m.id,
+            content: m.content,
+            created_at: m.created_at,
+            user_id: m.user_id,
+            user_name: m.user_name || 'Preparado'
+          })))
+        }
+      } catch (error) {
         console.error('Erro ao carregar mensagens:', error)
-        return
-      }
-
-      if (data) {
-        setMessages(data.map(m => ({
-          id: m.id,
-          content: m.content,
-          created_at: m.created_at,
-          user_id: m.user_id,
-          user_name: m.user_name || 'Preparado'
-        })))
       }
     }
 
@@ -158,8 +168,9 @@ if (groupData) {
     setError('')
     const userName = profile?.full_name || user.email?.split('@')[0] || 'Preparado'
 
-    const { error } = await supabase
-      .from('group_messages')
+    // 🔥 CORRIGIDO: insert message com as any
+    const { error } = await (supabase
+      .from('group_messages') as any)
       .insert({
         group_id: parseInt(grupoId),
         user_id: user.id,
@@ -263,19 +274,18 @@ if (groupData) {
                 </div>
                 <p className="text-sm break-words">{msg.content}</p>
                 <p className={`text-xs mt-1 ${isOwn ? 'opacity-70' : 'text-gray-400'}`}>
-  {(() => {
-    const data = new Date(msg.created_at)
-    // Subtrair 3 horas (UTC-3)
-    data.setHours(data.getHours() - 3)
-    return data.toLocaleTimeString('pt-BR', { 
-    day: '2-digit',
-    month: '2-digit',
-    year: '2-digit',
-      hour: '2-digit', 
-      minute: '2-digit'
-    })
-  })()}
-</p>
+                  {(() => {
+                    const data = new Date(msg.created_at)
+                    data.setHours(data.getHours() - 3)
+                    return data.toLocaleTimeString('pt-BR', { 
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: '2-digit',
+                      hour: '2-digit', 
+                      minute: '2-digit'
+                    })
+                  })()}
+                </p>
               </div>
             </div>
           )

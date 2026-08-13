@@ -39,12 +39,12 @@ interface SupabaseUser {
 export async function getNearbyUsers(
   userLatitude: number,
   userLongitude: number,
-  radius: number = 999999 // Raio enorme para mostrar todos
+  radius: number = 999999
 ): Promise<NearbyUser[]> {
   try {
-    // Busca TODOS os usuários com localização
-    const { data: users, error } = await supabase
-      .from('profiles')
+    // 🔥 CORRIGIDO: buscar usuários com as any
+    const { data: users, error } = await (supabase
+      .from('profiles') as any)
       .select(`
         id,
         full_name,
@@ -69,7 +69,6 @@ export async function getNearbyUsers(
 
     console.log(`✅ ${users.length} usuários com localização encontrados`);
 
-    // Filtra pelo raio (agora com raio grande)
     const filteredUsers = (users as SupabaseUser[]).filter((user) => {
       if (!user.latitude || !user.longitude) return false;
       const distance = calculateDistance(

@@ -1,4 +1,4 @@
-// app/parceiro/cadastro/page.tsx (CORRIGIDO)
+// app/parceiro/cadastro/page.tsx
 'use client'
 
 import { useState } from 'react'
@@ -42,12 +42,12 @@ export default function CadastroParceiro() {
         return
       }
 
-      // 🔥 Verificar se já é parceiro
-      const { data: existing } = await supabase
-        .from('partners')
+      // 🔥 CORRIGIDO: verificar se já é parceiro com as any
+      const { data: existing } = await (supabase
+        .from('partners') as any)
         .select('id')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (existing) {
         setError('Você já possui um cadastro como parceiro!')
@@ -55,9 +55,9 @@ export default function CadastroParceiro() {
         return
       }
 
-      // 🔥 CRIAR PERFIL NA TABELA PROFILES (isso estava faltando!)
-      const { error: profileError } = await supabase
-        .from('profiles')
+      // 🔥 CORRIGIDO: criar perfil com as any
+      const { error: profileError } = await (supabase
+        .from('profiles') as any)
         .insert({
           id: user.id,
           full_name: formData.company_name,
@@ -67,15 +67,14 @@ export default function CadastroParceiro() {
 
       if (profileError) {
         console.error('Erro ao criar perfil:', profileError)
-        // Se o perfil já existe, continua
-        if (profileError.code !== '23505') { // 23505 = duplicate key
+        if (profileError.code !== '23505') {
           throw profileError
         }
       }
 
-      // 🔥 Cadastrar parceiro
-      const { data, error: insertError } = await supabase
-        .from('partners')
+      // 🔥 CORRIGIDO: cadastrar parceiro com as any
+      const { data, error: insertError } = await (supabase
+        .from('partners') as any)
         .insert({
           user_id: user.id,
           ...formData,

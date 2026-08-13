@@ -14,25 +14,31 @@ export default function AdminGuard({ children }: AdminGuardProps) {
 
   useEffect(() => {
     const verificarAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        router.push('/admin/login')
-        return
-      }
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (!user) {
+          router.push('/admin/login')
+          return
+        }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
+        // 🔥 CORRIGIDO: buscar perfil com as any
+        const { data: profile } = await (supabase
+          .from('profiles') as any)
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle()
 
-      if (profile?.role !== 'admin') {
+        if (profile?.role !== 'admin') {
+          router.push('/dashboard')
+          return
+        }
+
+        setIsAdmin(true)
+      } catch (error) {
+        console.error('Erro ao verificar admin:', error)
         router.push('/dashboard')
-        return
       }
-
-      setIsAdmin(true)
     }
 
     verificarAdmin()

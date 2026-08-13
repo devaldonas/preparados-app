@@ -34,11 +34,12 @@ export function useUserLocation(): UserLocation & { refreshLocation: () => Promi
         return;
       }
 
-      const { data, error: supabaseError } = await supabase
-        .from('profiles')
+      // 🔥 CORRIGIDO: buscar perfil com as any
+      const { data, error: supabaseError } = await (supabase
+        .from('profiles') as any)
         .select('latitude, longitude, city, state')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (supabaseError) throw supabaseError;
 

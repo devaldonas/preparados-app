@@ -40,11 +40,12 @@ export default function PartnerPerfil() {
         return
       }
 
-      const { data, error } = await supabase
-        .from('partners')
+      // 🔥 CORRIGIDO: buscar parceiro com as any
+      const { data, error } = await (supabase
+        .from('partners') as any)
         .select('*')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -52,6 +53,11 @@ export default function PartnerPerfil() {
           return
         }
         throw error
+      }
+
+      if (!data) {
+        router.push('/parceiro/cadastro')
+        return
       }
 
       setPartner(data)
@@ -91,8 +97,9 @@ export default function PartnerPerfil() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Usuário não autenticado')
 
-      const { error } = await supabase
-        .from('partners')
+      // 🔥 CORRIGIDO: atualizar parceiro com as any
+      const { error } = await (supabase
+        .from('partners') as any)
         .update({
           ...formData,
           updated_at: new Date().toISOString()

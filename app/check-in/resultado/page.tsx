@@ -31,27 +31,37 @@ function ResultadoContent() {
     getUser()
   }, [])
 
+  // 🔥 CORRIGIDO: loadProfile com as any
   const loadProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('mochila_tipo')
-      .eq('id', userId)
-      .single()
-    
-    if (data) {
-      setMochilaTipo(data.mochila_tipo)
+    try {
+      const { data } = await (supabase
+        .from('profiles') as any)
+        .select('mochila_tipo')
+        .eq('id', userId)
+        .maybeSingle()
+      
+      if (data) {
+        setMochilaTipo(data.mochila_tipo || 'BOB')
+      }
+    } catch (error) {
+      console.error('Erro ao carregar perfil:', error)
     }
   }
 
+  // 🔥 CORRIGIDO: checkCheckinStatus com as any
   const checkCheckinStatus = async (userId: string) => {
-    const { data } = await supabase
-      .from('checkin_answers')
-      .select('id')
-      .eq('user_id', userId)
-      .limit(1)
-    
-    const hasCheckin = data !== null && data.length > 0
-    setCheckinCompleted(hasCheckin)
+    try {
+      const { data } = await (supabase
+        .from('checkin_answers') as any)
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1)
+      
+      const hasCheckin = data !== null && data.length > 0
+      setCheckinCompleted(hasCheckin)
+    } catch (error) {
+      console.error('Erro ao verificar check-in:', error)
+    }
   }
 
   const getClassification = () => {

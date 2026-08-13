@@ -1,4 +1,4 @@
-// app/loja/pedidos/[id]/page.tsx (CORRIGIDO)
+// app/loja/pedidos/[id]/page.tsx
 'use client'
 
 import { useEffect, useState, use } from 'react'
@@ -35,7 +35,6 @@ interface OrderItem {
 }
 
 export default function DetalhePedido({ params }: { params: Promise<{ id: string }> }) {
-  // 🔥 DESEMBRULHAR PARAMS COM use()
   const { id } = use(params)
   
   const router = useRouter()
@@ -67,19 +66,18 @@ export default function DetalhePedido({ params }: { params: Promise<{ id: string
     try {
       console.log('🔍 Buscando pedido ID:', id)
       
-      // 🔥 CONVERTER ID PARA NÚMERO
       const orderId = parseInt(id)
       if (isNaN(orderId)) {
         throw new Error('ID do pedido inválido')
       }
 
-      // Buscar pedido
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
+      // 🔥 CORRIGIDO: buscar pedido com as any
+      const { data: orderData, error: orderError } = await (supabase
+        .from('orders') as any)
         .select('*')
         .eq('id', orderId)
         .eq('user_id', userId)
-        .single()
+        .maybeSingle()
 
       if (orderError) {
         console.error('❌ Erro ao buscar pedido:', orderError)
@@ -88,9 +86,9 @@ export default function DetalhePedido({ params }: { params: Promise<{ id: string
 
       console.log('✅ Pedido encontrado:', orderData)
 
-      // 🔥 BUSCAR ITENS COM NOME DO PRODUTO
-      const { data: items, error: itemsError } = await supabase
-        .from('order_items')
+      // 🔥 CORRIGIDO: buscar itens com as any
+      const { data: items, error: itemsError } = await (supabase
+        .from('order_items') as any)
         .select(`
           *,
           products:product_id (
@@ -122,7 +120,7 @@ export default function DetalhePedido({ params }: { params: Promise<{ id: string
     }).format(price)
   }
 
-   const getStatusInfo = (status: string) => {
+  const getStatusInfo = (status: string) => {
     const map: Record<string, { label: string; icon: any; color: string }> = {
       pending: { label: 'Pendente', icon: Clock, color: 'text-yellow-600 bg-yellow-50' },
       paid: { label: 'Pago', icon: CheckCircle, color: 'text-blue-600 bg-blue-50' },
@@ -181,9 +179,9 @@ export default function DetalhePedido({ params }: { params: Promise<{ id: string
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-           <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-gray-900">
               Pedido #{order.id}
-           </p>
+            </p>
             <p className="text-sm text-gray-500">
               Realizado em {formatDate(order.created_at)}
             </p>
@@ -304,32 +302,31 @@ export default function DetalhePedido({ params }: { params: Promise<{ id: string
             </div>
 
             {/* Endereço */}
-{order.shipping_address && (
-  <div className="bg-white rounded-xl border border-gray-100 p-6">
-    <h3 className="font-display font-bold text-gray-900 mb-3">
-      
-      Endereço de Entrega
-    </h3>
-    {(() => {
-      try {
-        const address = typeof order.shipping_address === 'string' 
-          ? JSON.parse(order.shipping_address) 
-          : order.shipping_address
-        
-        return (
-          <div className="text-sm text-gray-700">
-            <p>{address.street}, {address.number} {address.complement}</p>
-            <p>{address.neighborhood}</p>
-            <p>{address.city} - {address.state}</p>
-            <p>CEP: {address.zip}</p>
-          </div>
-        )
-      } catch {
-        return <p className="text-sm text-gray-500">Endereço não disponível</p>
-      }
-    })()}
-  </div>
-)}
+            {order.shipping_address && (
+              <div className="bg-white rounded-xl border border-gray-100 p-6">
+                <h3 className="font-display font-bold text-gray-900 mb-3">
+                  Endereço de Entrega
+                </h3>
+                {(() => {
+                  try {
+                    const address = typeof order.shipping_address === 'string' 
+                      ? JSON.parse(order.shipping_address) 
+                      : order.shipping_address
+                    
+                    return (
+                      <div className="text-sm text-gray-700">
+                        <p>{address.street}, {address.number} {address.complement}</p>
+                        <p>{address.neighborhood}</p>
+                        <p>{address.city} - {address.state}</p>
+                        <p>CEP: {address.zip}</p>
+                      </div>
+                    )
+                  } catch {
+                    return <p className="text-sm text-gray-500">Endereço não disponível</p>
+                  }
+                })()}
+              </div>
+            )}
 
             {/* Ações */}
             <div className="bg-white rounded-xl border border-gray-100 p-6">

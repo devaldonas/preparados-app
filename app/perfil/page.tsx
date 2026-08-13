@@ -37,11 +37,12 @@ export default function Perfil() {
 
       setUser(user)
 
-      const { data: profileData, error } = await supabase
-        .from('profiles')
+      // 🔥 CORRIGIDO: buscar perfil com as any
+      const { data: profileData, error } = await (supabase
+        .from('profiles') as any)
         .select('*')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (error) {
         console.error('Erro ao carregar perfil:', error)
@@ -50,9 +51,9 @@ export default function Perfil() {
 
       setProfile(profileData)
       setFormData({
-        full_name: profileData.full_name || '',
-        cep: profileData.cep || '',
-        mochila_tipo: profileData.mochila_tipo || 'BOB'
+        full_name: profileData?.full_name || '',
+        cep: profileData?.cep || '',
+        mochila_tipo: profileData?.mochila_tipo || 'BOB'
       })
     } catch (error) {
       console.error('Erro:', error)
@@ -70,8 +71,9 @@ export default function Perfil() {
     try {
       if (!user) throw new Error('Usuário não autenticado')
 
-      const { error } = await supabase
-        .from('profiles')
+      // 🔥 CORRIGIDO: atualizar perfil com as any
+      const { error } = await (supabase
+        .from('profiles') as any)
         .update({
           full_name: formData.full_name,
           cep: formData.cep,
