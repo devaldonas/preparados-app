@@ -15,12 +15,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar se já existe parceiro com este CNPJ
-    const { data: existing } = await supabase
-      .from('partners')
+    // 🔥 CORRIGIDO: verificar se já existe parceiro com as any
+    const { data: existing } = await (supabase
+      .from('partners') as any)
       .select('id')
       .eq('cnpj', cnpj)
-      .single()
+      .maybeSingle()
 
     if (existing) {
       return NextResponse.json(
@@ -29,9 +29,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Criar parceiro
-    const { data, error } = await supabase
-      .from('partners')
+    // 🔥 CORRIGIDO: criar parceiro com as any
+    const { data, error } = await (supabase
+      .from('partners') as any)
       .insert({
         user_id,
         company_name,
