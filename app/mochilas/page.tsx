@@ -28,27 +28,34 @@ export default function MinhasMochilas() {
     carregarMochilas()
   }, [])
 
+  // 🔥 CORRIGIDO: carregarMochilas com as any
   const carregarMochilas = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/auth/login')
-      return
-    }
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
 
-    const { data, error } = await supabase
-      .from('user_backpacks')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      const { data, error } = await (supabase
+        .from('user_backpacks') as any)
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
 
-    if (error) {
+      if (error) {
+        console.error('Erro ao carregar mochilas:', error)
+      } else {
+        setBackpacks(data || [])
+      }
+    } catch (error) {
       console.error('Erro ao carregar mochilas:', error)
-    } else {
-      setBackpacks(data || [])
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
+  // 🔥 CORRIGIDO: criarMochila com as any
   const criarMochila = async () => {
     if (!newBackpackName.trim()) {
       alert('Digite um nome para sua mochila')
@@ -56,28 +63,34 @@ export default function MinhasMochilas() {
     }
 
     setCreating(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
 
-    const { data, error } = await supabase
-      .from('user_backpacks')
-      .insert({
-        user_id: user?.id,
-        name: newBackpackName,
-        tipo: selectedTipo,
-        progress: 0
-      })
-      .select()
-      .single()
+      const { data, error } = await (supabase
+        .from('user_backpacks') as any)
+        .insert({
+          user_id: user?.id,
+          name: newBackpackName,
+          tipo: selectedTipo,
+          progress: 0
+        })
+        .select()
+        .single()
 
-    if (error) {
+      if (error) {
+        console.error('Erro ao criar mochila:', error)
+        alert('Erro ao criar mochila. Tente novamente.')
+      } else {
+        setShowModal(false)
+        setNewBackpackName('')
+        await carregarMochilas()
+      }
+    } catch (error) {
       console.error('Erro ao criar mochila:', error)
       alert('Erro ao criar mochila. Tente novamente.')
-    } else {
-      setShowModal(false)
-      setNewBackpackName('')
-      await carregarMochilas()
+    } finally {
+      setCreating(false)
     }
-    setCreating(false)
   }
 
   const getTipoLabel = (tipo: string) => {
@@ -112,8 +125,6 @@ export default function MinhasMochilas() {
         
         {/* Header */}
         <div className="mb-8">
-          
-          
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <img 
@@ -133,8 +144,6 @@ export default function MinhasMochilas() {
           </div>
           <p className="text-gray-500 text-sm mt-2">Gerencie todas as suas mochilas de preparação</p>
         </div>
-
-      
 
         {/* Lista de mochilas */}
         {backpacks.length === 0 ? (
@@ -189,47 +198,45 @@ export default function MinhasMochilas() {
                   </div>
                 </div>
               </Link>
-              
             ))}
           </div>
         )}
 
-       {/* Guia de Preparação da Mochila - NOVO CARD */}
-      <Link
-        href="/guia"
-        className="block bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition mb-8"
-      >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#FFB800] bg-opacity-10 rounded-xl flex items-center justify-center">
-            <img 
-              src="/images/mochila-icon.png" 
-              alt="Guia" 
-              className="w-6 h-6 object-contain"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
+        {/* Guia de Preparação da Mochila */}
+        <Link
+          href="/guia"
+          className="block bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition mb-8"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-[#FFB800] bg-opacity-10 rounded-xl flex items-center justify-center">
+              <img 
+                src="/images/mochila-icon.png" 
+                alt="Guia" 
+                className="w-6 h-6 object-contain"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
+              />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-gray-900">Guia de Preparação da Mochila</h3>
+              <p className="text-sm text-gray-500">Dicas e orientacoes para montar sua mochila</p>
+            </div>
+            <div className="text-[#FFB800]">
+              <span className="text-xl">→</span>
+            </div>
           </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-gray-900">Guia de Preparação da Mochila</h3>
-            <p className="text-sm text-gray-500">Dicas e orientacoes para montar sua mochila</p>
-          </div>
-          <div className="text-[#FFB800]">
-            <span className="text-xl">→</span>
+        </Link>
+
+        <div className="mt-8 space-y-4">
+          <Link
+            href="/dashboard"
+            className="text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"          >
+            Voltar ao Início
+          </Link>
+
+          <div>
+            <BotaoIndicarAmigo />
           </div>
         </div>
-      </Link>
-
-      <div className="mt-8 space-y-4">
-  <Link
-    href="/dashboard"
-    className="block text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
-  >
-    Voltar ao Início
-  </Link>
-
-  <div>
-    <BotaoIndicarAmigo />
-  </div>
-</div>
 
         {/* Modal de criação */}
         {showModal && (
