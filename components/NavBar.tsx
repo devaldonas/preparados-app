@@ -16,7 +16,8 @@ import {
   LayoutDashboard, 
   Store, 
   ChevronDown,
-  Crown
+  Crown,
+  Shield
 } from 'lucide-react'
 
 interface NavBarProps {
@@ -52,13 +53,16 @@ export default function NavBar({
 
       if (user) {
         const { data: profile } = await (supabase
-  .from('profiles') as any)
-  .select('role, full_name') // 🔥 REMOVEU 'subscription_status'
-  .eq('id', user.id)
-  .maybeSingle()
-
-// Remove a verificação de trial
-// const isTrial = userProfile?.subscription_status === 'trial'
+          .from('profiles') as any)
+          .select('role, full_name, subscription_status')
+          .eq('id', user.id)
+          .maybeSingle()
+        
+        if (profile) {
+          setUserProfile(profile)
+          console.log('👤 Perfil carregado:', profile)
+          console.log('🔑 Role:', profile.role)
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar usuário:', error)
@@ -78,14 +82,14 @@ export default function NavBar({
     router.push('/auth/login')
   }
 
+  // 🔥 LINKS DA NAVBAR (sem Admin)
   const getNavLinks = () => {
     const links = [
       { href: '/loja', label: 'Loja', icon: Store }
     ]
 
-    if (userProfile?.role === 'admin') {
-      links.push({ href: '/admin', label: 'Admin', icon: LayoutDashboard })
-    } else if (userProfile?.role === 'partner') {
+    // Admin NÃO aparece aqui - só no menu suspenso
+    if (userProfile?.role === 'partner') {
       links.push({ href: '/parceiro/dashboard', label: 'Dashboard', icon: LayoutDashboard })
     } else if (user) {
       links.push({ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard })
@@ -97,6 +101,7 @@ export default function NavBar({
   const navLinks = getNavLinks()
 
   const isTrial = userProfile?.subscription_status === 'trial'
+  const isAdmin = userProfile?.role === 'admin'
 
   return (
     <div className="bg-white border-b border-gray-100 sticky top-0 z-50">
@@ -116,7 +121,7 @@ export default function NavBar({
               <div className="lg:hidden w-8" />
             )}
             
-            {/* LOGO - sem onError */}
+            {/* LOGO */}
             <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2">
               <img 
                 src="/logo.svg" 
@@ -131,7 +136,7 @@ export default function NavBar({
 
           {/* Lado direito - Ações */}
           <div className="flex items-center gap-2">
-            {/* Links de navegação - Desktop */}
+            {/* Links de navegação - Desktop (sem Admin) */}
             {!hideNavLinks && user && (
               <div className="hidden lg:flex items-center gap-1">
                 {navLinks.map((link) => (
@@ -148,8 +153,9 @@ export default function NavBar({
             )}
 
             <div className="flex items-center gap-2">
-  <Notificacoes />
-</div>
+              <Notificacoes />
+            </div>
+            
             {/* Botão do Carrinho */}
             {showCart && (
               <Link
@@ -196,10 +202,17 @@ export default function NavBar({
                   {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}
                 </p>
                 <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-                <span className="inline-block mt-1 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                  {userProfile?.role === 'admin' ? 'Administrador' : 
-                   userProfile?.role === 'partner' ? 'Parceiro' : 'Usuário'}
-                </span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="inline-block text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                    {userProfile?.role === 'admin' ? 'Administrador' : 
+                     userProfile?.role === 'partner' ? 'Parceiro' : 'Usuário'}
+                  </span>
+                  {isAdmin && (
+                    <span className="inline-block text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full font-bold">
+                      ⭐ Admin
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Links de navegação - Mobile */}
@@ -218,6 +231,24 @@ export default function NavBar({
                   ))}
                   <div className="border-t border-gray-100 my-1" />
                 </div>
+              )}
+
+              {/* 🔥 LINK ADMIN - APENAS NO MENU SUSPENSO */}
+              {isAdmin && (
+                <>
+                  <Link
+                    href="/admin"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
+                  >
+                    <Shield size={18} />
+                    Painel Admin
+                    <span className="ml-auto text-[0.5rem] bg-[#FFB800] text-black px-1.5 py-0.5 rounded-full font-bold">
+                      BETA
+                    </span>
+                  </Link>
+                  <div className="border-t border-gray-100 my-1" />
+                </>
               )}
 
               {/* Link Assinar Premium - apenas para trial */}

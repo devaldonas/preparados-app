@@ -211,7 +211,6 @@ function ResetPasswordContent() {
       <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-100 p-8">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-[#FFB800]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-[#FFB800] text-2xl font-bold">🔒</span>
           </div>
           <h1 className="text-2xl font-bold text-black">Redefinir Senha</h1>
           <p className="text-gray-600 text-sm mt-2">Digite sua nova senha abaixo</p>
