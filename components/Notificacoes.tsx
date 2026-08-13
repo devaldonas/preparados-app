@@ -44,22 +44,39 @@ export default function Notificacoes() {
     };
   }, []);
 
- const carregarNotificacoes = async (userId: string) => {
+ // components/Notificacoes.tsx
+// Substitua a função carregarNotificacoes por esta:
+
+const carregarNotificacoes = async (userId: string) => {
   if (isLoading) return;
   setIsLoading(true);
 
   try {
-    // 🔥 VERSÃO MAIS SIMPLES
+    console.log('🔔 Carregando notificações para:', userId);
+
+    // 🔥 CORRIGIDO: removendo 'subscription_status'
     const { data, error } = await (supabase
       .from('mentoria_notificacoes') as any)
-      .select('*')
+      .select(`
+        id,
+        live_id,
+        enviado,
+        enviado_em,
+        created_at,
+        mentoria_lives (
+          titulo,
+          descricao,
+          youtube_id,
+          data_hora
+        )
+      `)
       .eq('usuario_id', userId)
       .eq('enviado', true)
       .order('created_at', { ascending: false })
       .limit(10)
 
     if (error) {
-      console.error('❌ Erro:', error)
+      console.error('❌ Erro ao carregar notificações:', error)
       setNotificacoes([])
       setHasNew(false)
       return
@@ -71,39 +88,28 @@ export default function Notificacoes() {
       return
     }
 
-    // Buscar os detalhes das lives separadamente
-    const liveIds = data.map((item: any) => item.live_id).filter(Boolean)
-    let livesMap: Record<string, any> = {}
-    
-    if (liveIds.length > 0) {
-      const { data: livesData } = await (supabase
-        .from('mentoria_lives') as any)
-        .select('id, titulo, descricao, youtube_id, data_hora')
-        .in('id', liveIds)
+    const formatted = data
+      .filter((item: any) => item.mentoria_lives)
+      .map((item: any) => {
+        const live = Array.isArray(item.mentoria_lives) 
+          ? item.mentoria_lives[0] 
+          : item.mentoria_lives;
 
-      if (livesData) {
-        livesData.forEach((live: any) => {
-          livesMap[live.id] = live
-        })
-      }
-    }
-
-    const formatted = data.map((item: any) => {
-      const live = livesMap[item.live_id]
-      return {
-        id: item.id,
-        tipo: 'mentoria' as const,
-        titulo: '📺 Nova Live!',
-        mensagem: live?.titulo || 'Nova mentoria disponível',
-        link: '/mentoria',
-        lida: false,
-        created_at: item.created_at,
-        data_hora: live?.data_hora || null,
-      }
-    })
+        return {
+          id: item.id,
+          tipo: 'mentoria' as const,
+          titulo: '📺 Nova Live!',
+          mensagem: live?.titulo || 'Nova mentoria disponível',
+          link: '/mentoria',
+          lida: false,
+          created_at: item.created_at,
+          data_hora: live?.data_hora || null,
+        };
+      });
 
     setNotificacoes(formatted)
     setHasNew(formatted.length > 0)
+    console.log('✅ Notificações carregadas:', formatted.length)
   } catch (error) {
     console.error('❌ Erro:', error)
     setNotificacoes([])
