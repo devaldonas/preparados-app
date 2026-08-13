@@ -1,3 +1,4 @@
+// app/comunicador/canal/[id]/page.tsx
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
@@ -22,8 +23,6 @@ export default function SalaComunicador() {
   const [loading, setLoading] = useState(true)
   const [audioURLs, setAudioURLs] = useState<{ id: string; url: string; from: string }[]>([])
 
-  
-  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   
@@ -105,33 +104,36 @@ export default function SalaComunicador() {
   }, [user, canal, canalId])
 
   const carregarCanal = async () => {
-    const { data } = await supabase
-      .from('comunicador_canais')
+    // 🔥 CORRIGIDO: buscar canal com as any
+    const { data } = await (supabase
+      .from('comunicador_canais') as any)
       .select('*')
       .eq('id', canalId)
-      .single()
+      .maybeSingle()
     if (data) setCanal(data)
   }
 
   const registrarNoCanal = async () => {
     if (!user) return
     
-    const { data: profile } = await supabase
-      .from('profiles')
+    // 🔥 CORRIGIDO: buscar perfil com as any
+    const { data: profile } = await (supabase
+      .from('profiles') as any)
       .select('full_name')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
     
     const fullName = profile?.full_name || 'Preparado'
     
-    await supabase
-      .from('comunicador_participantes')
+    // 🔥 CORRIGIDO: deletar e inserir com as any
+    await (supabase
+      .from('comunicador_participantes') as any)
       .delete()
       .eq('canal_id', canalId)
       .eq('usuario_id', user.id)
     
-    await supabase
-      .from('comunicador_participantes')
+    await (supabase
+      .from('comunicador_participantes') as any)
       .insert({
         canal_id: canalId,
         usuario_id: user.id,
@@ -141,8 +143,9 @@ export default function SalaComunicador() {
   }
 
   const carregarParticipantes = async () => {
-    const { data } = await supabase
-      .from('comunicador_participantes')
+    // 🔥 CORRIGIDO: buscar participantes com as any
+    const { data } = await (supabase
+      .from('comunicador_participantes') as any)
       .select('*')
       .eq('canal_id', canalId)
     
@@ -197,8 +200,10 @@ export default function SalaComunicador() {
     const fileName = `${Date.now()}_${user.id}.webm`
     const filePath = `audio/${fileName}`
     
-    const { error: uploadError } = await supabase.storage
-      .from('comunicador_audio')
+    // 🔥 CORRIGIDO: upload com as any
+    const { error: uploadError } = await (supabase
+      .storage
+      .from('comunicador_audio') as any)
       .upload(filePath, audioBlob, { contentType: 'audio/webm' })
     
     if (uploadError) {
@@ -206,21 +211,25 @@ export default function SalaComunicador() {
       return
     }
     
-    const { data: urlData } = supabase.storage
-      .from('comunicador_audio')
+    const { data: urlData } = (supabase
+      .storage
+      .from('comunicador_audio') as any)
       .getPublicUrl(filePath)
     
-    supabase.channel(`audio:${canalId}`).send({
-      type: 'broadcast',
-      event: 'novo-audio',
-      payload: {
-        id: fileName,
-        url: urlData.publicUrl,
-        from: user.id,
-        fromName: participantes.find(p => p.usuario_id === user.id)?.full_name || 'Preparado',
-        timestamp: Date.now()
-      }
-    })
+    // 🔥 CORRIGIDO: enviar broadcast
+    await (supabase
+      .channel(`audio:${canalId}`) as any)
+      .send({
+        type: 'broadcast',
+        event: 'novo-audio',
+        payload: {
+          id: fileName,
+          url: urlData.publicUrl,
+          from: user.id,
+          fromName: participantes.find(p => p.usuario_id === user.id)?.full_name || 'Preparado',
+          timestamp: Date.now()
+        }
+      })
   }
 
   const adicionarAudio = (payload: any) => {
@@ -242,8 +251,9 @@ export default function SalaComunicador() {
   }
 
   const sairDoCanal = async () => {
-    await supabase
-      .from('comunicador_participantes')
+    // 🔥 CORRIGIDO: deletar com as any
+    await (supabase
+      .from('comunicador_participantes') as any)
       .delete()
       .eq('canal_id', canalId)
       .eq('usuario_id', user.id)
@@ -262,7 +272,6 @@ export default function SalaComunicador() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-2xl mx-auto px-4 py-8">
         
-        {/* Header com ícone do comunicador */}
         <div className="text-center mb-8">
           <img 
             src="/images/comunicador-icon.png" 
@@ -278,32 +287,31 @@ export default function SalaComunicador() {
           {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
         </div>
 
-        {/* Botão PTT com imagem personalizada */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8 text-center">
-         <button
-  onMouseDown={startRecording}
-  onMouseUp={stopRecording}
-  onMouseLeave={stopRecording}
-  onTouchStart={startRecording}
-  onTouchEnd={stopRecording}
-  className="cursor-pointer focus:outline-none transition-transform active:scale-95 select-none"
-  style={{ 
-    WebkitTapHighlightColor: 'transparent',
-    userSelect: 'none',
-    WebkitUserSelect: 'none',
-    touchAction: 'manipulation'
-  }}
-  draggable={false}
-  onDragStart={(e) => e.preventDefault()}
->
-  <img 
-    src="/images/botaoptt.png" 
-    alt="Push to Talk" 
-    className="w-48 h-48 mx-auto object-contain pointer-events-none"
-    draggable={false}
-    onDragStart={(e) => e.preventDefault()}
-  />
-</button>
+          <button
+            onMouseDown={startRecording}
+            onMouseUp={stopRecording}
+            onMouseLeave={stopRecording}
+            onTouchStart={startRecording}
+            onTouchEnd={stopRecording}
+            className="cursor-pointer focus:outline-none transition-transform active:scale-95 select-none"
+            style={{ 
+              WebkitTapHighlightColor: 'transparent',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              touchAction: 'manipulation'
+            }}
+            draggable={false}
+            onDragStart={(e) => e.preventDefault()}
+          >
+            <img 
+              src="/images/botaoptt.png" 
+              alt="Push to Talk" 
+              className="w-48 h-48 mx-auto object-contain pointer-events-none"
+              draggable={false}
+              onDragStart={(e) => e.preventDefault()}
+            />
+          </button>
           
           <p className="text-sm text-gray-500 mt-6">
             Pressione e segure para gravar (máximo 15 segundos).<br/>
@@ -337,7 +345,6 @@ export default function SalaComunicador() {
           </div>
         </div>
 
-        {/* Histórico de mensagens de áudio */}
         {audioURLs.length > 0 && (
           <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <h3 className="font-semibold text-gray-700 mb-2">📨 Últimas mensagens:</h3>
@@ -352,7 +359,6 @@ export default function SalaComunicador() {
           </div>
         )}
 
-        {/* Botões */}
         <div className="mt-8 space-y-3">
           <button
             onClick={sairDoCanal}
