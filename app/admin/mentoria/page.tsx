@@ -1,9 +1,11 @@
+// app/mentoria/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Edit, Trash2, Calendar, Video, Bell, ArrowLeft } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { Play, Calendar, Users, Bell, BellOff, Clock, X, Trash2 } from 'lucide-react';
+import YouTubePlayer from '@/components/YouTubePlayer';
 
 interface Live {
   id: number;
@@ -14,422 +16,389 @@ interface Live {
   duracao: number;
   is_active: boolean;
   is_live: boolean;
+}
+
+interface Notificacao {
+  id: number;
+  live_id: number;
+  usuario_id: string;
+  mensagem: string;
+  lida: boolean;
+  enviado: boolean;
+  enviado_em: string;
   created_at: string;
 }
 
-export default function AdminMentoria() {
-  const [lives, setLives] = useState<Live[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [editingLive, setEditingLive] = useState<Live | null>(null);
+export default function MentoriaPage() {
   const router = useRouter();
-
-  const [formData, setFormData] = useState({
-    youtube_id: '',
-    titulo: '',
-    descricao: '',
-    data_hora: '',
-    duracao: 60,
-    is_active: true,
-    is_live: false,
-  });
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [live, setLive] = useState<Live | null>(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [isLoadingNotificacoes, setIsLoadingNotificacoes] = useState(false);
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          router.push('/auth/login');
-          return;
-        }
-
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error('Erro ao buscar perfil:', error);
-          router.push('/dashboard');
-          return;
-        }
-
-        // CORRIGIDO: usando any para evitar erro de tipo
-        const profileData = profile as any;
-        if (profileData?.role !== 'admin') {
-          router.push('/dashboard');
-          return;
-        }
-
-        setIsAdmin(true);
-        await carregarLives();
-      } catch (error) {
-        console.error('Erro ao verificar admin:', error);
-        router.push('/dashboard');
-      } finally {
-        setLoading(false);
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/auth/login');
+        return;
       }
+      setUser(user);
+
+      const { data: profile, error } = await (supabase
+        .from('profiles') as any)
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      if (!error && profile) {
+        setUserName(profile.full_name || 'Preparado');
+      }
+
+      await carregarLive();
+      await carregarNotificacoes();
+      setLoading(false);
     };
 
-    checkAdmin();
-  }, [router]);
+    getUser();
+  }, []);
 
-  const carregarLives = async () => {
+  const carregarLive = async () => {
     try {
-      const { data, error } = await supabase
-        .from('mentoria_lives')
+      console.log('📡 Buscando live ativa...');
+      
+      const { data, error } = await (supabase
+        .from('mentoria_lives') as any)
         .select('*')
-        .order('data_hora', { ascending: false });
+        .eq('is_active', true)
+        .order('data_hora', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (error) {
-        console.error('Erro ao carregar lives:', error);
-        setLives([]);
-      } else {
-        setLives(data as Live[] || []);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar lives:', error);
-      setLives([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const salvarLive = async () => {
-    if (!formData.youtube_id || !formData.titulo) {
-      alert('Preencha o ID do YouTube e o título');
-      return;
-    }
-
-    const liveData = {
-      ...formData,
-      data_hora: formData.data_hora ? new Date(formData.data_hora).toISOString() : null,
-    };
-
-    try {
-      let error;
-      if (editingLive) {
-        const { error: updateError } = await (supabase
-          .from('mentoria_lives') as any)
-          .update(liveData)
-          .eq('id', editingLive.id);
-        error = updateError;
-      } else {
-        const { error: insertError } = await (supabase
-          .from('mentoria_lives') as any)
-          .insert([liveData]);
-        error = insertError;
-      }
-
-      if (error) throw error;
-
-      alert('Live salva com sucesso!');
-      setShowForm(false);
-      setEditingLive(null);
-      setFormData({
-        youtube_id: '',
-        titulo: '',
-        descricao: '',
-        data_hora: '',
-        duracao: 60,
-        is_active: true,
-        is_live: false,
-      });
-      await carregarLives();
-    } catch (error) {
-      console.error('Erro ao salvar live:', error);
-      alert('Erro ao salvar: ' + (error as any).message);
-    }
-  };
-
-  const deletarLive = async (id: number) => {
-    if (!confirm('Tem certeza que deseja deletar esta live?')) return;
-
-    try {
-      const { error } = await (supabase
-        .from('mentoria_lives') as any)
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      await carregarLives();
-    } catch (error) {
-      console.error('Erro ao deletar live:', error);
-      alert('Erro ao deletar: ' + (error as any).message);
-    }
-  };
-
-  const enviarNotificacao = async (liveId: number) => {
-    if (!confirm('Enviar notificação push para todos os usuários?')) return;
-
-    try {
-      const { data: users, error: usersError } = await supabase
-        .from('profiles')
-        .select('id');
-
-      if (usersError) throw usersError;
-
-      if (!users || users.length === 0) {
-        alert('Nenhum usuário encontrado');
+        console.error('❌ Erro ao carregar live:', error);
+        setLive(null);
         return;
       }
 
-      const notificacoes = users.map((user: any) => ({
-        usuario_id: user.id,
-        live_id: liveId,
-        enviado: true,
-        enviado_em: new Date().toISOString(),
-      }));
-
-      const { error } = await (supabase
-        .from('mentoria_notificacoes') as any)
-        .insert(notificacoes);
-
-      if (error) throw error;
-
-      alert(`✅ Notificações enviadas para ${users.length} usuários!`);
+      if (data) {
+        console.log('✅ Live carregada:', data);
+        setLive(data as Live);
+      } else {
+        console.log('ℹ️ Nenhuma live ativa encontrada');
+        setLive(null);
+      }
     } catch (error) {
-      console.error('Erro ao enviar notificações:', error);
-      alert('Erro ao enviar notificações: ' + (error as any).message);
+      console.error('❌ Erro ao carregar live:', error);
+      setLive(null);
     }
   };
 
-  const editarLive = (live: Live) => {
-    setEditingLive(live);
-    setFormData({
-      youtube_id: live.youtube_id,
-      titulo: live.titulo,
-      descricao: live.descricao || '',
-      data_hora: live.data_hora ? new Date(live.data_hora).toISOString().slice(0, 16) : '',
-      duracao: live.duracao || 60,
-      is_active: live.is_active,
-      is_live: live.is_live || false,
-    });
-    setShowForm(true);
+  const carregarNotificacoes = async () => {
+    if (!user) {
+      console.log('ℹ️ Usuário não autenticado');
+      return;
+    }
+
+    setIsLoadingNotificacoes(true);
+    try {
+      console.log('📡 Buscando notificações para o usuário:', user.id);
+      
+      const { data, error } = await (supabase
+        .from('mentoria_notificacoes') as any)
+        .select('*')
+        .eq('usuario_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Erro ao carregar notificações:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        console.log('📊 Notificações brutas:', data.length);
+        
+        // 🔥 DEDUPLICAÇÃO: Remover notificações com o mesmo live_id
+        const seen = new Set();
+        const notificacoesUnicas = data.filter((notif: Notificacao) => {
+          const key = `${notif.live_id}-${notif.usuario_id}`;
+          if (seen.has(key)) {
+            console.log(`🗑️ Removendo duplicata para live_id: ${notif.live_id}`);
+            return false;
+          }
+          seen.add(key);
+          return true;
+        });
+
+        console.log('✅ Notificações únicas:', notificacoesUnicas.length);
+        setNotificacoes(notificacoesUnicas);
+      } else {
+        console.log('ℹ️ Nenhuma notificação encontrada');
+        setNotificacoes([]);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar notificações:', error);
+    } finally {
+      setIsLoadingNotificacoes(false);
+    }
   };
 
-  if (loading || !isAdmin) {
+  // 🔥 FUNÇÃO PARA LIMPAR TODAS AS NOTIFICAÇÕES DO USUÁRIO
+  const limparTodasNotificacoes = async () => {
+    if (!user) return;
+    
+    if (!confirm('Tem certeza que deseja limpar todas as notificações?')) return;
+
+    try {
+      console.log('🗑️ Limpando todas as notificações do usuário:', user.id);
+      
+      const { error } = await (supabase
+        .from('mentoria_notificacoes') as any)
+        .delete()
+        .eq('usuario_id', user.id);
+
+      if (error) {
+        console.error('❌ Erro ao limpar notificações:', error);
+        alert('Erro ao limpar notificações');
+        return;
+      }
+
+      console.log('✅ Todas as notificações foram removidas');
+      setNotificacoes([]);
+      alert('✅ Todas as notificações foram removidas!');
+    } catch (error) {
+      console.error('❌ Erro ao limpar notificações:', error);
+      alert('Erro ao limpar notificações');
+    }
+  };
+
+  // 🔥 FUNÇÃO PARA REMOVER UMA NOTIFICAÇÃO ESPECÍFICA
+  const removerNotificacao = async (id: number) => {
+    try {
+      console.log('🗑️ Removendo notificação:', id);
+      
+      const { error } = await (supabase
+        .from('mentoria_notificacoes') as any)
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('❌ Erro ao remover notificação:', error);
+        return;
+      }
+
+      setNotificacoes(notificacoes.filter(n => n.id !== id));
+      console.log('✅ Notificação removida');
+    } catch (error) {
+      console.error('❌ Erro ao remover notificação:', error);
+    }
+  };
+
+  const toggleNotifications = () => {
+    setNotificationsEnabled(!notificationsEnabled);
+    
+    if (!notificationsEnabled) {
+      alert('🔔 Notificações ativadas! Você receberá alertas sobre novas lives.');
+    } else {
+      alert('🔕 Notificações desativadas.');
+    }
+  };
+
+  const toggleShowNotifications = () => {
+    setShowNotifications(!showNotifications);
+    // Recarregar notificações ao abrir
+    if (!showNotifications) {
+      carregarNotificacoes();
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header com botão Voltar */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push('/admin')}
-              className="p-2 rounded-lg hover:bg-gray-200 transition flex items-center gap-2"
-              title="Voltar ao Admin"
-            >
-              <ArrowLeft size={20} />
-              <span className="text-sm font-medium">Voltar</span>
-            </button>
-            <h1 className="text-2xl font-bold text-black">Gerenciar Mentoria</h1>
-          </div>
+  if (!live) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <img 
+            src="/images/mentoria-icon.png" 
+            alt="Mentoria" 
+            className="w-20 h-20 mx-auto mb-4 object-contain opacity-50"
+          />
+          <h1 className="text-2xl font-bold text-black mb-2">Mentoria Preparado</h1>
+          <p className="text-gray-600">Em breve, novas lives serão anunciadas!</p>
           <button
-            onClick={() => {
-              setEditingLive(null);
-              setFormData({
-                youtube_id: '',
-                titulo: '',
-                descricao: '',
-                data_hora: '',
-                duracao: 60,
-                is_active: true,
-                is_live: false,
-              });
-              setShowForm(!showForm);
-            }}
-            className="bg-[#FFB800] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition flex items-center gap-2"
+            onClick={() => router.push('/dashboard')}
+            className="mt-6 bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300 transition"
           >
-            <Plus size={20} />
-            Nova Live
+            Voltar ao Início
           </button>
         </div>
+      </div>
+    );
+  }
 
-        {/* Formulário */}
-        {showForm && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-            <h2 className="font-bold text-black mb-4">
-              {editingLive ? 'Editar Live' : 'Nova Live'}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ID do YouTube <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.youtube_id}
-                  onChange={(e) => setFormData({ ...formData, youtube_id: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="Ex: dQw4w9WgXcQ"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Título <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.titulo}
-                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="Título da live"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Descrição
-                </label>
-                <textarea
-                  value={formData.descricao}
-                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  rows={2}
-                  placeholder="Descrição da live"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Data e Hora
-                </label>
-                <input
-                  type="datetime-local"
-                  value={formData.data_hora}
-                  onChange={(e) => setFormData({ ...formData, data_hora: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Duração (minutos)
-                </label>
-                <input
-                  type="number"
-                  value={formData.duracao}
-                  onChange={(e) => setFormData({ ...formData, duracao: parseInt(e.target.value) || 0 })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  min="15"
-                  max="180"
-                />
-              </div>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  />
-                  <span className="text-sm text-gray-700">Ativo</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_live}
-                    onChange={(e) => setFormData({ ...formData, is_live: e.target.checked })}
-                  />
-                  <span className="text-sm text-gray-700">Ao Vivo</span>
-                </label>
+  return (
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        
+        {/* Header */}
+        <div className="text-center mb-8">
+          <img 
+            src="/images/mentoria-icon.png" 
+            alt="Mentoria" 
+            className="w-20 h-20 mx-auto mb-4 object-contain"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+          <h1 className="text-3xl font-bold text-black mb-2">Mentoria Preparado</h1>
+          <p className="text-gray-600">
+            Aprenda com especialistas e esteja preparado para qualquer emergência
+          </p>
+        </div>
+
+        {/* Status da Live */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-3 h-3 rounded-full ${live.is_live ? 'bg-red-500 animate-pulse' : 'bg-gray-400'}`} />
+            <span className="font-semibold text-black">
+              {live.is_live ? '🔴 AO VIVO' : 'Próxima live em breve'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Botão de Notificações com contador */}
+            <button
+              onClick={toggleShowNotifications}
+              className="p-2 rounded-lg hover:bg-gray-100 transition relative"
+              title="Ver notificações"
+            >
+              <Bell size={18} />
+              {notificacoes.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {notificacoes.length}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={toggleNotifications}
+              className="p-2 rounded-lg hover:bg-gray-100 transition"
+              title={notificationsEnabled ? 'Desativar notificações' : 'Ativar notificações'}
+            >
+              {notificationsEnabled ? <BellOff size={18} /> : <Bell size={18} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Dropdown de Notificações */}
+        {showNotifications && (
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 mb-6 max-h-80 overflow-y-auto">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-bold text-black">Notificações</h3>
+              <div className="flex gap-2">
+                {notificacoes.length > 0 && (
+                  <button
+                    onClick={limparTodasNotificacoes}
+                    className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                  >
+                    <Trash2 size={14} />
+                    Limpar todas
+                  </button>
+                )}
+                <button
+                  onClick={toggleShowNotifications}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={16} />
+                </button>
               </div>
             </div>
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={salvarLive}
-                className="bg-[#FFB800] text-black px-6 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition"
-              >
-                Salvar
-              </button>
-              <button
-                onClick={() => {
-                  setShowForm(false);
-                  setEditingLive(null);
-                }}
-                className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300 transition"
-              >
-                Cancelar
-              </button>
-            </div>
+            
+            {isLoadingNotificacoes ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFB800] mx-auto" />
+              </div>
+            ) : notificacoes.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">Nenhuma notificação</p>
+            ) : (
+              <div className="space-y-2">
+                {notificacoes.map((notif) => (
+                  <div
+                    key={notif.id}
+                    className="flex justify-between items-start p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                  >
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-700">
+                        {notif.mensagem || `Nova live: ${live?.titulo || 'Mentoria'}`}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {new Date(notif.created_at).toLocaleString('pt-BR')}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => removerNotificacao(notif.id)}
+                      className="ml-2 text-gray-400 hover:text-red-500 transition"
+                      title="Remover notificação"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Lista de Lives */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Live</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">YouTube ID</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-gray-600">Data/Hora</th>
-                  <th className="text-center px-4 py-3 text-sm font-semibold text-gray-600">Status</th>
-                  <th className="text-center px-4 py-3 text-sm font-semibold text-gray-600">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lives.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-8 text-gray-500">
-                      Nenhuma live cadastrada. Clique em "Nova Live" para começar.
-                    </td>
-                  </tr>
-                ) : (
-                  lives.map((live) => (
-                    <tr key={live.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div>
-                          <p className="font-medium text-black">{live.titulo}</p>
-                          <p className="text-xs text-gray-500 truncate max-w-xs">{live.descricao}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-sm">{live.youtube_id}</td>
-                      <td className="px-4 py-3 text-sm">
-                        {live.data_hora ? new Date(live.data_hora).toLocaleString() : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`text-xs px-2 py-1 rounded-full ${live.is_live ? 'bg-red-500 text-white animate-pulse' : live.is_active ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                          {live.is_live ? 'AO VIVO' : live.is_active ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => editarLive(live)}
-                            className="p-1 hover:bg-gray-200 rounded transition"
-                            title="Editar"
-                          >
-                            <Edit size={16} className="text-gray-600" />
-                          </button>
-                          <button
-                            onClick={() => enviarNotificacao(live.id)}
-                            className="p-1 hover:bg-gray-200 rounded transition"
-                            title="Enviar notificação"
-                          >
-                            <Bell size={16} className="text-blue-500" />
-                          </button>
-                          <button
-                            onClick={() => deletarLive(live.id)}
-                            className="p-1 hover:bg-gray-200 rounded transition"
-                            title="Deletar"
-                          >
-                            <Trash2 size={16} className="text-red-500" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+        {/* Player do YouTube */}
+        <YouTubePlayer videoId={live.youtube_id} />
+
+        {/* Informações da Live */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-[#FFB800] flex items-center justify-center flex-shrink-0">
+              <Play className="w-6 h-6 text-black" />
+            </div>
+            <div>
+              <h3 className="font-bold text-black text-lg">{live.titulo}</h3>
+              <p className="text-gray-600 text-sm mt-1">
+                {live.descricao || 'Toda semana, Michel Still, especialista em preparação para emergências, compartilha conhecimentos valiosos para você e sua família.'}
+              </p>
+              <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
+                <span className="flex items-center gap-1">
+                  <Calendar size={14} />
+                  {live.data_hora ? new Date(live.data_hora).toLocaleString('pt-BR') : 'Data a definir'}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Users size={14} />
+                  {live.is_live ? 'Ao vivo agora!' : 'Próxima live em breve'}
+                </span>
+                {live.duracao && live.duracao > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Clock size={14} />
+                    {live.duracao} min
+                  </span>
                 )}
-              </tbody>
-            </table>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Botão Voltar */}
+        <div className="mt-8">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="w-full bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-300 transition"
+          >
+            Voltar ao Início
+          </button>
         </div>
       </div>
     </div>
