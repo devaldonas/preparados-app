@@ -4,9 +4,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Check, AlertCircle, Shield } from 'lucide-react';
 
-// Componente que usa useSearchParams (deve ser envolvido em Suspense)
 function ResetPasswordContent() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -156,7 +154,7 @@ function ResetPasswordContent() {
 
       if (error) throw error;
 
-      setMessage('✅ Senha atualizada com sucesso!');
+      setMessage('Senha atualizada com sucesso!');
       
       setTimeout(() => {
         router.push('/auth/login?reset=success');
@@ -191,7 +189,7 @@ function ResetPasswordContent() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle size={32} className="text-red-600" />
+            <span className="text-red-600 text-2xl font-bold">!</span>
           </div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">Link Inválido ou Expirado</h1>
           <p className="text-gray-600 text-sm mb-6">
@@ -213,7 +211,7 @@ function ResetPasswordContent() {
       <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-100 p-8">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-[#FFB800]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Shield size={32} className="text-[#FFB800]" />
+            <span className="text-[#FFB800] text-2xl font-bold">🔒</span>
           </div>
           <h1 className="text-2xl font-bold text-black">Redefinir Senha</h1>
           <p className="text-gray-600 text-sm mt-2">Digite sua nova senha abaixo</p>
@@ -221,14 +219,14 @@ function ResetPasswordContent() {
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded-lg mb-4 flex items-center gap-2">
-            <AlertCircle size={16} />
+            <span className="font-bold">!</span>
             <span>{error}</span>
           </div>
         )}
 
         {message && (
           <div className="bg-green-50 border border-green-200 text-green-600 text-sm p-3 rounded-lg mb-4 flex items-center gap-2">
-            <Check size={16} />
+            <span className="font-bold">✓</span>
             <span>{message}</span>
           </div>
         )}
@@ -257,9 +255,9 @@ function ResetPasswordContent() {
                 aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
               >
                 {showPassword ? (
-                  <EyeOff size={20} className="text-gray-500 hover:text-gray-700" />
+                  <span className="text-gray-500 hover:text-gray-700 text-sm font-medium">Ocultar</span>
                 ) : (
-                  <Eye size={20} className="text-gray-500 hover:text-gray-700" />
+                  <span className="text-gray-500 hover:text-gray-700 text-sm font-medium">Mostrar</span>
                 )}
               </button>
             </div>
@@ -289,10 +287,10 @@ function ResetPasswordContent() {
                 </div>
                 <div className="mt-1 text-xs text-gray-500">
                   {password.length < 6 && password.length > 0 && (
-                    <span className="text-red-500">• Mínimo 6 caracteres</span>
+                    <span className="text-red-500">Mínimo 6 caracteres</span>
                   )}
                   {password.length >= 6 && (
-                    <span className="text-green-500">• ✓ Tamanho mínimo atingido</span>
+                    <span className="text-green-500">Tamanho mínimo atingido</span>
                   )}
                 </div>
               </div>
@@ -321,9 +319,9 @@ function ResetPasswordContent() {
                 aria-label={showConfirmPassword ? 'Ocultar senha' : 'Mostrar senha'}
               >
                 {showConfirmPassword ? (
-                  <EyeOff size={20} className="text-gray-500 hover:text-gray-700" />
+                  <span className="text-gray-500 hover:text-gray-700 text-sm font-medium">Ocultar</span>
                 ) : (
-                  <Eye size={20} className="text-gray-500 hover:text-gray-700" />
+                  <span className="text-gray-500 hover:text-gray-700 text-sm font-medium">Mostrar</span>
                 )}
               </button>
             </div>
@@ -332,13 +330,13 @@ function ResetPasswordContent() {
               <div className="mt-2">
                 {password !== confirmPassword ? (
                   <div className="flex items-center gap-2 text-red-500 text-xs">
-                    <AlertCircle size={14} />
+                    <span className="font-bold">!</span>
                     <span>As senhas não coincidem</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-green-500 text-xs">
-                    <Check size={14} />
-                    <span>Senhas coincidem ✓</span>
+                    <span className="font-bold">✓</span>
+                    <span>Senhas coincidem</span>
                   </div>
                 )}
               </div>
@@ -349,7 +347,7 @@ function ResetPasswordContent() {
           {password.length > 0 && password.length < 6 && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <p className="text-xs text-yellow-700">
-                💡 Dica: Use pelo menos 6 caracteres, incluindo letras maiúsculas, números e símbolos para uma senha mais segura.
+                Dica: Use pelo menos 6 caracteres, incluindo letras maiúsculas, números e símbolos para uma senha mais segura.
               </p>
             </div>
           )}
@@ -389,7 +387,6 @@ function ResetPasswordContent() {
   );
 }
 
-// Componente principal com Suspense
 export default function ResetPassword() {
   return (
     <Suspense fallback={
