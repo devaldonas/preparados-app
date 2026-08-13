@@ -1,3 +1,4 @@
+// app/admin/produtos/novo/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -21,6 +22,28 @@ interface ProductForm {
   file_url: string | null
 }
 
+// 🔥 CATEGORIAS COM VALUE E LABEL
+const CATEGORIAS = [
+  { value: '', label: 'Selecione uma categoria' },
+  { value: 'mochilas', label: 'Mochilas' },
+  { value: 'acessorios', label: 'Acessórios' },
+  { value: 'equipamentos', label: 'Equipamentos' },
+  { value: 'e-books', label: 'E-books' },
+  { value: 'alimentacao', label: 'Alimentação' },
+  { value: 'hidratacao', label: 'Hidratação' },
+  { value: 'primeiros_socorros', label: 'Primeiros Socorros' },
+  { value: 'ferramentas', label: 'Ferramentas' },
+  { value: 'iluminacao', label: 'Iluminação' },
+  { value: 'comunicacao', label: 'Comunicação' },
+  { value: 'navegacao', label: 'Navegação' },
+  { value: 'abrigo', label: 'Abrigo' },
+  { value: 'vestuario', label: 'Vestuário' },
+  { value: 'higiene', label: 'Higiene' },
+  { value: 'documentos', label: 'Documentos' },
+  { value: 'dinheiro', label: 'Dinheiro/Cartões' },
+  { value: 'outros', label: 'Outros' },
+]
+
 export default function NovoProduto() {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -40,6 +63,8 @@ export default function NovoProduto() {
   })
   const [mochilaOptions] = useState(['EDC', 'BOB', 'BOLT'])
   const router = useRouter()
+
+  const STORAGE_BUCKET = 'produtos'
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -74,6 +99,17 @@ export default function NovoProduto() {
     setFormData(prev => ({
       ...prev,
       [name]: type === 'number' ? parseFloat(value) || 0 : value
+    }))
+  }
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedValue = e.target.value
+    // 🔥 Encontrar o label correspondente
+    const categoria = CATEGORIAS.find(c => c.value === selectedValue)
+    // 🔥 Salvar o label no banco
+    setFormData(prev => ({
+      ...prev,
+      category: categoria ? categoria.label : selectedValue
     }))
   }
 
@@ -113,24 +149,40 @@ export default function NovoProduto() {
     setUploading(true)
     try {
       const fileName = `${Date.now()}-${file.name}`
+      
+      console.log('📤 Fazendo upload para bucket:', STORAGE_BUCKET)
+      console.log('📤 Arquivo:', fileName)
+      
       const { data, error } = await supabase.storage
-        .from('products')
-        .upload(fileName, file)
+        .from(STORAGE_BUCKET)
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Erro no upload:', error)
+        throw error
+      }
+
+      console.log('✅ Upload concluído:', data)
 
       const { data: urlData } = supabase.storage
-        .from('products')
+        .from(STORAGE_BUCKET)
         .getPublicUrl(fileName)
+
+      console.log('✅ URL pública:', urlData.publicUrl)
 
       setFormData(prev => ({
         ...prev,
         image_url: urlData.publicUrl,
         images: [...(prev.images || []), urlData.publicUrl]
       }))
-    } catch (error) {
-      console.error('Erro ao fazer upload:', error)
-      alert('Erro ao fazer upload da imagem')
+      
+      alert('✅ Imagem enviada com sucesso!')
+    } catch (error: any) {
+      console.error('❌ Erro ao fazer upload:', error)
+      alert(`Erro ao fazer upload: ${error.message || 'Tente novamente'}`)
     } finally {
       setUploading(false)
     }
@@ -148,14 +200,13 @@ export default function NovoProduto() {
     setLoading(true)
 
     try {
-      // Usando as any para evitar erro de tipo
       const { error } = await (supabase
         .from('products') as any)
         .insert([{
           name: formData.name,
           description: formData.description || null,
           price: formData.price,
-          category: formData.category,
+          category: formData.category, // 🔥 Agora salva o label
           stock: formData.stock,
           image_url: formData.image_url,
           images: formData.images || [],
@@ -168,14 +219,21 @@ export default function NovoProduto() {
 
       if (error) throw error
 
-      alert('Produto criado com sucesso!')
+      alert('✅ Produto criado com sucesso!')
       router.push('/admin/produtos')
     } catch (error) {
-      console.error('Erro ao criar produto:', error)
-      alert('Erro ao criar produto')
+      console.error('❌ Erro ao criar produto:', error)
+      alert('❌ Erro ao criar produto')
     } finally {
       setLoading(false)
     }
+  }
+
+  // 🔥 Função para obter o valor selecionado baseado no label atual
+  const getSelectedValue = () => {
+    if (!formData.category) return ''
+    const categoria = CATEGORIAS.find(c => c.label === formData.category)
+    return categoria ? categoria.value : ''
   }
 
   return (
@@ -265,16 +323,15 @@ export default function NovoProduto() {
             </label>
             <select
               name="category"
-              value={formData.category}
-              onChange={handleChange}
+              value={getSelectedValue()}
+              onChange={handleCategoryChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
             >
-              <option value="">Selecione uma categoria</option>
-              <option value="mochilas">Mochilas</option>
-              <option value="acessorios">Acessórios</option>
-              <option value="equipamentos">Equipamentos</option>
-              <option value="e-books">E-books</option>
-              <option value="outros">Outros</option>
+              {CATEGORIAS.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -283,7 +340,7 @@ export default function NovoProduto() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Tipo de Mochila
             </label>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               {mochilaOptions.map((tipo) => (
                 <button
                   key={tipo}
@@ -342,7 +399,9 @@ export default function NovoProduto() {
             </label>
             <div className="flex items-center gap-4">
               <label className="cursor-pointer">
-                <div className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition flex items-center gap-2">
+                <div className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+                  uploading ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200'
+                }`}>
                   <Upload size={18} />
                   <span className="text-sm">{uploading ? 'Enviando...' : 'Escolher imagem'}</span>
                 </div>
@@ -371,6 +430,9 @@ export default function NovoProduto() {
                 </div>
               )}
             </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Formatos aceitos: JPG, PNG, WebP. Máximo 5MB.
+            </p>
           </div>
 
           {/* Botões */}
