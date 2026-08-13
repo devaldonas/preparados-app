@@ -1,138 +1,196 @@
-import { NextResponse } from 'next/server'
+// app/api/disasters/route.ts
+import { NextResponse } from 'next/server';
 
-export interface DisasterEvent {
-  id: string
-  type: string
-  typeCode: string
-  title: string
-  description: string
-  latitude: number
-  longitude: number
-  magnitude?: number
-  depth?: number
-  alertLevel: 'green' | 'orange' | 'red'
-  alertLevelLabel: string
-  date: string
-  country?: string
-  region?: string
-  source?: string
-}
-
-export async function GET(request: Request) {
+// 🔥 BUSCAR TERREMOTOS DO USGS (com magnitude)
+async function fetchEarthquakesUSGS() {
   try {
-    console.log('📡 [API] Buscando dados de desastres...')
-    
-    // 🔥 BUSCAR GDACS
-    let gdacsEvents: DisasterEvent[] = []
-    try {
-      const gdacsUrl = 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH'
-      const params = new URLSearchParams({
-        searchtype: 'list',
-        limit: '100',
-        days: '30'
-      })
-
-      const gdacsResponse = await fetch(`${gdacsUrl}?${params.toString()}`, {
+    // Busca terremotos das últimas 24h com magnitude > 2.5
+    const response = await fetch(
+      'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson',
+      {
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'PREPARADO App (https://preparado.vercel.app)'
-        }
-      })
-
-      if (gdacsResponse.ok) {
-        const gdacsData = await gdacsResponse.json()
-        console.log('📡 [GDACS] Dados recebidos:', gdacsData.features?.length || 0)
-
-        gdacsEvents = gdacsData.features?.map((feature: any, index: number) => {
-          const props = feature.properties || {}
-          const geom = feature.geometry || {}
-          const coords = geom.coordinates || [0, 0]
-
-          const typeMap: Record<string, string> = {
-            'EQ': 'Terremoto',
-            'FL': 'Inundação',
-            'TC': 'Ciclone',
-            'WF': 'Incêndio',
-            'VO': 'Vulcão',
-            'DR': 'Seca',
-            'TS': 'Tsunami'
-          }
-
-          const alertLevel = props.alertlevel || 'green'
-          const magnitude = props.magnitude || props.mag || null
-          const depth = props.depth || props.deep || null
-
-          return {
-            id: feature.id || `gdacs-${Date.now()}-${index}`,
-            type: typeMap[props.eventtype] || props.eventtype || 'Desconhecido',
-            typeCode: props.eventtype || 'GDACS',
-            title: props.title || 'Evento GDACS',
-            description: props.description || props.summary || '',
-            latitude: coords[1] || 0,
-            longitude: coords[0] || 0,
-            magnitude: magnitude,
-            depth: depth,
-            alertLevel: alertLevel,
-            alertLevelLabel: alertLevel === 'red' ? 'Crítico' : alertLevel === 'orange' ? 'Alerta' : 'Monitoramento',
-            date: props.eventtime || props.eventdate || new Date().toISOString(),
-            country: props.country || 'Desconhecido',
-            region: props.region || '',
-            source: 'GDACS'
-          }
-        }) || []
-      } else {
-        console.warn('⚠️ [GDACS] Falha na requisição, status:', gdacsResponse.status)
+        },
+        next: { revalidate: 600 } // 10 minutos
       }
-    } catch (gdacsError) {
-      console.error('❌ [GDACS] Erro:', gdacsError)
+    );
+
+    if (!response.ok) {
+      throw new Error(`USGS API error: ${response.status}`);
     }
 
-    // 🔥 BUSCAR NOAA
-    let noaaEvents: DisasterEvent[] = []
-    try {
-      const noaaResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://preparado.vercel.app'}/api/noaa/alerts`)
-      
-      if (noaaResponse.ok) {
-        const noaaData = await noaaResponse.json()
-        if (noaaData.success) {
-          noaaEvents = noaaData.events || []
-          console.log('📡 [NOAA] Alertas recebidos:', noaaEvents.length)
-        }
-      } else {
-        console.warn('⚠️ [NOAA] Falha na requisição, status:', noaaResponse.status)
-      }
-    } catch (noaaError) {
-      console.error('❌ [NOAA] Erro:', noaaError)
-    }
-
-    // 🔥 COMBINAR EVENTOS
-    const allEvents = [...gdacsEvents, ...noaaEvents]
+    const data = await response.json();
     
-    console.log('✅ [API] Total de eventos:', allEvents.length)
-    console.log('📊 [API] GDACS:', gdacsEvents.length, 'NOAA:', noaaEvents.length)
+    return data.features.map((feature: any) => {
+      const props = feature.properties;
+      const coords = feature.geometry.coordinates;
+      const mag = props.mag || 0;
+      
+      // Determinar nível de alerta baseado na magnitude
+      let alertLevel: 'green' | 'orange' | 'red' = 'green';
+      let alertLabel = 'Monitoramento';
+      
+      if (mag >= 6.0) {
+        alertLevel = 'red';
+        alertLabel = 'Crítico';
+      } else if (mag >= 5.0) {
+        alertLevel = 'orange';
+        alertLabel = 'Alerta';
+      } else if (mag >= 4.0) {
+        alertLevel = 'orange';
+        alertLabel = 'Alerta';
+      } else if (mag >= 3.0) {
+        alertLevel = 'green';
+        alertLabel = 'Monitoramento';
+      }
+      
+      return {
+        id: `usgs-${feature.id}`,
+        type: 'Terremoto',
+        typeCode: 'EQ',
+        title: props.title || 'Terremoto',
+        description: props.title || `Magnitude ${mag.toFixed(1)} em ${props.place || 'localização desconhecida'}`,
+        latitude: coords[1],
+        longitude: coords[0],
+        magnitude: mag,
+        depth: coords[2] || 0,
+        alertLevel: alertLevel,
+        alertLevelLabel: alertLabel,
+        date: new Date(props.time).toISOString(),
+        country: extrairPais(props.place || ''),
+        region: props.place || '',
+        source: 'USGS'
+      };
+    });
+  } catch (error) {
+    console.error('❌ Erro ao buscar terremotos do USGS:', error);
+    return [];
+  }
+}
 
-    // 🔥 ESTATÍSTICAS POR TIPO
-    const typeCount: Record<string, number> = {}
-    allEvents.forEach((e: DisasterEvent) => {
-      typeCount[e.type] = (typeCount[e.type] || 0) + 1
-    })
-    console.log('📊 [API] Eventos por tipo:', JSON.stringify(typeCount, null, 2))
+// 🔥 BUSCAR OUTROS DESASTRES DO GDACS
+async function fetchGDACS() {
+  try {
+    const response = await fetch(
+      'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH',
+      {
+        headers: {
+          'Accept': 'application/json',
+        },
+        next: { revalidate: 1800 } // 30 minutos
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`GDACS API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    return (data.events || [])
+      .filter((event: any) => event.eventtype !== 'EQ') // Remove terremotos (vem do USGS)
+      .map((event: any) => ({
+        id: `gdacs-${event.id || event.eventid || Math.random()}`,
+        type: getEventType(event.eventtype || ''),
+        typeCode: event.eventtype || '',
+        title: event.title || 'Evento GDACS',
+        description: event.description || '',
+        latitude: parseFloat(event.latitude || event.lat || 0),
+        longitude: parseFloat(event.longitude || event.lon || 0),
+        magnitude: null,
+        depth: parseFloat(event.depth || 0),
+        alertLevel: getAlertLevel(event.alertlevel || ''),
+        alertLevelLabel: getAlertLevelLabel(event.alertlevel || ''),
+        date: event.eventdate || event.date || new Date().toISOString(),
+        country: event.country || '',
+        region: event.region || '',
+        source: 'GDACS'
+      }));
+  } catch (error) {
+    console.error('❌ Erro ao buscar GDACS:', error);
+    return [];
+  }
+}
+
+// 🔥 FUNÇÕES AUXILIARES
+function extrairPais(place: string): string {
+  // Tenta extrair o país do texto do USGS
+  const partes = place.split(',');
+  return partes.length > 1 ? partes[partes.length - 1].trim() : '';
+}
+
+function getEventType(typeCode: string): string {
+  const types: Record<string, string> = {
+    'FL': 'Inundação',
+    'TC': 'Ciclone',
+    'WF': 'Incêndio',
+    'VO': 'Vulcão',
+    'DR': 'Seca',
+    'TS': 'Tsunami'
+  };
+  return types[typeCode] || 'Desconhecido';
+}
+
+function getAlertLevel(level: string): 'green' | 'orange' | 'red' {
+  const levels: Record<string, 'green' | 'orange' | 'red'> = {
+    'green': 'green',
+    'orange': 'orange',
+    'red': 'red'
+  };
+  return levels[level] || 'green';
+}
+
+function getAlertLevelLabel(level: string): string {
+  const labels: Record<string, string> = {
+    'green': 'Monitoramento',
+    'orange': 'Alerta',
+    'red': 'Crítico'
+  };
+  return labels[level] || 'Monitoramento';
+}
+
+// 🔥 ENDPOINT PRINCIPAL
+export async function GET() {
+  try {
+    // Buscar dados das duas fontes em paralelo
+    const [earthquakes, otherDisasters] = await Promise.all([
+      fetchEarthquakesUSGS(),
+      fetchGDACS()
+    ]);
+
+    // Combinar todos os eventos
+    const allEvents = [...earthquakes, ...otherDisasters];
+    
+    // Ordenar por data (mais recentes primeiro)
+    allEvents.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Estatísticas
+    const stats = {
+      total: allEvents.length,
+      red: allEvents.filter((e: any) => e.alertLevel === 'red').length,
+      orange: allEvents.filter((e: any) => e.alertLevel === 'orange').length,
+      green: allEvents.filter((e: any) => e.alertLevel === 'green').length,
+      sources: {
+        usgs: earthquakes.length,
+        gdacs: otherDisasters.length
+      }
+    };
+
+    console.log(`📊 Total de eventos: ${stats.total} (USGS: ${stats.sources.usgs}, GDACS: ${stats.sources.gdacs})`);
 
     return NextResponse.json({
       success: true,
-      total: allEvents.length,
       events: allEvents,
-      sources: {
-        gdacs: gdacsEvents.length,
-        noaa: noaaEvents.length
-      }
-    })
+      total: allEvents.length,
+      stats: stats
+    });
 
   } catch (error) {
-    console.error('❌ [API] Erro geral:', error)
+    console.error('❌ Erro ao buscar dados:', error);
     return NextResponse.json({
       success: false,
-      error: 'Erro ao buscar dados de desastres'
-    }, { status: 500 })
+      error: 'Erro ao buscar dados de monitoramento',
+      events: []
+    }, { status: 500 });
   }
 }
