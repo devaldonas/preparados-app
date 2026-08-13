@@ -56,31 +56,40 @@ export default function Loja() {
     setLoading(false)
   }
 
+  // 🔥 CORRIGIDO: carregarProdutos com as any e tipagem correta
   const carregarProdutos = async () => {
-    let query = supabase
-      .from('products')
-      .select('*')
-      .eq('is_active', true)
-      .order('name')
+    try {
+      let query = (supabase
+        .from('products') as any)
+        .select('*')
+        .eq('is_active', true)
+        .order('name')
 
-    if (selectedCategory !== 'todos') {
-      query = query.eq('category', selectedCategory)
-    }
+      if (selectedCategory !== 'todos') {
+        query = query.eq('category', selectedCategory)
+      }
 
-    const { data, error } = await query
+      const { data, error } = await query
 
-    if (error) {
+      if (error) {
+        console.error('Erro ao carregar produtos:', error)
+      } else {
+        // 🔥 CORRIGIDO: garantir que data é um array
+        const productsData = (data || []) as Product[]
+        setProducts(productsData)
+        
+        // 🔥 CORRIGIDO: mapear categorias com segurança
+        const productCategories = productsData
+          .map((p: Product) => p.category)
+          .filter((cat: string) => cat) // Remove vazios
+        const uniqueCategories = [...new Set(productCategories)] as string[]
+        setCategories(uniqueCategories)
+      }
+    } catch (error) {
       console.error('Erro ao carregar produtos:', error)
-    } else {
-      setProducts(data || [])
-      
-      const productCategories = data?.map(p => p.category) || []
-      const uniqueCategories = [...new Set(productCategories)]
-      setCategories(uniqueCategories)
     }
   }
 
-  // 🔥 FUNÇÃO APENAS ADICIONAR AO CARRINHO (SEM REDIRECIONAR)
   const adicionarAoCarrinho = (product: Product) => {
     if (!user) return
 
@@ -94,7 +103,6 @@ export default function Loja() {
       free_shipping: product.free_shipping || false,
     }, 1)
 
-    // 🔥 FEEDBACK VISUAL NO BOTÃO
     const btn = document.getElementById(`btn-${product.id}`)
     if (btn) {
       const originalText = btn.textContent
