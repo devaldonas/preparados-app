@@ -45,35 +45,11 @@ interface DisasterEvent {
   source: string
 }
 
-// 🔥 CORES POR TIPO DE DESASTRE
-const disasterColors: Record<string, string> = {
-  'Terremoto': '#FF4444',
-  'Inundação': '#4488FF',
-  'Ciclone': '#AA44FF',
-  'Incêndio': '#FF8800',
-  'Vulcão': '#CC0000',
-  'Seca': '#CC8844',
-  'Tsunami': '#00AAAA',
-  'Desconhecido': '#888888'
-}
-
 // 🔥 CORES POR NÍVEL DE ALERTA
 const alertColors: Record<string, string> = {
   'red': '#FF0000',
   'orange': '#FF8800',
   'green': '#00CC44'
-}
-
-// 🔥 ETIQUETAS POR TIPO (SEM EMOJIS)
-const disasterLabels: Record<string, string> = {
-  'Terremoto': 'Terremoto',
-  'Inundação': 'Inundação',
-  'Ciclone': 'Ciclone',
-  'Incêndio': 'Incêndio',
-  'Vulcão': 'Vulcão',
-  'Seca': 'Seca',
-  'Tsunami': 'Tsunami',
-  'Desconhecido': 'Desconhecido'
 }
 
 // 🔥 ESCALA DE MAGNITUDE RICHTER - DETALHADA
@@ -89,7 +65,7 @@ const getMagnitudeRichter = (magnitude: number): string => {
   return '< 2.0 - Micro'
 }
 
-// 🔥 ESCALA DE INTENSIDADE (Mercalli Modificada)
+// 🔥 INTENSIDADE MERCALLI MODIFICADA
 const getIntensityLabel = (magnitude: number): string => {
   if (magnitude >= 9.0) return 'Extrema'
   if (magnitude >= 8.0) return 'Severa'
@@ -305,7 +281,7 @@ export default function MapaMonitoramentoCompleto() {
             <h3 className="font-bold text-black">Monitoramento Global</h3>
           </div>
           <div className="flex items-center gap-4 text-xs font-medium text-black/80">
-            <span>📍 {stats.total} eventos</span>
+            <span>{stats.total} eventos</span>
             <span className="text-red-600">● {stats.red} crítico</span>
             <span className="text-orange-500">● {stats.orange} alerta</span>
             <span className="text-green-600">● {stats.green} monitoramento</span>
@@ -407,28 +383,38 @@ export default function MapaMonitoramentoCompleto() {
                         </div>
                       </div>
                       
-                      {/* ESCALA DA OCORRÊNCIA - COM MAGNITUDE RICHTER */}
+                      {/* 🔥 INFORMAÇÕES DO EVENTO - AGORA COM MAGNITUDE CORRETA */}
                       <div className="bg-gray-50 rounded-lg p-2 mb-2 border border-gray-200">
-                        {event.type === 'Terremoto' && event.magnitude ? (
+                        {event.type === 'Terremoto' ? (
+                          // 🔥 TERREMOTO - MOSTRA MAGNITUDE RICHTER
                           <>
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="font-medium text-gray-700">Magnitude Richter:</span>
-                              <span className="font-bold text-red-600">
-                                {event.magnitude.toFixed(1)}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs mt-1">
-                              <span className="text-gray-500">Classificação:</span>
-                              <span className="font-medium text-gray-700">
-                                {getMagnitudeRichter(event.magnitude)}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs mt-1">
-                              <span className="text-gray-500">Intensidade:</span>
-                              <span className="font-medium text-gray-700">
-                                {getIntensityLabel(event.magnitude)}
-                              </span>
-                            </div>
+                            {event.magnitude ? (
+                              <>
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-medium text-gray-700">Magnitude Richter:</span>
+                                  <span className="font-bold text-red-600">
+                                    {event.magnitude.toFixed(1)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs mt-1">
+                                  <span className="text-gray-500">Classificação:</span>
+                                  <span className="font-medium text-gray-700">
+                                    {getMagnitudeRichter(event.magnitude)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-xs mt-1">
+                                  <span className="text-gray-500">Intensidade:</span>
+                                  <span className="font-medium text-gray-700">
+                                    {getIntensityLabel(event.magnitude)}
+                                  </span>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-gray-500">Magnitude:</span>
+                                <span className="font-medium text-gray-700">Não informada</span>
+                              </div>
+                            )}
                             {event.depth && (
                               <div className="flex items-center justify-between text-xs mt-1">
                                 <span className="text-gray-500">Profundidade:</span>
@@ -481,10 +467,15 @@ export default function MapaMonitoramentoCompleto() {
                             </div>
                           </>
                         ) : (
+                          // 🔥 OUTROS TIPOS
                           <>
                             <div className="flex items-center justify-between text-xs">
                               <span className="font-medium text-gray-700">Severidade:</span>
-                              <span className="font-bold text-blue-600">
+                              <span className={`font-bold ${
+                                event.alertLevel === 'red' ? 'text-red-600' :
+                                event.alertLevel === 'orange' ? 'text-orange-500' :
+                                'text-green-600'
+                              }`}>
                                 {event.alertLevel === 'red' ? 'Severo' : 
                                  event.alertLevel === 'orange' ? 'Moderado' : 'Leve'}
                               </span>
@@ -517,7 +508,7 @@ export default function MapaMonitoramentoCompleto() {
                       
                       {event.country && (
                         <p className="text-xs text-gray-500 mt-1">
-                          📍 {event.country}{event.region ? ` - ${event.region}` : ''}
+                          {event.country}{event.region ? ` - ${event.region}` : ''}
                         </p>
                       )}
                       
