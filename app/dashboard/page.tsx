@@ -93,7 +93,6 @@ export default function Dashboard() {
 
   const checkAdminStatus = async (userId: string) => {
   try {
-    // 🔥 CORRIGIDO: adiciona .maybeSingle()
     const { data, error } = await (supabase
       .from('profiles') as any)
       .select('role')
@@ -105,8 +104,15 @@ export default function Dashboard() {
       return
     }
 
+    console.log('🔍 Role encontrada no dashboard:', data?.role)
+    console.log('🔍 É admin?', data?.role === 'admin')
+
     if (data?.role === 'admin') {
       setIsAdmin(true)
+      console.log('📊 Estado isAdmin após carregamento:', isAdmin)
+      console.log('✅ setIsAdmin(true) executado!')
+    } else {
+      console.log('❌ Usuário NÃO é admin')
     }
   } catch (error) {
     console.error('Erro ao verificar admin:', error)
@@ -114,7 +120,7 @@ export default function Dashboard() {
 }
   const loadOnlineUsers = async () => {
   try {
-    // Como não temos 'online_status', vamos contar todos os usuários
+    // 🔥 CORRIGIDO: removendo 'online_status'
     const { count, error } = await (supabase
       .from('profiles') as any)
       .select('*', { count: 'exact', head: true })

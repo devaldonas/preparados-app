@@ -51,9 +51,9 @@ export default function NavBar({
       setUser(user)
 
       if (user) {
-        const { data: userProfile } = await (supabase
+        const { data: profile } = await (supabase
   .from('profiles') as any)
-  .select('role') // ← APENAS role
+  .select('role, full_name') // 🔥 REMOVEU 'subscription_status'
   .eq('id', user.id)
   .maybeSingle()
 
