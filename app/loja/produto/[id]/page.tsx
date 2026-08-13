@@ -1,4 +1,4 @@
-// app/loja/produto/[id]/page.tsx (CORRIGIDO - USANDO ZUSTAND)
+// app/loja/produto/[id]/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -7,10 +7,10 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 import GaleriaProduto from '@/components/GaleriaProduto'
-import { useCart } from '@/lib/store/cart' // Importar o store do carrinho
+import { useCart } from '@/lib/store/cart'
 
 interface Product {
-  id: string // Mudar para string para compatibilidade com UUID
+  id: string
   name: string
   description: string
   price: number
@@ -19,8 +19,8 @@ interface Product {
   images: string[]
   stock: number
   mochila_tipo: string[]
-  is_digital?: boolean      // 🔥 ADICIONAR
-  free_shipping?: boolean   // 🔥 ADICIONAR
+  is_digital?: boolean
+  free_shipping?: boolean
 }
 
 export default function DetalheProduto() {
@@ -32,7 +32,6 @@ export default function DetalheProduto() {
   const params = useParams()
   const productId = params.id as string
   
-  // Usar o store do carrinho
   const { addItem, getTotalItems } = useCart()
   const cartCount = getTotalItems()
 
@@ -40,20 +39,22 @@ export default function DetalheProduto() {
     carregarProduto()
   }, [productId])
 
+  // 🔥 CORRIGIDO: carregarProduto com as any
   const carregarProduto = async () => {
     try {
-      const { data, error } = await supabase
-        .from('products')
+      const { data, error } = await (supabase
+        .from('products') as any)
         .select('*')
         .eq('id', productId)
-        .single()
+        .maybeSingle()
 
       if (error) {
         console.error('Erro ao carregar produto:', error)
         router.push('/loja')
-      } else {
-        // Garantir que o ID é string
+      } else if (data) {
         setProduct({ ...data, id: String(data.id) })
+      } else {
+        router.push('/loja')
       }
     } catch (error) {
       console.error('Erro:', error)
@@ -67,20 +68,18 @@ export default function DetalheProduto() {
 
     setAdding(true)
 
-    // Usar o store do carrinho
     addItem({
       product_id: product.id,
       name: product.name,
       price: product.price,
       image: product.image_url || product.images?.[0] || '/images/placeholder.jpg',
       max_stock: product.stock,
-      is_digital: product.is_digital || false,  // 🔥 ADICIONAR
-      free_shipping: product.free_shipping || false,  // 🔥 ADICIONAR
+      is_digital: product.is_digital || false,
+      free_shipping: product.free_shipping || false,
     }, quantity)
 
     setAdding(false)
     
-    // Feedback visual
     const btn = document.getElementById('btn-add-cart')
     if (btn) {
       const originalText = btn.textContent
@@ -117,7 +116,6 @@ export default function DetalheProduto() {
       <div className="flex-1">
         <div className="max-w-4xl mx-auto px-4 py-8">
           
-          {/* Header com ícone do carrinho */}
           <div className="flex justify-between items-center mb-4">
             <Link
               href="/loja"
@@ -143,15 +141,12 @@ export default function DetalheProduto() {
             <BotaoIndicarAmigo />
           </div>
 
-          {/* Detalhe do produto */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Galeria de imagens */}
             <GaleriaProduto 
               images={imagesList}
               productName={product.name}
             />
 
-            {/* Informacoes do produto */}
             <div className="space-y-5">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
@@ -218,7 +213,6 @@ export default function DetalheProduto() {
                 )}
               </div>
 
-              {/* Tipos de mochila compatíveis */}
               {product.mochila_tipo && product.mochila_tipo.length > 0 && (
                 <div className="border-t border-gray-100 pt-4">
                   <h3 className="font-semibold text-gray-900 mb-2">Compatível com:</h3>
