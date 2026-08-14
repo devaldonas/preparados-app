@@ -47,6 +47,20 @@ export default function Dashboard() {
           return
         }
         setUser(user)
+        
+        // 🔥 VERIFICAR SE É PARCEIRO E REDIRECIONAR
+        const { data: profile } = await (supabase
+          .from('profiles') as any)
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        // Se for parceiro, redireciona para o dashboard do parceiro
+        if (profile?.role === 'partner') {
+          router.push('/parceiro/dashboard')
+          return
+        }
+
         await loadProfile(user.id)
         await loadProgress(user.id)
         await checkCheckinStatus(user.id)
@@ -63,12 +77,11 @@ export default function Dashboard() {
 
   const loadProfile = async (userId: string) => {
   try {
-    // 🔥 CORRIGIDO: adiciona .maybeSingle() para evitar erro 406
     const { data, error } = await (supabase
       .from('profiles') as any)
       .select('full_name, mochila_tipo, city, state, role')
       .eq('id', userId)
-      .maybeSingle() // ← Muda de .single() para .maybeSingle()
+      .maybeSingle()
 
     if (error) {
       console.error('Erro ao buscar perfil:', error)
@@ -120,7 +133,6 @@ export default function Dashboard() {
 }
   const loadOnlineUsers = async () => {
   try {
-    // 🔥 CORRIGIDO: removendo 'online_status'
     const { count, error } = await (supabase
       .from('profiles') as any)
       .select('*', { count: 'exact', head: true })
