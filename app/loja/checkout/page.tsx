@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -35,14 +35,14 @@ interface Order {
   items: OrderItem[]
 }
 
-// 🔥 Interface para o frete
 interface FreteInfo {
   valor: number
   prazo: string
   detalhes: any[]
 }
 
-export default function CheckoutPage() {
+// 🔥 Componente que usa useSearchParams (envolvido em Suspense)
+function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams?.get('order')
@@ -54,13 +54,11 @@ export default function CheckoutPage() {
   const [profile, setProfile] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   
-  // 🔥 Estado do frete com tipagem correta
   const [frete, setFrete] = useState<FreteInfo>({ valor: 0, prazo: '', detalhes: [] })
   const [calculandoFrete, setCalculandoFrete] = useState(false)
   const [cepDestino, setCepDestino] = useState('')
   const [cepDigitado, setCepDigitado] = useState('')
   
-  // Pagamento
   const [paymentMethod, setPaymentMethod] = useState('pix')
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [copiarCodigo, setCopiarCodigo] = useState('')
@@ -75,7 +73,6 @@ export default function CheckoutPage() {
         }
         setUser(user)
 
-        // Buscar perfil
         const { data: profileData } = await (supabase
           .from('profiles') as any)
           .select('*')
@@ -84,7 +81,6 @@ export default function CheckoutPage() {
         
         setProfile(profileData)
         
-        // Buscar pedido
         if (orderId) {
           const { data: orderData } = await (supabase
             .from('orders') as any)
@@ -101,11 +97,9 @@ export default function CheckoutPage() {
           if (orderData) {
             setOrder(orderData)
             
-            // Definir CEP destino do perfil
             if (profileData?.cep) {
               setCepDestino(profileData.cep)
               setCepDigitado(profileData.cep)
-              // Calcular frete automaticamente
               await calcularFrete(orderData.items, profileData.cep)
             }
           }
@@ -121,7 +115,6 @@ export default function CheckoutPage() {
     carregarDados()
   }, [orderId])
 
-  // 🔥 FUNÇÃO PARA CALCULAR FRETE
   const calcularFrete = async (items: any[], cep: string) => {
     if (!cep || cep.length < 8) {
       setError('Digite um CEP válido')
@@ -134,7 +127,6 @@ export default function CheckoutPage() {
     try {
       const cepLimpo = cep.replace(/\D/g, '')
       
-      // Verificar se tem parceiro
       const partnerId = items[0]?.product?.partner_id
       if (!partnerId) {
         setFrete({ valor: 0, prazo: 'Frete não disponível', detalhes: [] })
@@ -159,7 +151,6 @@ export default function CheckoutPage() {
     }
   }
 
-  // 🔥 FUNÇÃO PARA GERAR PIX
   const gerarPix = async () => {
     setProcessing(true)
     setError(null)
@@ -244,9 +235,7 @@ export default function CheckoutPage() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Coluna Esquerda - Resumo */}
           <div className="lg:col-span-2 space-y-4">
-            {/* Resumo do Pedido */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h2 className="font-bold text-black mb-4">Resumo do Pedido</h2>
               
@@ -295,7 +284,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Calcular Frete */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-bold text-black mb-3 flex items-center gap-2">
                 <Truck size={18} className="text-[#FFB800]" />
@@ -326,12 +314,10 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Coluna Direita - Pagamento */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-24">
               <h3 className="font-bold text-black mb-4">Forma de Pagamento</h3>
 
-              {/* Opções de Pagamento */}
               <div className="space-y-2 mb-4">
                 <button
                   onClick={() => setPaymentMethod('pix')}
@@ -373,7 +359,6 @@ export default function CheckoutPage() {
                 </button>
               </div>
 
-              {/* Botão de Pagamento */}
               {paymentMethod === 'pix' && (
                 <button
                   onClick={gerarPix}
@@ -403,7 +388,6 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* QR Code PIX */}
               {qrCode && (
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg text-center">
                   <img src={qrCode} alt="QR Code PIX" className="w-48 h-48 mx-auto" />
@@ -426,5 +410,18 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// 🔥 Componente principal com Suspense
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
+      </div>
+    }>
+      <CheckoutContent />
+    </Suspense>
   )
 }
