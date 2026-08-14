@@ -1,28 +1,25 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabaseClient'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // 🔥 Criar cliente admin com a chave de serviço
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    console.log('🔍 API de pedidos do parceiro chamada')
     
-    console.log('🔑 Service Key presente?', serviceKey ? 'Sim' : 'Não')
-    console.log('🔑 URL:', supabaseUrl)
+    // 🔥 Obter a sessão do usuário a partir do cookie
+    const { data: { session } } = await supabase.auth.getSession()
     
-    // 🔥 Se a chave de serviço não estiver disponível, tente usar a chave anônima
-    let supabaseClient
-    
-    if (serviceKey) {
-      supabaseClient = createClient(supabaseUrl!, serviceKey!)
-    } else {
-      // Fallback para chave anônima (pode não funcionar com RLS)
-      const { supabase } = await import('@/lib/supabaseClient')
-      supabaseClient = supabase
+    if (!session) {
+      console.log('❌ Usuário não autenticado')
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Usuário não autenticado' 
+      }, { status: 401 })
     }
 
-    // Buscar pedidos
-    const { data: pedidos, error } = await supabaseClient
+    console.log('✅ Usuário autenticado:', session.user.email)
+
+    // 🔥 Buscar pedidos com o cliente normal (usa a sessão do usuário)
+    const { data: pedidos, error } = await supabase
       .from('orders')
       .select(`
         *,
@@ -37,8 +34,7 @@ export async function GET() {
       console.error('❌ Erro ao buscar pedidos:', error)
       return NextResponse.json({ 
         success: false, 
-        error: error.message,
-        hint: 'Verifique as políticas RLS'
+        error: error.message 
       }, { status: 500 })
     }
 
@@ -49,7 +45,7 @@ export async function GET() {
       pedidos: pedidos || []
     })
   } catch (error) {
-    console.error('❌ Erro:', error)
+    console.error('❌ Erro na API:', error)
     return NextResponse.json({ 
       success: false, 
       error: String(error) 
