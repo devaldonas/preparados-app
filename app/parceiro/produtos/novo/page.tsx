@@ -46,7 +46,7 @@ const CATEGORIAS = [
 export default function NovoProdutoParceiro() {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [partnerId, setPartnerId] = useState<string | null>(null)
+  const [partnerId, setPartnerId] = useState<string | null>(null) // 🔥 ID da tabela partners
   const [formData, setFormData] = useState<ProductForm>({
     name: '',
     description: '',
@@ -64,7 +64,6 @@ export default function NovoProdutoParceiro() {
   const [mochilaOptions] = useState(['EDC', 'BOB', 'BOLT'])
   const router = useRouter()
 
-  // 🔥 Usar o bucket que já existe
   const STORAGE_BUCKET = 'produtos'
 
   useEffect(() => {
@@ -76,18 +75,27 @@ export default function NovoProdutoParceiro() {
           return
         }
 
-        const { data: profile } = await (supabase
-          .from('profiles') as any)
-          .select('id, role')
-          .eq('id', user.id)
+        // 🔥 Buscar o ID do parceiro na tabela partners
+        const { data: partner, error } = await (supabase
+          .from('partners') as any)
+          .select('id')
+          .eq('user_id', user.id)
           .single()
 
-        if (profile?.role !== 'partner') {
+        if (error) {
+          console.error('Erro ao buscar parceiro:', error)
           router.push('/dashboard')
           return
         }
 
-        setPartnerId(user.id)
+        if (!partner) {
+          alert('Parceiro não encontrado. Entre em contato com o suporte.')
+          router.push('/dashboard')
+          return
+        }
+
+        setPartnerId(partner.id)
+        console.log('✅ Partner ID:', partner.id)
       } catch (error) {
         console.error('Erro ao verificar parceiro:', error)
         router.push('/dashboard')
@@ -213,6 +221,7 @@ export default function NovoProdutoParceiro() {
     }
 
     try {
+      // 🔥 Usar partnerId (ID da tabela partners) como partner_id
       const { error } = await (supabase
         .from('products') as any)
         .insert([{
@@ -228,7 +237,7 @@ export default function NovoProdutoParceiro() {
           is_digital: formData.is_digital,
           free_shipping: formData.free_shipping,
           file_url: formData.file_url || null,
-          partner_id: partnerId,
+          partner_id: partnerId, // 🔥 Agora usando o ID da tabela partners
         }])
 
       if (error) throw error
