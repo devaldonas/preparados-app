@@ -1,4 +1,3 @@
-// app/parceiro/page.tsx
 'use client'
 
 import { useEffect } from 'react'
@@ -8,7 +7,6 @@ export default function ParceiroPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Redirecionar para o dashboard do parceiro
     router.push('/parceiro/dashboard')
   }, [router])
 
