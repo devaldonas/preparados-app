@@ -35,6 +35,13 @@ interface Order {
   items: OrderItem[]
 }
 
+// 🔥 Interface para o frete
+interface FreteInfo {
+  valor: number
+  prazo: string
+  detalhes: any[]
+}
+
 export default function CheckoutPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -47,8 +54,8 @@ export default function CheckoutPage() {
   const [profile, setProfile] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   
-  // Estado do frete
-  const [frete, setFrete] = useState({ valor: 0, prazo: '', detalhes: [] })
+  // 🔥 Estado do frete com tipagem correta
+  const [frete, setFrete] = useState<FreteInfo>({ valor: 0, prazo: '', detalhes: [] })
   const [calculandoFrete, setCalculandoFrete] = useState(false)
   const [cepDestino, setCepDestino] = useState('')
   const [cepDigitado, setCepDigitado] = useState('')
