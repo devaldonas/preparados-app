@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Plus, Edit, Package, DollarSign, Truck } from 'lucide-react'
+import { Plus, Edit, Package, DollarSign, Truck, Trash2 } from 'lucide-react'
 
 export default function ParceiroProdutos() {
   const [produtos, setProdutos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [partnerId, setPartnerId] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -20,23 +21,71 @@ export default function ParceiroProdutos() {
           return
         }
 
+        // 🔥 Buscar o ID do parceiro na tabela partners
+        const { data: partner, error: partnerError } = await (supabase
+          .from('partners') as any)
+          .select('id')
+          .eq('user_id', user.id)
+          .single()
+
+        if (partnerError) {
+          console.error('Erro ao buscar parceiro:', partnerError)
+          setLoading(false)
+          return
+        }
+
+        if (!partner) {
+          console.error('Parceiro não encontrado')
+          setLoading(false)
+          return
+        }
+
+        setPartnerId(partner.id)
+        console.log('✅ Partner ID:', partner.id)
+
+        // 🔥 Buscar produtos com o partner_id correto
         const { data, error } = await (supabase
           .from('products') as any)
           .select('*')
-          .eq('partner_id', user.id)
+          .eq('partner_id', partner.id)  // 🔥 Usando partner.id
           .order('created_at', { ascending: false })
 
-        if (error) throw error
-        setProdutos(data || [])
+        if (error) {
+          console.error('Erro ao carregar produtos:', error)
+          setProdutos([])
+        } else {
+          console.log('✅ Produtos encontrados:', data?.length || 0)
+          setProdutos(data || [])
+        }
       } catch (error) {
         console.error('Erro ao carregar produtos:', error)
+        setProdutos([])
       } finally {
         setLoading(false)
       }
     }
 
     carregarProdutos()
-  }, [])
+  }, [router])
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Tem certeza que deseja deletar este produto?')) return
+
+    try {
+      const { error } = await (supabase
+        .from('products') as any)
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      setProdutos(produtos.filter(p => p.id !== id))
+      alert('✅ Produto deletado com sucesso!')
+    } catch (error) {
+      console.error('Erro ao deletar produto:', error)
+      alert('Erro ao deletar produto')
+    }
+  }
 
   if (loading) {
     return (
@@ -85,7 +134,7 @@ export default function ParceiroProdutos() {
                 )}
                 <div className="p-4">
                   <h3 className="font-medium text-black">{produto.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">{produto.category}</p>
+                  <p className="text-sm text-gray-500 mt-1">{produto.category || 'Sem categoria'}</p>
                   <div className="flex items-center justify-between mt-3">
                     <span className="font-bold text-[#FFB800]">
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(produto.price)}
@@ -94,13 +143,21 @@ export default function ParceiroProdutos() {
                       Estoque: {produto.stock}
                     </span>
                   </div>
-                  <Link
-                    href={`/parceiro/produtos/${produto.id}`}
-                    className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm"
-                  >
-                    <Edit size={16} />
-                    Editar
-                  </Link>
+                  <div className="flex gap-2 mt-3">
+                    <Link
+                      href={`/parceiro/produtos/${produto.id}`}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm"
+                    >
+                      <Edit size={16} />
+                      Editar
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(produto.id)}
+                      className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition text-sm flex items-center gap-2"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
