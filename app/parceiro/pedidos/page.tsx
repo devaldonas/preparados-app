@@ -89,35 +89,35 @@ export default function ParceiroPedidos() {
         return
       }
 
-      // 🔥 Buscar pedidos via API
-      const response = await fetch('/api/parceiro/pedidos')
-      const data = await response.json()
+      // 🔥 Buscar pedidos diretamente com Supabase (sem API route)
+      const { data: pedidosData, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          items:order_items(
+            *,
+            product:products(*)
+          )
+        `)
+        .order('created_at', { ascending: false })
 
-      if (!data.success) {
-        console.error('❌ Erro na API:', data.error)
+      if (error) {
+        console.error('❌ Erro ao buscar pedidos:', error)
         setPedidos([])
-        setLoading(false)
-        return
+      } else {
+        console.log('📊 Total de pedidos recebidos:', pedidosData?.length || 0)
+        
+        // 🔥 Filtrar pedidos que contêm produtos do parceiro
+        const pedidosFiltrados = pedidosData?.filter((pedido: any) => {
+          const hasProduct = pedido.items?.some((item: any) => 
+            productIds.includes(item.product_id)
+          )
+          return hasProduct
+        }) || []
+
+        console.log('📦 Pedidos do parceiro encontrados:', pedidosFiltrados.length)
+        setPedidos(pedidosFiltrados)
       }
-
-      console.log('📊 Total de pedidos recebidos:', data.pedidos?.length || 0)
-
-      // 🔥 Filtrar pedidos que contêm produtos do parceiro
-      const pedidosFiltrados = data.pedidos?.filter((pedido: any) => {
-        const hasProduct = pedido.items?.some((item: any) => 
-          productIds.includes(item.product_id)
-        )
-        return hasProduct
-      }) || []
-
-      console.log('📦 Pedidos do parceiro encontrados:', pedidosFiltrados.length)
-      
-      // 🔥 Mostrar os status dos pedidos encontrados
-      pedidosFiltrados.forEach((p: any) => {
-        console.log(`📋 Pedido #${p.id} - Status: ${p.status}`)
-      })
-
-      setPedidos(pedidosFiltrados)
     } catch (error) {
       console.error('❌ Erro ao carregar pedidos:', error)
       setPedidos([])
@@ -217,6 +217,9 @@ export default function ParceiroPedidos() {
             <p className="text-sm text-gray-500">
               {search ? 'Tente buscar por outro termo' : 'Os pedidos dos seus produtos aparecerão aqui'}
             </p>
+            <div className="mt-4 text-sm text-gray-400">
+              <p>Debug: {pedidos.length} pedidos encontrados</p>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
