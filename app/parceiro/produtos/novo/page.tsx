@@ -1,11 +1,9 @@
-// app/parceiro/produtos/novo/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabaseClient'
-import NavBar from '@/components/NavBar'
 import { ArrowLeft, Upload, X, Plus } from 'lucide-react'
 
 interface ProductForm {
@@ -23,14 +21,32 @@ interface ProductForm {
   file_url: string | null
 }
 
+// Categorias disponíveis
+const CATEGORIAS = [
+  { value: '', label: 'Selecione uma categoria' },
+  { value: 'mochilas', label: 'Mochilas' },
+  { value: 'acessorios', label: 'Acessórios' },
+  { value: 'equipamentos', label: 'Equipamentos' },
+  { value: 'e-books', label: 'E-books' },
+  { value: 'alimentacao', label: 'Alimentação' },
+  { value: 'hidratacao', label: 'Hidratação' },
+  { value: 'primeiros_socorros', label: 'Primeiros Socorros' },
+  { value: 'ferramentas', label: 'Ferramentas' },
+  { value: 'iluminacao', label: 'Iluminação' },
+  { value: 'comunicacao', label: 'Comunicação' },
+  { value: 'navegacao', label: 'Navegação' },
+  { value: 'abrigo', label: 'Abrigo' },
+  { value: 'vestuario', label: 'Vestuário' },
+  { value: 'higiene', label: 'Higiene' },
+  { value: 'documentos', label: 'Documentos' },
+  { value: 'dinheiro', label: 'Dinheiro/Cartões' },
+  { value: 'outros', label: 'Outros' },
+]
+
 export default function NovoProdutoParceiro() {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [partner, setPartner] = useState<any>(null)
-  const [partnerLoading, setPartnerLoading] = useState(true)
-  const [imageUrls, setImageUrls] = useState<string[]>([])
-  const router = useRouter()
-
+  const [partnerId, setPartnerId] = useState<string | null>(null)
   const [formData, setFormData] = useState<ProductForm>({
     name: '',
     description: '',
@@ -45,11 +61,14 @@ export default function NovoProdutoParceiro() {
     free_shipping: false,
     file_url: null,
   })
+  const [mochilaOptions] = useState(['EDC', 'BOB', 'BOLT'])
+  const router = useRouter()
 
-  const mochilaOptions = ['EDC', 'BOB', 'BOLT']
+  // 🔥 Usar o bucket que já existe
+  const STORAGE_BUCKET = 'produtos'
 
   useEffect(() => {
-    const carregarParceiro = async () => {
+    const verificarParceiro = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
@@ -57,33 +76,25 @@ export default function NovoProdutoParceiro() {
           return
         }
 
-        // 🔥 CORRIGIDO: buscar parceiro com as any
-        const { data: partnerData, error: partnerError } = await (supabase
-          .from('partners') as any)
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle()
+        const { data: profile } = await (supabase
+          .from('profiles') as any)
+          .select('id, role')
+          .eq('id', user.id)
+          .single()
 
-        if (partnerError || !partnerData) {
-          router.push('/parceiro/cadastro')
+        if (profile?.role !== 'partner') {
+          router.push('/dashboard')
           return
         }
 
-        if (partnerData.status !== 'approved') {
-          router.push('/parceiro/aguardando-aprovacao')
-          return
-        }
-
-        setPartner(partnerData)
+        setPartnerId(user.id)
       } catch (error) {
-        console.error('Erro ao carregar parceiro:', error)
-        router.push('/parceiro/dashboard')
-      } finally {
-        setPartnerLoading(false)
+        console.error('Erro ao verificar parceiro:', error)
+        router.push('/dashboard')
       }
     }
 
-    carregarParceiro()
+    verificarParceiro()
   }, [router])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -91,6 +102,15 @@ export default function NovoProdutoParceiro() {
     setFormData(prev => ({
       ...prev,
       [name]: type === 'number' ? parseFloat(value) || 0 : value
+    }))
+  }
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedValue = e.target.value
+    const categoria = CATEGORIAS.find(c => c.value === selectedValue)
+    setFormData(prev => ({
+      ...prev,
+      category: categoria ? categoria.label : selectedValue
     }))
   }
 
@@ -130,101 +150,101 @@ export default function NovoProdutoParceiro() {
     setUploading(true)
     try {
       const fileName = `${Date.now()}-${file.name}`
-      const { data, error } = await (supabase
-        .storage
-        .from('products') as any)
-        .upload(fileName, file)
+      
+      console.log('📤 Fazendo upload para bucket:', STORAGE_BUCKET)
+      console.log('📤 Arquivo:', fileName)
+      
+      const { data, error } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Erro no upload:', error)
+        throw error
+      }
 
-      const { data: urlData } = (supabase
-        .storage
-        .from('products') as any)
+      console.log('✅ Upload concluído:', data)
+
+      const { data: urlData } = supabase.storage
+        .from(STORAGE_BUCKET)
         .getPublicUrl(fileName)
 
-      const publicUrl = urlData.publicUrl
-      setImageUrls(prev => [...prev, publicUrl])
+      console.log('✅ URL pública:', urlData.publicUrl)
+
       setFormData(prev => ({
         ...prev,
-        image_url: publicUrl,
-        images: [...prev.images, publicUrl]
+        image_url: urlData.publicUrl,
+        images: [...(prev.images || []), urlData.publicUrl]
       }))
-    } catch (error) {
-      console.error('Erro ao fazer upload:', error)
-      alert('Erro ao fazer upload da imagem')
+      
+      alert('✅ Imagem enviada com sucesso!')
+    } catch (error: any) {
+      console.error('❌ Erro ao fazer upload:', error)
+      alert(`Erro ao fazer upload: ${error.message || 'Tente novamente'}`)
     } finally {
       setUploading(false)
     }
   }
 
   const removeImage = (index: number) => {
-    setImageUrls(prev => prev.filter((_, i) => i !== index))
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-      image_url: prev.images.length > 1 ? prev.images[0] : ''
+      images: (prev.images || []).filter((_, i) => i !== index)
     }))
+  }
+
+  const getSelectedValue = () => {
+    if (!formData.category) return ''
+    const categoria = CATEGORIAS.find(c => c.label === formData.category)
+    return categoria ? categoria.value : ''
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
+    if (!partnerId) {
+      alert('Erro: ID do parceiro não encontrado')
+      setLoading(false)
+      return
+    }
+
     try {
-      if (!partner) {
-        alert('Parceiro não encontrado')
-        setLoading(false)
-        return
-      }
-
-      // 🔥 CORRIGIDO: usar partner.id com segurança
-      const partnerId = partner.id
-
-      const productData = {
-        name: formData.name,
-        description: formData.description || null,
-        price: formData.price,
-        category: formData.category,
-        stock: formData.stock,
-        image_url: formData.image_url,
-        images: imageUrls,
-        mochila_tipo: formData.mochila_tipo || [],
-        partner_id: partnerId,
-        is_active: true,
-        is_digital: formData.is_digital || false,
-        free_shipping: formData.free_shipping || false,
-        file_url: formData.file_url || null,
-      }
-
-      // 🔥 CORRIGIDO: inserir com as any
       const { error } = await (supabase
         .from('products') as any)
-        .insert([productData])
+        .insert([{
+          name: formData.name,
+          description: formData.description || null,
+          price: formData.price,
+          category: formData.category,
+          stock: formData.stock,
+          image_url: formData.image_url,
+          images: formData.images || [],
+          mochila_tipo: formData.mochila_tipo || [],
+          is_active: formData.is_active,
+          is_digital: formData.is_digital,
+          free_shipping: formData.free_shipping,
+          file_url: formData.file_url || null,
+          partner_id: partnerId,
+        }])
 
       if (error) throw error
 
-      alert('Produto criado com sucesso!')
+      alert('✅ Produto criado com sucesso!')
       router.push('/parceiro/produtos')
     } catch (error) {
-      console.error('Erro ao criar produto:', error)
-      alert('Erro ao criar produto')
+      console.error('❌ Erro ao criar produto:', error)
+      alert('❌ Erro ao criar produto: ' + (error as any).message)
     } finally {
       setLoading(false)
     }
   }
 
-  if (partnerLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <NavBar showBackButton={true} backButtonPath="/parceiro/produtos" />
-      
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center gap-4 mb-6">
           <Link
@@ -310,16 +330,15 @@ export default function NovoProdutoParceiro() {
             </label>
             <select
               name="category"
-              value={formData.category}
-              onChange={handleChange}
+              value={getSelectedValue()}
+              onChange={handleCategoryChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
             >
-              <option value="">Selecione uma categoria</option>
-              <option value="mochilas">Mochilas</option>
-              <option value="acessorios">Acessórios</option>
-              <option value="equipamentos">Equipamentos</option>
-              <option value="e-books">E-books</option>
-              <option value="outros">Outros</option>
+              {CATEGORIAS.map((cat) => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -328,7 +347,7 @@ export default function NovoProdutoParceiro() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Tipo de Mochila
             </label>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               {mochilaOptions.map((tipo) => (
                 <button
                   key={tipo}
@@ -385,9 +404,11 @@ export default function NovoProdutoParceiro() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Imagem do Produto
             </label>
-            <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
               <label className="cursor-pointer">
-                <div className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition flex items-center gap-2">
+                <div className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+                  uploading ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200'
+                }`}>
                   <Upload size={18} />
                   <span className="text-sm">{uploading ? 'Enviando...' : 'Escolher imagem'}</span>
                 </div>
@@ -399,25 +420,26 @@ export default function NovoProdutoParceiro() {
                   className="hidden"
                 />
               </label>
-              <div className="flex gap-2 flex-wrap">
-                {imageUrls.map((url, index) => (
-                  <div key={index} className="relative w-16 h-16">
-                    <img
-                      src={url}
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-full object-cover rounded-lg border border-gray-200"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
+              {formData.image_url && (
+                <div className="relative w-16 h-16">
+                  <img
+                    src={formData.image_url}
+                    alt="Preview"
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(0)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
             </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Formatos aceitos: JPG, PNG, WebP. Máximo 5MB.
+            </p>
           </div>
 
           {/* Botões */}
