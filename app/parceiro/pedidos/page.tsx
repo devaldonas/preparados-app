@@ -4,14 +4,14 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Package, ChevronRight, Search, Filter, Truck, CheckCircle, Clock, XCircle } from 'lucide-react'
+import { Package, ChevronRight, Search, Truck, CheckCircle, Clock, XCircle } from 'lucide-react'
 
 interface Pedido {
   id: number
   user_id: string
   total_amount: number
   payment_status: string
-  shipping_status: string
+  status: string
   created_at: string
   shipping_address: any
   items: any[]
@@ -26,24 +26,29 @@ export default function ParceiroPedidos() {
 
   useEffect(() => {
     const verificarParceiro = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
-        return
-      }
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/auth/login')
+          return
+        }
 
-      const { data: profile } = await (supabase
-        .from('profiles') as any)
-        .select('role')
-        .eq('id', user.id)
-        .single()
+        const { data: profile } = await (supabase
+          .from('profiles') as any)
+          .select('role')
+          .eq('id', user.id)
+          .single()
 
-      if (profile?.role !== 'partner') {
+        if (profile?.role !== 'partner') {
+          router.push('/dashboard')
+          return
+        }
+
+        await carregarPedidos(user.id)
+      } catch (error) {
+        console.error('Erro ao verificar parceiro:', error)
         router.push('/dashboard')
-        return
       }
-
-      await carregarPedidos(user.id)
     }
 
     verificarParceiro()
@@ -51,13 +56,32 @@ export default function ParceiroPedidos() {
 
   const carregarPedidos = async (userId: string) => {
     try {
-      // Buscar produtos do parceiro
+      console.log('🔍 Buscando pedidos...')
+      
+      // 🔥 Buscar o parceiro
+      const { data: partner } = await (supabase
+        .from('partners') as any)
+        .select('id')
+        .eq('user_id', userId)
+        .single()
+
+      if (!partner) {
+        console.log('❌ Parceiro não encontrado')
+        setPedidos([])
+        setLoading(false)
+        return
+      }
+
+      console.log('✅ Parceiro ID:', partner.id)
+
+      // 🔥 Buscar produtos do parceiro
       const { data: produtos } = await (supabase
         .from('products') as any)
         .select('id')
-        .eq('partner_id', userId)
+        .eq('partner_id', partner.id)
 
       const productIds = produtos?.map((p: any) => p.id) || []
+      console.log('📦 Produtos do parceiro:', productIds)
 
       if (productIds.length === 0) {
         setPedidos([])
@@ -65,56 +89,73 @@ export default function ParceiroPedidos() {
         return
       }
 
-      // Buscar pedidos com produtos do parceiro
-      const { data: pedidosData, error } = await (supabase
-        .from('orders') as any)
-        .select(`
-          *,
-          items:order_items(*, product:products(*))
-        `)
-        .order('created_at', { ascending: false })
+      // 🔥 Buscar pedidos via API
+      const response = await fetch('/api/parceiro/pedidos')
+      const data = await response.json()
 
-      if (error) {
-        console.error('Erro ao carregar pedidos:', error)
+      if (!data.success) {
+        console.error('❌ Erro na API:', data.error)
         setPedidos([])
-      } else {
-        // Filtrar pedidos que contêm produtos do parceiro
-        const pedidosFiltrados = pedidosData?.filter((pedido: any) => {
-          return pedido.items?.some((item: any) => 
-            productIds.includes(item.product_id)
-          )
-        }) || []
-        
-        setPedidos(pedidosFiltrados)
+        setLoading(false)
+        return
       }
+
+      console.log('📊 Total de pedidos recebidos:', data.pedidos?.length || 0)
+
+      // 🔥 Filtrar pedidos que contêm produtos do parceiro
+      const pedidosFiltrados = data.pedidos?.filter((pedido: any) => {
+        const hasProduct = pedido.items?.some((item: any) => 
+          productIds.includes(item.product_id)
+        )
+        return hasProduct
+      }) || []
+
+      console.log('📦 Pedidos do parceiro encontrados:', pedidosFiltrados.length)
+      
+      // 🔥 Mostrar os status dos pedidos encontrados
+      pedidosFiltrados.forEach((p: any) => {
+        console.log(`📋 Pedido #${p.id} - Status: ${p.status}`)
+      })
+
+      setPedidos(pedidosFiltrados)
     } catch (error) {
-      console.error('Erro ao carregar pedidos:', error)
+      console.error('❌ Erro ao carregar pedidos:', error)
       setPedidos([])
     } finally {
       setLoading(false)
     }
   }
 
-  const getStatusConfig = (status: string) => {
+  const getStatusConfig = (pedido: Pedido) => {
+    const status = pedido.status || 'pending'
+    
     const configs: Record<string, { label: string, icon: any, color: string }> = {
-      'pendente': { label: 'Pendente', icon: Clock, color: 'bg-gray-100 text-gray-600' },
-      'pago': { label: 'Pago', icon: CheckCircle, color: 'bg-yellow-100 text-yellow-700' },
-      'enviado': { label: 'Enviado', icon: Truck, color: 'bg-blue-100 text-blue-700' },
-      'entregue': { label: 'Entregue', icon: CheckCircle, color: 'bg-green-100 text-green-700' },
-      'cancelado': { label: 'Cancelado', icon: XCircle, color: 'bg-red-100 text-red-700' }
+      'pending': { label: 'Pendente', icon: Clock, color: 'bg-gray-100 text-gray-600' },
+      'paid': { label: 'Pago', icon: CheckCircle, color: 'bg-yellow-100 text-yellow-700' },
+      'shipped': { label: 'Enviado', icon: Truck, color: 'bg-blue-100 text-blue-700' },
+      'delivered': { label: 'Entregue', icon: CheckCircle, color: 'bg-green-100 text-green-700' },
+      'cancelled': { label: 'Cancelado', icon: XCircle, color: 'bg-red-100 text-red-700' }
     }
-    return configs[status] || configs['pendente']
+    return configs[status] || configs['pending']
   }
 
   const pedidosFiltrados = pedidos.filter(pedido => {
-    if (filter !== 'todos' && pedido.shipping_status !== filter) return false
+    const status = pedido.status || 'pending'
+    if (filter !== 'todos' && status !== filter) return false
     if (search) {
       const searchLower = search.toLowerCase()
-      return pedido.id.toString().includes(searchLower) ||
-        pedido.shipping_address?.street?.toLowerCase().includes(searchLower)
+      return pedido.id.toString().includes(searchLower)
     }
     return true
   })
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -132,13 +173,19 @@ export default function ParceiroPedidos() {
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
             </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 transition"
+            >
+              🔄 Recarregar
+            </button>
           </div>
         </div>
 
         {/* Filtros */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {['todos', 'pendente', 'pago', 'enviado', 'entregue', 'cancelado'].map((status) => {
-            const config = getStatusConfig(status)
+          {['todos', 'pending', 'paid', 'shipped', 'delivered', 'cancelled'].map((status) => {
+            const config = getStatusConfig({ status } as Pedido)
             return (
               <button
                 key={status}
@@ -155,11 +202,15 @@ export default function ParceiroPedidos() {
           })}
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FFB800]" />
-          </div>
-        ) : pedidosFiltrados.length === 0 ? (
+        {/* 🔥 Contador de pedidos por status */}
+        <div className="text-sm text-gray-500 mb-4">
+          Total: {pedidos.length} pedidos 
+          ({pedidos.filter(p => p.status === 'pending').length} pendentes, 
+          {pedidos.filter(p => p.status === 'paid').length} pagos, 
+          {pedidos.filter(p => p.status === 'shipped').length} enviados)
+        </div>
+
+        {pedidosFiltrados.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
             <Package size={48} className="mx-auto text-gray-300 mb-4" />
             <h3 className="text-lg font-medium text-gray-700">Nenhum pedido encontrado</h3>
@@ -170,7 +221,7 @@ export default function ParceiroPedidos() {
         ) : (
           <div className="space-y-4">
             {pedidosFiltrados.map((pedido) => {
-              const statusConfig = getStatusConfig(pedido.shipping_status || 'pendente')
+              const statusConfig = getStatusConfig(pedido)
               const StatusIcon = statusConfig.icon
               
               return (

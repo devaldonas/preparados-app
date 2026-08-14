@@ -4,8 +4,8 @@ import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CreditCard, QrCode, Wallet, Truck, MapPin, Loader2 } from 'lucide-react'
-import { calcularFretePedido, formatFrete, isFreteGratis } from '@/lib/frete'
+import { ArrowLeft, CreditCard, QrCode, Wallet, Truck, Loader2 } from 'lucide-react'
+import { calcularFretePedido } from '@/lib/frete'
 
 interface OrderItem {
   id: number
@@ -41,7 +41,6 @@ interface FreteInfo {
   detalhes: any[]
 }
 
-// 🔥 Componente que usa useSearchParams (envolvido em Suspense)
 function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -156,27 +155,41 @@ function CheckoutContent() {
     setError(null)
 
     try {
+      console.log('📤 Gerando PIX para pedido:', orderId)
+      console.log('📤 Valor:', order?.total_amount)
+      
       const response = await fetch('/api/mercadopago/criar-pix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          orderId: order?.id,
+          orderId: parseInt(orderId as string),
           amount: order?.total_amount || 0,
-          description: `Pedido ${order?.transaction_id || ''}`
+          description: `Pedido #${orderId}`
         })
       })
 
       const data = await response.json()
+      console.log('📥 Resposta completa:', JSON.stringify(data, null, 2))
       
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao gerar PIX')
       }
 
-      setQrCode(data.qrCode)
-      setCopiarCodigo(data.codigoPix)
+      console.log('✅ QR Code recebido:', data.qrCode ? 'Sim' : 'Não')
+      console.log('✅ Código PIX recebido:', data.codigoPix ? 'Sim' : 'Não')
+
+      if (data.qrCode) {
+        setQrCode(data.qrCode)
+      } else {
+        setError('QR Code não gerado. Tente novamente.')
+      }
+      
+      if (data.codigoPix) {
+        setCopiarCodigo(data.codigoPix)
+      }
       
     } catch (error: any) {
-      console.error('Erro ao gerar PIX:', error)
+      console.error('❌ Erro ao gerar PIX:', error)
       setError(error.message || 'Erro ao gerar PIX')
     } finally {
       setProcessing(false)
@@ -236,6 +249,7 @@ function CheckoutContent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
+            {/* Resumo do Pedido */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h2 className="font-bold text-black mb-4">Resumo do Pedido</h2>
               
@@ -284,6 +298,7 @@ function CheckoutContent() {
               </div>
             </div>
 
+            {/* Calcular Frete */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h3 className="font-bold text-black mb-3 flex items-center gap-2">
                 <Truck size={18} className="text-[#FFB800]" />
@@ -314,6 +329,7 @@ function CheckoutContent() {
             </div>
           </div>
 
+          {/* Pagamento */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-24">
               <h3 className="font-bold text-black mb-4">Forma de Pagamento</h3>
@@ -388,9 +404,14 @@ function CheckoutContent() {
                 </div>
               )}
 
+              {/* QR Code PIX */}
               {qrCode && (
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg text-center">
-                  <img src={qrCode} alt="QR Code PIX" className="w-48 h-48 mx-auto" />
+                  <img 
+                    src={`data:image/png;base64,${qrCode}`} 
+                    alt="QR Code PIX" 
+                    className="w-48 h-48 mx-auto"
+                  />
                   <p className="text-xs text-gray-500 mt-2">Escaneie o QR Code ou copie o código</p>
                   {copiarCodigo && (
                     <button
@@ -413,7 +434,6 @@ function CheckoutContent() {
   )
 }
 
-// 🔥 Componente principal com Suspense
 export default function CheckoutPage() {
   return (
     <Suspense fallback={

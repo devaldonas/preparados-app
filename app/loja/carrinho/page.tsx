@@ -16,13 +16,13 @@ export default function Carrinho() {
   const [processing, setProcessing] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState('pix')
 
   const subtotal = getTotalPrice()
   const totalItems = getTotalItems()
   
   const todosDigitais = items.every(item => item.is_digital === true)
-  const shipping = todosDigitais ? 0 : 15.90
+  const todosComFreteGratis = items.every(item => item.free_shipping === true)
+  const shipping = (todosDigitais || todosComFreteGratis) ? 0 : 15.90
   const total = subtotal + shipping
 
   useEffect(() => {
@@ -59,13 +59,11 @@ export default function Carrinho() {
       
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
-        console.log('❌ Usuário não logado')
         router.push('/auth/login')
         return
       }
-      console.log('✅ Usuário logado:', user.id)
 
-      // 🔥 CORRIGIDO: buscar perfil com as any
+      // 🔥 Buscar perfil com o nome completo
       const { data: profile, error: profileError } = await (supabase
         .from('profiles') as any)
         .select('cep, full_name, street, number, complement, neighborhood, city, state')
@@ -74,38 +72,39 @@ export default function Carrinho() {
 
       if (profileError) {
         console.error('❌ Erro ao buscar perfil:', profileError)
-        setError('Erro ao buscar seu endereço. Atualize seu perfil.')
+        setError('Erro ao buscar endereço. Tente novamente.')
         setProcessing(false)
         return
       }
 
       console.log('📦 Perfil encontrado:', profile)
 
-      if (!profile?.street || !profile?.number || !profile?.city) {
-        console.error('❌ Endereço incompleto:', profile)
-        setError('Endereço incompleto. Atualize seu perfil antes de finalizar a compra.')
-        setProcessing(false)
-        return
-      }
-
+      // 🔥 Construir endereço com o nome correto do usuário
       const shippingAddress = {
+        name: profile?.full_name || user?.user_metadata?.full_name || 'Cliente',
         zip: profile?.cep || '',
         street: profile?.street || '',
         number: profile?.number || '',
         complement: profile?.complement || '',
         neighborhood: profile?.neighborhood || '',
         city: profile?.city || '',
-        state: profile?.state || '',
+        state: profile?.state || ''
       }
 
-      console.log('📦 Endereço final:', shippingAddress)
+      console.log('📦 Endereço com nome:', shippingAddress)
+
+      if (!shippingAddress.street || !shippingAddress.number || !shippingAddress.city) {
+        setError('Endereço incompleto. Atualize seu perfil antes de finalizar a compra.')
+        setProcessing(false)
+        return
+      }
 
       const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
 
       const orderData = {
         user_id: user.id,
         total_amount: total,
-        payment_method: paymentMethod,
+        payment_method: 'pix',
         payment_status: 'pending',
         status: 'pending',
         transaction_id: orderNumber,
@@ -114,7 +113,6 @@ export default function Carrinho() {
 
       console.log('📦 Dados do pedido:', orderData)
 
-      // 🔥 CORRIGIDO: inserir pedido com as any
       const { data: order, error: orderError } = await (supabase
         .from('orders') as any)
         .insert([orderData])
@@ -130,7 +128,6 @@ export default function Carrinho() {
 
       console.log('✅ Pedido criado:', order)
 
-      // 🔥 CORRIGIDO: inserir itens com as any
       for (const item of items) {
         const { error: itemError } = await (supabase
           .from('order_items') as any)
@@ -146,11 +143,7 @@ export default function Carrinho() {
         }
       }
 
-      console.log('✅ Itens inseridos com sucesso')
-
       clearCart()
-      console.log('🚀 Redirecionando para:', `/loja/checkout?order=${order.id}`)
-      
       window.location.href = `/loja/checkout?order=${order.id}`
       
     } catch (error) {
@@ -170,7 +163,7 @@ export default function Carrinho() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
       </div>
     )
   }
@@ -221,7 +214,7 @@ export default function Carrinho() {
                           alt={item.name}
                           className="w-12 h-12 object-contain"
                           onError={(e) => { 
-                            (e.target as HTMLImageElement).src = '/images/placeholder.jpg' 
+                            (e.target as HTMLImageElement).src = '/images/placeholder.jpg'
                           }}
                         />
                       </div>
@@ -231,6 +224,11 @@ export default function Carrinho() {
                         {item.is_digital && (
                           <span className="text-[0.55rem] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
                             Produto Digital
+                          </span>
+                        )}
+                        {item.free_shipping && (
+                          <span className="text-[0.55rem] bg-green-100 text-green-700 px-2 py-0.5 rounded-full ml-1">
+                            Frete Grátis
                           </span>
                         )}
                       </div>
@@ -303,9 +301,9 @@ export default function Carrinho() {
                       )}
                     </span>
                   </div>
-                  {todosDigitais && items.length > 0 && (
-                    <p className="text-[0.6rem] text-blue-600 text-right">
-                      📦 Produto digital - Frete grátis
+                  {(todosDigitais || todosComFreteGratis) && items.length > 0 && (
+                    <p className="text-[0.6rem] text-green-600 text-right">
+                      🎉 Frete grátis aplicado!
                     </p>
                   )}
                   <div className="border-t border-gray-200 pt-2">

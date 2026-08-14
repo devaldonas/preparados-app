@@ -14,29 +14,33 @@ export default function ParceiroDashboard() {
     comissoes: 0,
     vendas: 0
   })
-  const [pedidosRecentes, setPedidosRecentes] = useState([])
   const router = useRouter()
 
   useEffect(() => {
     const verificarParceiro = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
-        return
-      }
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/auth/login')
+          return
+        }
 
-      const { data: profile } = await (supabase
-        .from('profiles') as any)
-        .select('role')
-        .eq('id', user.id)
-        .single()
+        const { data: profile } = await (supabase
+          .from('profiles') as any)
+          .select('role')
+          .eq('id', user.id)
+          .single()
 
-      if (profile?.role !== 'partner') {
+        if (profile?.role !== 'partner') {
+          router.push('/dashboard')
+          return
+        }
+
+        await carregarDados(user.id)
+      } catch (error) {
+        console.error('Erro ao verificar parceiro:', error)
         router.push('/dashboard')
-        return
       }
-
-      await carregarDados(user.id)
     }
 
     verificarParceiro()
@@ -44,21 +48,98 @@ export default function ParceiroDashboard() {
 
   const carregarDados = async (userId: string) => {
     try {
-      // Buscar produtos do parceiro
-      const { data: produtos } = await (supabase
+      console.log('🔍 Carregando dados do parceiro...')
+      
+      // 🔥 Buscar o ID do parceiro
+      const { data: partner, error: partnerError } = await (supabase
+        .from('partners') as any)
+        .select('id')
+        .eq('user_id', userId)
+        .single()
+
+      if (partnerError) {
+        console.error('❌ Erro ao buscar parceiro:', partnerError)
+        setLoading(false)
+        return
+      }
+
+      if (!partner) {
+        console.log('❌ Parceiro não encontrado')
+        setLoading(false)
+        return
+      }
+
+      console.log('✅ Parceiro ID:', partner.id)
+
+      // 🔥 Buscar produtos do parceiro
+      const { data: produtos, error: produtosError } = await (supabase
         .from('products') as any)
         .select('id, name, stock, price')
-        .eq('partner_id', userId)
+        .eq('partner_id', partner.id)
 
-      // Buscar pedidos (mock - depois implementar com join)
-      setStats({
-        pedidos: 0,
+      if (produtosError) {
+        console.error('❌ Erro ao buscar produtos:', produtosError)
+      }
+
+      const productIds = produtos?.map((p: any) => p.id) || []
+      console.log('📦 Produtos do parceiro:', productIds.length)
+
+      // 🔥 Buscar pedidos que contêm produtos do parceiro
+      let totalPedidos = 0
+      let totalVendas = 0
+
+      if (productIds.length > 0) {
+        // Buscar todos os pedidos
+        const { data: pedidos, error: pedidosError } = await (supabase
+          .from('orders') as any)
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (pedidosError) {
+          console.error('❌ Erro ao buscar pedidos:', pedidosError)
+        } else if (pedidos) {
+          // 🔥 Buscar os itens dos pedidos para verificar se contêm produtos do parceiro
+          for (const pedido of pedidos) {
+            const { data: items } = await (supabase
+              .from('order_items') as any)
+              .select('product_id')
+              .eq('order_id', pedido.id)
+
+            if (items) {
+              const hasPartnerProduct = items.some((item: any) => 
+                productIds.includes(item.product_id)
+              )
+              if (hasPartnerProduct) {
+                totalPedidos++
+                // Só contar vendas se o pedido estiver pago ou entregue
+                if (pedido.status === 'paid' || pedido.status === 'shipped' || pedido.status === 'delivered') {
+                  totalVendas += parseFloat(pedido.total_amount) || 0
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 🔥 Estatísticas
+      const comissoes = totalVendas * 0.15 // 15% de comissão
+
+      console.log('📊 Stats:', {
+        pedidos: totalPedidos,
         produtos: produtos?.length || 0,
-        comissoes: 0,
-        vendas: 0
+        comissoes: comissoes,
+        vendas: totalVendas
       })
+
+      setStats({
+        pedidos: totalPedidos,
+        produtos: produtos?.length || 0,
+        comissoes: comissoes,
+        vendas: totalVendas
+      })
+
     } catch (error) {
-      console.error('Erro ao carregar dados:', error)
+      console.error('❌ Erro ao carregar dados:', error)
     } finally {
       setLoading(false)
     }
@@ -121,7 +202,9 @@ export default function ParceiroDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Vendas (mês)</p>
-                <p className="text-2xl font-bold text-black">{stats.vendas}</p>
+                <p className="text-2xl font-bold text-black">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.vendas)}
+                </p>
               </div>
               <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
                 <TrendingUp size={20} className="text-purple-500" />
@@ -139,6 +222,9 @@ export default function ParceiroDashboard() {
             <div className="flex items-center gap-3">
               <Package size={20} className="text-[#FFB800]" />
               <span className="font-medium text-black">Expedição</span>
+              <span className="text-xs bg-[#FFB800]/10 text-[#FFB800] px-2 py-0.5 rounded-full">
+                {stats.pedidos}
+              </span>
             </div>
             <ArrowRight size={18} className="text-gray-400" />
           </Link>
@@ -150,6 +236,9 @@ export default function ParceiroDashboard() {
             <div className="flex items-center gap-3">
               <ShoppingBag size={20} className="text-blue-500" />
               <span className="font-medium text-black">Meus Produtos</span>
+              <span className="text-xs bg-blue-50 text-blue-500 px-2 py-0.5 rounded-full">
+                {stats.produtos}
+              </span>
             </div>
             <ArrowRight size={18} className="text-gray-400" />
           </Link>
@@ -161,6 +250,9 @@ export default function ParceiroDashboard() {
             <div className="flex items-center gap-3">
               <DollarSign size={20} className="text-green-500" />
               <span className="font-medium text-black">Comissões</span>
+              <span className="text-xs bg-green-50 text-green-500 px-2 py-0.5 rounded-full">
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.comissoes)}
+              </span>
             </div>
             <ArrowRight size={18} className="text-gray-400" />
           </Link>
