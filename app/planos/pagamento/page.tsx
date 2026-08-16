@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
 
-export default function PagamentoPage() {
+function PagamentoContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const paymentId = searchParams?.get('payment_id')
@@ -31,7 +31,6 @@ export default function PagamentoPage() {
         setStatus('success')
         setMessage('✅ Pagamento confirmado! Você já pode acessar o app.')
         
-        // Redirecionar para o dashboard após 3 segundos
         setTimeout(() => {
           router.push('/dashboard')
         }, 3000)
@@ -39,7 +38,6 @@ export default function PagamentoPage() {
         setStatus('loading')
         setMessage('⏳ Pagamento pendente. Aguarde a confirmação...')
         
-        // Verificar novamente após 5 segundos
         setTimeout(() => {
           verificarPagamento(paymentId)
         }, 5000)
@@ -93,5 +91,17 @@ export default function PagamentoPage() {
         </button>
       </div>
     </div>
+  )
+}
+
+export default function PagamentoPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
+      </div>
+    }>
+      <PagamentoContent />
+    </Suspense>
   )
 }
