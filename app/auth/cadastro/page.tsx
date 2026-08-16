@@ -1,419 +1,715 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabaseClient'
-import { Eye, EyeOff, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react'
+import { 
+  User, 
+  Mail, 
+  Lock, 
+  MapPin, 
+  Check, 
+  X, 
+  AlertCircle, 
+  Loader2,
+  Eye,
+  EyeOff,
+  ChevronRight,
+  Home,
+  Building2,
+  Map,
+  Hash
+} from 'lucide-react'
 
-export default function CadastroPage() {
+export default function Cadastro() {
   const router = useRouter()
+  
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [cep, setCep] = useState('')
+  const [logradouro, setLogradouro] = useState('')
+  const [bairro, setBairro] = useState('')
+  const [cidade, setCidade] = useState('')
+  const [estado, setEstado] = useState('')
+  const [numero, setNumero] = useState('')
+  const [complemento, setComplemento] = useState('')
+  const [buscandoCep, setBuscandoCep] = useState(false)
+  
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    cep: '',
-    street: '',
-    number: '',
-    complement: '',
-    neighborhood: '',
-    city: '',
-    state: '',
-    latitude: '',
-    longitude: ''
+  const [step, setStep] = useState(1)
+  
+  const [validations, setValidations] = useState({
+    email: { valid: false, message: '' },
+    password: { valid: false, message: '' },
+    fullName: { valid: false, message: '' },
+    cep: { valid: false, message: '' },
+    numero: { valid: false, message: '' }
   })
 
-  // Buscar endereço pelo CEP
-  const buscarEndereco = async (cep: string) => {
-    const cepLimpo = cep.replace(/\D/g, '')
-    if (cepLimpo.length !== 8) return
+  const buscarEnderecoPorCep = async (cepValue: string) => {
+    const cleanCep = cepValue.replace(/\D/g, '')
+    if (cleanCep.length !== 8) return
 
+    setBuscandoCep(true)
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`)
       const data = await response.json()
-
-      if (!data.erro) {
-        setFormData(prev => ({
-          ...prev,
-          street: data.logradouro || '',
-          neighborhood: data.bairro || '',
-          city: data.localidade || '',
-          state: data.uf || '',
-          latitude: '',
-          longitude: ''
-        }))
+      
+      if (data.erro) {
+        setError('CEP não encontrado.')
+        return
       }
+
+      setLogradouro(data.logradouro || '')
+      setBairro(data.bairro || '')
+      setCidade(data.localidade || '')
+      setEstado(data.uf || '')
+      setValidations(prev => ({ ...prev, cep: { valid: true, message: '' } }))
+      setError('')
+      
     } catch (error) {
       console.error('Erro ao buscar CEP:', error)
+      setError('Erro ao buscar CEP. Tente novamente.')
+    } finally {
+      setBuscandoCep(false)
     }
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+  useEffect(() => {
+    const cleanCep = cep.replace(/\D/g, '')
+    if (cleanCep.length === 8) {
+      buscarEnderecoPorCep(cep)
+    }
+  }, [cep])
 
-    if (name === 'cep') {
-      const cepLimpo = value.replace(/\D/g, '')
-      if (cepLimpo.length === 8) {
-        buscarEndereco(cepLimpo)
+  useEffect(() => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (email && !emailRegex.test(email)) {
+      setValidations(prev => ({ ...prev, email: { valid: false, message: 'E-mail inválido' } }))
+    } else if (email) {
+      setValidations(prev => ({ ...prev, email: { valid: true, message: '' } }))
+    }
+  }, [email])
+
+  useEffect(() => {
+    const hasUpperCase = /[A-Z]/.test(password)
+    const hasNumber = /[0-9]/.test(password)
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    const isValid = hasUpperCase && hasNumber && hasSpecialChar && password.length >= 6
+    
+    if (password && !isValid) {
+      let msg = ''
+      const missing = []
+      if (!hasUpperCase) missing.push('maiúscula')
+      if (!hasNumber) missing.push('número')
+      if (!hasSpecialChar) missing.push('caractere especial')
+      if (password.length < 6) missing.push('mínimo 6 caracteres')
+      msg = missing.join(', ')
+      setValidations(prev => ({ ...prev, password: { valid: false, message: msg } }))
+    } else if (password) {
+      setValidations(prev => ({ ...prev, password: { valid: true, message: '' } }))
+    }
+  }, [password])
+
+  useEffect(() => {
+    if (fullName && fullName.length < 3) {
+      setValidations(prev => ({ ...prev, fullName: { valid: false, message: 'Nome muito curto' } }))
+    } else if (fullName) {
+      setValidations(prev => ({ ...prev, fullName: { valid: true, message: '' } }))
+    }
+  }, [fullName])
+
+  useEffect(() => {
+    const cleanCep = cep.replace(/\D/g, '')
+    if (cleanCep && cleanCep.length !== 8) {
+      setValidations(prev => ({ ...prev, cep: { valid: false, message: 'CEP deve ter 8 dígitos' } }))
+    }
+  }, [cep])
+
+  useEffect(() => {
+    if (numero && numero.length > 0) {
+      setValidations(prev => ({ ...prev, numero: { valid: true, message: '' } }))
+    }
+  }, [numero])
+
+  const validatePassword = (password: string) => {
+    const hasUpperCase = /[A-Z]/.test(password)
+    const hasNumber = /[0-9]/.test(password)
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    return hasUpperCase && hasNumber && hasSpecialChar && password.length >= 6
+  }
+
+  const getCoordinatesFromCEP = async (cep: string) => {
+    try {
+      const cleanCep = cep.replace(/\D/g, '')
+      if (cleanCep.length !== 8) return { latitude: null, longitude: null }
+
+      const viaCepResponse = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`)
+      const endereco = await viaCepResponse.json()
+      
+      if (endereco.erro) throw new Error('CEP não encontrado')
+      
+      const query = `${endereco.logradouro}, ${endereco.bairro}, ${endereco.localidade}, ${endereco.uf}`
+      const nominatimResponse = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`
+      )
+      const nominatimData = await nominatimResponse.json()
+      
+      if (nominatimData?.[0]) {
+        return {
+          latitude: parseFloat(nominatimData[0].lat),
+          longitude: parseFloat(nominatimData[0].lon)
+        }
       }
+      
+      return { latitude: null, longitude: null }
+    } catch (error) {
+      console.error('Erro ao obter coordenadas:', error)
+      return { latitude: null, longitude: null }
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleNextStep = () => {
+    if (step === 1) {
+      if (!email || !password || !fullName) {
+        setError('Preencha todos os campos')
+        return
+      }
+      if (!validations.email.valid) {
+        setError('E-mail inválido')
+        return
+      }
+      if (!validations.password.valid) {
+        setError('Senha inválida')
+        return
+      }
+      if (!validations.fullName.valid) {
+        setError('Nome inválido')
+        return
+      }
+      setError('')
+      setStep(2)
+    } else if (step === 2) {
+      const cleanCep = cep.replace(/\D/g, '')
+      if (cleanCep.length !== 8) {
+        setError('CEP inválido')
+        return
+      }
+      if (!numero || numero.length === 0) {
+        setError('Número é obrigatório')
+        return
+      }
+      setError('')
+      setStep(3)
+    }
+  }
+
+  const handlePreviousStep = () => {
+    if (step > 1) setStep(step - 1)
+  }
+
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
     setLoading(true)
+    setError('')
 
-    // Validações
-    if (!formData.fullName.trim()) {
-      setError('Nome completo é obrigatório')
+    const cleanCep = cep.replace(/\D/g, '')
+    
+    if (cleanCep.length !== 8) {
+      setError('CEP inválido')
       setLoading(false)
       return
     }
 
-    if (!formData.email.trim()) {
-      setError('E-mail é obrigatório')
-      setLoading(false)
-      return
-    }
-
-    if (formData.password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres')
-      setLoading(false)
-      return
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('As senhas não coincidem')
-      setLoading(false)
-      return
-    }
-
-    if (!formData.cep.replace(/\D/g, '')) {
-      setError('CEP é obrigatório')
+    if (!validatePassword(password)) {
+      setError('Senha inválida')
       setLoading(false)
       return
     }
 
     try {
-      // 1. Criar usuário no Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: formData.fullName
-          }
-        }
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName } }
       })
 
-      if (authError) throw authError
+      if (signUpError) throw signUpError
 
-      if (!authData.user) {
-        throw new Error('Erro ao criar usuário')
-      }
+      if (authData.user) {
+        const { latitude, longitude } = await getCoordinatesFromCEP(cep)
+        
+        let groupId = null
 
-      // 2. Buscar grupo_id do usuário
-      const groupId = 18
+        // 🔥 CRIAR GRUPO CORRETAMENTE
+        if (latitude && longitude) {
+          try {
+            const cidadeNome = cidade || 'Localização do Usuário'
+            
+            // Verificar se já existe um grupo para esta cidade
+            const { data: existingGroup } = await (supabase
+              .from('groups') as any)
+              .select('id')
+              .eq('city_name', cidadeNome)
+              .maybeSingle()
 
-      // 3. Criar perfil do usuário
-      const cleanCep = formData.cep.replace(/\D/g, '')
-      
-      const trialEndDate = new Date()
-      trialEndDate.setDate(trialEndDate.getDate() + 7)
+            if (existingGroup) {
+              groupId = existingGroup.id
+            } else {
+              // 🔥 CRIAR NOVO GRUPO COM TODOS OS CAMPOS
+              const { data: newGroup, error: groupError } = await (supabase
+                .from('groups') as any)
+                .insert([{
+                  name: `Grupo ${cidadeNome}`,
+                  city_name: cidadeNome,
+                  center_latitude: latitude || 0,
+                  center_longitude: longitude || 0,
+                  member_count: 1,
+                  is_active: true,
+                  created_at: new Date().toISOString()
+                }])
+                .select('id')
+                .single()
+              
+              if (groupError) {
+                console.error('❌ Erro ao criar grupo:', groupError)
+              } else if (newGroup) {
+                groupId = newGroup.id
+                console.log('✅ Grupo criado com sucesso:', groupId)
+              }
+            }
+          } catch (groupErr) {
+            console.error('❌ Erro ao processar grupo:', groupErr)
+          }
+        }
 
-      const { error: profileError } = await (supabase
-  .from('profiles') as any)
-  .insert([{
-    id: authData.user.id,
-    full_name: formData.fullName,
-    mochila_tipo: 'BOB',
-    cep: cleanCep,
-    latitude: formData.latitude || null,
-    longitude: formData.longitude || null,
-    group_id: groupId,
-    street: formData.street,
-    number: formData.number,
-    complement: formData.complement,
-    neighborhood: formData.neighborhood,
-    city: formData.city,
-    state: formData.state,
-    trial_start_date: new Date().toISOString(),
-    trial_end_date: trialEndDate.toISOString(),
-    // 🔥 REMOVIDO: subscription_status: 'trial',
-    created_at: new Date().toISOString()
-  }])
+        // Criar perfil do usuário
+        const { error: profileError } = await (supabase
+          .from('profiles') as any)
+          .insert([{
+            id: authData.user.id,
+            full_name: fullName,
+            cep: cleanCep,
+            street: logradouro,
+            number: numero,
+            complement: complemento || '',
+            neighborhood: bairro,
+            city: cidade,
+            state: estado,
+            latitude: latitude || null,
+            longitude: longitude || null,
+            group_id: groupId,
+            trial_start_date: new Date().toISOString(),
+            trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            created_at: new Date().toISOString()
+          }])
 
-if (profileError) throw profileError
+        if (profileError) {
+          console.error('❌ Erro ao criar perfil:', profileError)
+          throw new Error('Erro ao criar perfil')
+        }
 
-setSuccess(true)
-      
-      // 🔥 REDIRECIONAR PARA A PÁGINA DE PLANOS
-      setTimeout(() => {
         router.push('/planos')
-      }, 1500)
-
-    } catch (error: any) {
-      console.error('Erro no cadastro:', error)
-      setError(error.message || 'Erro ao criar conta. Tente novamente.')
+      }
+    } catch (err: any) {
+      console.error('❌ Erro no cadastro:', err)
+      setError(err.message || 'Erro ao criar conta. Tente novamente.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        {/* Logo - AUMENTADA EM 50% */}
-        <div className="flex justify-center mb-8">
-          <img
-            src="/logo.svg"
-            alt="PREPARADO"
-            className="h-24 w-auto" // 🔥 AUMENTADO de h-16 para h-24
-            onError={(e) => { e.currentTarget.style.display = 'none' }}
-          />
-        </div>
-
-        <div className="bg-white py-8 px-4 shadow-sm border border-gray-100 rounded-xl sm:px-10">
-          {/* 🔥 TÍTULO REMOVIDO */}
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-              <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-
-          {success && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2">
-              <CheckCircle size={18} className="text-green-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm text-green-600 font-medium">Conta criada com sucesso!</p>
-                <p className="text-sm text-green-500">Redirecionando para escolha do plano...</p>
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Nome Completo */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nome Completo
-              </label>
-              <input
-                type="text"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-                placeholder="Seu nome completo"
-              />
-            </div>
-
-            {/* E-mail */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                E-mail
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-                placeholder="seu@email.com"
-              />
-            </div>
-
-            {/* Senha */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Senha
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent pr-10"
-                  placeholder="Mínimo 6 caracteres"
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-[#FFB800]/5 px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <img 
+                  src="/logo1.svg" 
+                  alt="PREPARADO" 
+                  className="h-8 w-auto"
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+                <span className="font-display font-bold text-gray-900 text-sm">PREPARADO</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {[1, 2, 3].map((s) => (
+                  <div
+                    key={s}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      s === step ? 'bg-[#FFB800] w-6' : s < step ? 'bg-green-500' : 'bg-gray-300'
+                    }`}
+                  />
+                ))}
               </div>
             </div>
+          </div>
 
-            {/* Confirmar Senha */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Confirmar Senha
-              </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-                placeholder="Confirme sua senha"
-              />
+          <div className="p-6">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-gray-900">
+                {step === 1 && 'Criar sua conta'}
+                {step === 2 && 'Endereço'}
+                {step === 3 && 'Finalizar'}
+              </h2>
             </div>
 
-            {/* CEP e Endereço */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  CEP
-                </label>
-                <input
-                  type="text"
-                  name="cep"
-                  value={formData.cep}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-                  placeholder="00000-000"
-                  maxLength={9}
-                />
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 flex items-center gap-2 text-sm">
+                <AlertCircle size={18} />
+                {error}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Número
-                </label>
-                <input
-                  type="text"
-                  name="number"
-                  value={formData.number}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-                  placeholder="123"
-                />
-              </div>
-            </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Rua
-              </label>
-              <input
-                type="text"
-                name="street"
-                value={formData.street}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-                placeholder="Rua Exemplo"
-              />
-            </div>
+            <form onSubmit={handleSignUp} className="space-y-4">
+              {step === 1 && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nome Completo
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <User size={18} />
+                      </div>
+                      <input
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition ${
+                          fullName && validations.fullName.valid ? 'border-green-500' : 'border-gray-300'
+                        }`}
+                        placeholder="Seu nome completo"
+                      />
+                      {fullName && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {validations.fullName.valid ? (
+                            <Check size={18} className="text-green-500" />
+                          ) : (
+                            <X size={18} className="text-red-500" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Bairro
-                </label>
-                <input
-                  type="text"
-                  name="neighborhood"
-                  value={formData.neighborhood}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-                  placeholder="Bairro"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cidade
-                </label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-                  placeholder="Cidade"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Estado
-                </label>
-                <input
-                  type="text"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-                  placeholder="UF"
-                  maxLength={2}
-                />
-              </div>
-            </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      E-mail
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Mail size={18} />
+                      </div>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition ${
+                          email && validations.email.valid ? 'border-green-500' : 'border-gray-300'
+                        }`}
+                        placeholder="contato@email.com"
+                      />
+                      {email && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {validations.email.valid ? (
+                            <Check size={18} className="text-green-500" />
+                          ) : (
+                            <X size={18} className="text-red-500" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Complemento
-              </label>
-              <input
-                type="text"
-                name="complement"
-                value={formData.complement}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-                placeholder="Apto, Bloco, etc."
-              />
-            </div>
-
-            {/* 🔥 PLANOS E CARTÃO REMOVIDOS */}
-
-            <button
-              type="submit"
-              disabled={loading || success}
-              className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-2.5 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {loading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
-              ) : success ? (
-                <>
-                  <CheckCircle size={18} />
-                  Conta criada!
-                </>
-              ) : (
-                <>
-                  Criar conta
-                  <ArrowRight size={18} />
-                </>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Senha
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Lock size={18} />
+                      </div>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={`w-full pl-10 pr-16 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition ${
+                          password && validations.password.valid ? 'border-green-500' : 'border-gray-300'
+                        }`}
+                        placeholder="••••••••"
+                        minLength={6}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    {password && !validations.password.valid && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {validations.password.message}
+                      </p>
+                    )}
+                    {password && validations.password.valid && (
+                      <p className="text-xs text-green-500 mt-1">Senha válida</p>
+                    )}
+                  </div>
+                </div>
               )}
-            </button>
-          </form>
 
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-500">
-              Já tem uma conta?{' '}
-              <Link href="/auth/login" className="text-[#FFB800] hover:underline font-medium">
-                Faça login
-              </Link>
-            </p>
+              {step === 2 && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      CEP
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <MapPin size={18} />
+                      </div>
+                      <input
+                        type="text"
+                        value={cep}
+                        onChange={(e) => setCep(e.target.value)}
+                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition ${
+                          buscandoCep ? 'border-blue-300' : cep && validations.cep.valid ? 'border-green-500' : 'border-gray-300'
+                        }`}
+                        placeholder="00000-000"
+                        maxLength={9}
+                      />
+                      {buscandoCep && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 size={18} className="animate-spin text-blue-500" />
+                        </div>
+                      )}
+                      {!buscandoCep && cep && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {validations.cep.valid ? (
+                            <Check size={18} className="text-green-500" />
+                          ) : (
+                            <X size={18} className="text-red-500" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Logradouro
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Home size={18} />
+                      </div>
+                      <input
+                        type="text"
+                        value={logradouro}
+                        onChange={(e) => setLogradouro(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition bg-gray-50"
+                        placeholder="Rua, Avenida..."
+                        disabled={!!logradouro}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Número
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                          <Hash size={18} />
+                        </div>
+                        <input
+                          type="text"
+                          value={numero}
+                          onChange={(e) => setNumero(e.target.value)}
+                          className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition ${
+                            numero && validations.numero.valid ? 'border-green-500' : 'border-gray-300'
+                          }`}
+                          placeholder="Nº"
+                        />
+                      </div>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Complemento
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                          <Building2 size={18} />
+                        </div>
+                        <input
+                          type="text"
+                          value={complemento}
+                          onChange={(e) => setComplemento(e.target.value)}
+                          className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition"
+                          placeholder="Apto, Bloco..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Bairro
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Map size={18} />
+                      </div>
+                      <input
+                        type="text"
+                        value={bairro}
+                        onChange={(e) => setBairro(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition bg-gray-50"
+                        placeholder="Bairro"
+                        disabled={!!bairro}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Cidade
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                          <Map size={18} />
+                        </div>
+                        <input
+                          type="text"
+                          value={cidade}
+                          onChange={(e) => setCidade(e.target.value)}
+                          className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition bg-gray-50"
+                          placeholder="Cidade"
+                          disabled={!!cidade}
+                        />
+                      </div>
+                    </div>
+                    <div className="col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        UF
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                          <Map size={18} />
+                        </div>
+                        <input
+                          type="text"
+                          value={estado}
+                          onChange={(e) => setEstado(e.target.value)}
+                          className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition bg-gray-50 uppercase"
+                          placeholder="UF"
+                          maxLength={2}
+                          disabled={!!estado}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div className="space-y-4">
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Nome</span>
+                      <span className="text-gray-900 font-medium">{fullName}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">E-mail</span>
+                      <span className="text-gray-900 font-medium">{email}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Endereço</span>
+                      <span className="text-gray-900 font-medium text-right">
+                        {logradouro}, {numero}
+                        {complemento && `, ${complemento}`}
+                        <br />
+                        {bairro} - {cidade}/{estado}
+                        <br />
+                        CEP: {cep}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-4">
+                    <p className="text-sm text-yellow-700">
+                      Ao criar sua conta, você concorda com os termos de uso e política de privacidade.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4 border-t border-gray-100">
+                {step > 1 && (
+                  <button
+                    type="button"
+                    onClick={handlePreviousStep}
+                    className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition"
+                  >
+                    Voltar
+                  </button>
+                )}
+                
+                {step < 3 ? (
+                  <button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="flex-1 bg-[#FFB800] hover:bg-[#E5A600] text-black font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
+                  >
+                    Continuar
+                    <ChevronRight size={18} />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 bg-[#FFB800] hover:bg-[#E5A600] text-black font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        Criando...
+                      </>
+                    ) : (
+                      <>
+                        <Check size={18} />
+                        Criar conta
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-500">
+                Já tem uma conta?{' '}
+                <Link href="/auth/login" className="text-[#FFB800] hover:underline font-medium">
+                  Faça login
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
 
         <div className="mt-4 text-center">
           <p className="text-xs text-gray-400">
-            Ao criar sua conta, você concorda com nossos termos de uso
+            Seus dados estão seguros. Não compartilhamos suas informações.
           </p>
         </div>
       </div>

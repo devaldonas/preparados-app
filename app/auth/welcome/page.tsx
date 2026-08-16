@@ -1,4 +1,3 @@
-// app/auth/welcome/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -12,7 +11,7 @@ export default function WelcomePage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [trialEndDate, setTrialEndDate] = useState<Date | null>(null)
-  const [daysLeft, setDaysLeft] = useState(30)
+  const [daysLeft, setDaysLeft] = useState(7)
   const [hoursLeft, setHoursLeft] = useState(0)
   const [minutesLeft, setMinutesLeft] = useState(0)
 
@@ -40,26 +39,30 @@ export default function WelcomePage() {
 
       setUser(user)
 
+      // 🔥 BUSCAR APENAS OS CAMPOS QUE EXISTEM
       const { data: profile, error } = await (supabase
-  .from('profiles') as any)
-  .select('trial_start_date, trial_end_date') // ← REMOVE subscription_status
-  .eq('id', user.id)
-  .maybeSingle() // ← MUDA para maybeSingle()
+        .from('profiles') as any)
+        .select('trial_start_date, trial_end_date')
+        .eq('id', user.id)
+        .maybeSingle()
 
-if (error) {
-  console.error('Erro ao carregar perfil:', error)
-  return
-}
-
-if (profile?.trial_end_date) {
-  const endDate = new Date(profile.trial_end_date)
-  setTrialEndDate(endDate)
-  calcularTempoRestante(endDate)
-}
-
-      if (profile?.subscription_status === 'active') {
-        router.push('/dashboard')
+      if (error) {
+        console.error('Erro ao carregar perfil:', error)
+        setLoading(false)
         return
+      }
+
+      // 🔥 Se tiver trial_end_date, calcular o tempo restante
+      if (profile?.trial_end_date) {
+        const endDate = new Date(profile.trial_end_date)
+        setTrialEndDate(endDate)
+        calcularTempoRestante(endDate)
+      } else {
+        // 🔥 Se não tiver trial_end_date, definir 7 dias a partir de agora
+        const defaultEndDate = new Date()
+        defaultEndDate.setDate(defaultEndDate.getDate() + 7)
+        setTrialEndDate(defaultEndDate)
+        calcularTempoRestante(defaultEndDate)
       }
 
     } catch (error) {

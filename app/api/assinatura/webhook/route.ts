@@ -1,29 +1,47 @@
-// app/api/assinatura/webhook/route.ts
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    console.log('📦 Webhook recebido:', body)
+    console.log('📦 Webhook de assinatura recebido:', body)
 
-    // 🔥 CORRIGIDO: usando as any e removendo subscription_status
-    const { error: updateError } = await (supabase
-      .from('profiles') as any)
-      .update({
-        plan_id: body.plan_id || 1,
-        subscription_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        subscription_id: body.subscription_id || `webhook_${Date.now()}`,
-        payment_method: body.payment_method || 'card'
-      })
-      .eq('id', body.user_id)
+    const { type, data } = body
 
-    if (updateError) {
-      console.error('❌ Erro ao atualizar assinatura:', updateError)
-      return NextResponse.json(
-        { error: 'Erro ao atualizar assinatura' },
-        { status: 500 }
-      )
+    if (type === 'preapproval' && data) {
+      const { id, status, external_reference } = data
+
+      console.log(`📦 Assinatura ${id} - Status: ${status}`)
+
+      if (status === 'authorized' || status === 'active') {
+        // 🔥 Atualizar assinatura como ativa
+        await (supabase
+          .from('profiles') as any)
+          .update({
+            subscription_status: 'active',
+            subscription_id: id
+          })
+          .eq('id', external_reference)
+
+        // 🔥 Atualizar tabela de subscriptions
+        await (supabase
+          .from('subscriptions') as any)
+          .update({
+            status: 'active',
+            updated_at: new Date().toISOString()
+          })
+          .eq('mp_subscription_id', id)
+      }
+
+      if (status === 'cancelled') {
+        // 🔥 Cancelar assinatura
+        await (supabase
+          .from('profiles') as any)
+          .update({
+            subscription_status: 'cancelled'
+          })
+          .eq('subscription_id', id)
+      }
     }
 
     return NextResponse.json({ success: true })

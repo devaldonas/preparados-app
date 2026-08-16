@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Crown, Check } from 'lucide-react'
 
 interface Plan {
   id: number
@@ -35,7 +35,6 @@ export default function PlanosPage() {
       }
       setUser(user)
 
-      // 🔥 CORRIGIDO: buscar planos com as any
       const { data, error } = await (supabase
         .from('plans') as any)
         .select('*')
@@ -45,10 +44,7 @@ export default function PlanosPage() {
       if (error) throw error
       setPlans(data || [])
       
-      const annualPlan = data?.find((p: any) => p.interval === 'year')
-      if (annualPlan) {
-        setSelectedPlan(annualPlan.id)
-      } else if (data && data.length > 0) {
+      if (data && data.length > 0) {
         setSelectedPlan(data[0].id)
       }
     } catch (error) {
@@ -89,10 +85,12 @@ export default function PlanosPage() {
         throw new Error(data.error || 'Erro ao criar assinatura')
       }
 
+      // 🔥 Redirecionar para o Mercado Pago para cadastrar o cartão
       if (data.initPoint) {
         window.location.href = data.initPoint
       } else {
-        router.push(`/planos/pagamento?payment_id=${data.paymentId}`)
+        // Fallback: ir para welcome
+        router.push('/auth/welcome')
       }
 
     } catch (error) {
@@ -118,12 +116,6 @@ export default function PlanosPage() {
     )
   }
 
-  const sortedPlans = [...plans].sort((a, b) => {
-    if (a.interval === 'year' && b.interval === 'month') return -1
-    if (a.interval === 'month' && b.interval === 'year') return 1
-    return 0
-  })
-
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto px-4">
@@ -131,11 +123,13 @@ export default function PlanosPage() {
           <h1 className="text-3xl font-bold text-gray-900">
             Escolha seu plano
           </h1>
+          <p className="text-gray-600 mt-2">
+            Teste grátis por 7 dias. Cancele a qualquer momento.
+          </p>
         </div>
 
-        {/* Planos */}
         <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {sortedPlans.map((plan) => {
+          {plans.map((plan) => {
             const isAnual = plan.interval === 'year'
             const precoMensal = isAnual ? (plan.price / 12) : plan.price
             const isSelected = selectedPlan === plan.id
@@ -152,52 +146,42 @@ export default function PlanosPage() {
               >
                 {isAnual && (
                   <div className="absolute -top-3 right-6 bg-[#FFB800] text-black text-xs font-bold px-3 py-1 rounded-full">
-                    40% OFF
+                    Melhor Custo-Benefício
                   </div>
                 )}
 
-                <h2 className={`text-xl font-bold mb-2 ${isAnual ? 'text-[#FFB800]' : 'text-gray-900'}`}>
-                  {plan.name}
-                </h2>
-
-                {!isAnual && (
-                  <div className="mb-1">
-                    <span className="text-3xl font-bold text-gray-900">
-                      {formatPrice(plan.price)}
+                <div className="flex items-center justify-between">
+                  <h2 className={`text-xl font-bold ${isAnual ? 'text-[#FFB800]' : 'text-gray-900'}`}>
+                    {plan.name}
+                  </h2>
+                  {isSelected && (
+                    <span className="bg-[#FFB800] text-black text-xs font-bold px-2 py-1 rounded-full">
+                      SELECIONADO
                     </span>
-                    <span className="text-sm text-gray-500 ml-1">/mês</span>
-                  </div>
-                )}
+                  )}
+                </div>
+
+                <div className="mt-2">
+                  <span className="text-3xl font-bold text-gray-900">
+                    {formatPrice(isAnual ? precoMensal : plan.price)}
+                  </span>
+                  <span className="text-sm text-gray-500 ml-1">/mês</span>
+                </div>
 
                 {isAnual && (
-                  <>
-                    <div className="mb-1">
-                      <span className="text-4xl font-bold text-[#FFB800]">
-                        {formatPrice(precoMensal)}
-                      </span>
-                      <span className="text-sm font-semibold text-gray-600 ml-1">/mês</span>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      Total: {formatPrice(plan.price)}/ano
-                    </p>
-                  </>
+                  <p className="text-sm text-gray-500">
+                    Total: {formatPrice(plan.price)}/ano
+                  </p>
                 )}
 
                 <p className="text-xs text-gray-400 mt-3">
-                  ✅ Acesso completo
+                  ✅ Acesso completo a todos os recursos
                 </p>
-
-                {isSelected && (
-                  <div className="mt-3 text-xs text-[#FFB800] font-semibold">
-                    ✓ Plano selecionado
-                  </div>
-                )}
               </div>
             )
           })}
         </div>
 
-        {/* Botão e informação do cartão */}
         <div className="mt-10 flex flex-col items-center">
           <button
             onClick={handleAssinar}
@@ -210,7 +194,10 @@ export default function PlanosPage() {
                 Processando...
               </>
             ) : (
-              'Teste Grátis por 7 dias'
+              <>
+                <Crown size={20} />
+                Teste Grátis por 7 dias
+              </>
             )}
           </button>
 
@@ -219,6 +206,8 @@ export default function PlanosPage() {
               Seu cartão <strong>não será cobrado</strong> durante os 7 dias de teste.
               <br />
               A cobrança começa automaticamente após o período gratuito.
+              <br />
+              Você pode cancelar a qualquer momento.
             </p>
           </div>
         </div>
