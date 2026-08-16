@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
 
 const MERCADO_PAGO_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://preparado.vercel.app'
 
 export async function POST(request: Request) {
   try {
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
       .eq('id', userId)
       .single()
 
-    // 🔥 Criar assinatura no Mercado Pago (pre approval)
+    // 🔥 Criar assinatura no Mercado Pago (preapproval)
     const subscriptionData = {
       reason: `Plano ${planName} - PREPARADO`,
       auto_recurring: {
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
         transaction_amount: price,
         currency_id: 'BRL'
       },
-      back_url: `${process.env.NEXT_PUBLIC_APP_URL}/auth/welcome`,
+      back_url: `${APP_URL}/auth/welcome`,
       payer_email: userEmail || profile?.email || 'cliente@email.com',
       external_reference: userId,
       metadata: {
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log('📤 Enviando para Mercado Pago (assinatura):', subscriptionData)
+    console.log('📤 Enviando para Mercado Pago:', JSON.stringify(subscriptionData, null, 2))
 
     const response = await fetch('https://api.mercadopago.com/preapproval', {
       method: 'POST',
@@ -55,49 +56,52 @@ export async function POST(request: Request) {
     })
 
     const data = await response.json()
-    console.log('📥 Resposta Mercado Pago:', data)
+    console.log('📥 Resposta Mercado Pago:', JSON.stringify(data, null, 2))
 
     if (!response.ok) {
       console.error('❌ Erro Mercado Pago:', data)
+      
       return NextResponse.json(
-        { success: false, error: data.message || 'Erro ao criar assinatura' },
+        { 
+          success: false, 
+          error: data.message || 'Erro ao criar assinatura.',
+          details: data
+        },
         { status: response.status }
       )
     }
 
-    // 🔥 Salvar assinatura no banco (trial)
+    // 🔥 Salvar assinatura no banco (trial pendente)
     await (supabase
       .from('profiles') as any)
       .update({
         plan_id: planId,
-        subscription_status: 'trial',
+        subscription_status: 'pending_payment',
         subscription_id: data.id,
         payment_method: 'card',
-        subscription_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         trial_start_date: new Date().toISOString(),
         trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       })
       .eq('id', userId)
 
-    // 🔥 Salvar na tabela de assinaturas
+    // 🔥 Salvar na tabela de subscriptions
     await (supabase
       .from('subscriptions') as any)
       .insert([{
         user_id: userId,
         plan_id: planId,
-        status: 'trial',
+        status: 'pending_payment',
         trial_start: new Date().toISOString(),
         trial_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
         mp_subscription_id: data.id,
         mp_preapproval_id: data.id
       }])
 
-    // 🔥 Redirecionar para o Mercado Pago para cadastrar o cartão
     return NextResponse.json({
       success: true,
       initPoint: data.init_point,
       subscriptionId: data.id,
-      message: 'Assinatura criada! Redirecione para o Mercado Pago para cadastrar o cartão.'
+      message: 'Assinatura criada! Redirecione para o Mercado Pago.'
     })
 
   } catch (error) {
