@@ -1,4 +1,3 @@
-// app/auth/cadastro-parceiro/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -27,7 +26,6 @@ import {
 export default function CadastroParceiro() {
   const router = useRouter()
   
-  // Estados do formulário
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
@@ -41,13 +39,13 @@ export default function CadastroParceiro() {
   const [numero, setNumero] = useState('')
   const [complemento, setComplemento] = useState('')
   const [buscandoCep, setBuscandoCep] = useState(false)
+  const [phone, setPhone] = useState('')
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [step, setStep] = useState(1)
   
-  // Validação em tempo real
   const [validations, setValidations] = useState({
     email: { valid: false, message: '' },
     password: { valid: false, message: '' },
@@ -58,7 +56,6 @@ export default function CadastroParceiro() {
     numero: { valid: false, message: '' }
   })
 
-  // Buscar endereço pelo CEP
   const buscarEnderecoPorCep = async (cepValue: string) => {
     const cleanCep = cepValue.replace(/\D/g, '')
     if (cleanCep.length !== 8) return
@@ -88,7 +85,6 @@ export default function CadastroParceiro() {
     }
   }
 
-  // Monitorar mudanças no CEP
   useEffect(() => {
     const cleanCep = cep.replace(/\D/g, '')
     if (cleanCep.length === 8) {
@@ -96,7 +92,6 @@ export default function CadastroParceiro() {
     }
   }, [cep])
 
-  // Validar email
   useEffect(() => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (email && !emailRegex.test(email)) {
@@ -106,7 +101,6 @@ export default function CadastroParceiro() {
     }
   }, [email])
 
-  // Validar senha
   useEffect(() => {
     const hasUpperCase = /[A-Z]/.test(password)
     const hasNumber = /[0-9]/.test(password)
@@ -127,7 +121,6 @@ export default function CadastroParceiro() {
     }
   }, [password])
 
-  // Validar nome
   useEffect(() => {
     if (fullName && fullName.length < 3) {
       setValidations(prev => ({ ...prev, fullName: { valid: false, message: 'Nome muito curto' } }))
@@ -136,7 +129,6 @@ export default function CadastroParceiro() {
     }
   }, [fullName])
 
-  // Validar nome da empresa
   useEffect(() => {
     if (companyName && companyName.length < 3) {
       setValidations(prev => ({ ...prev, companyName: { valid: false, message: 'Nome da empresa muito curto' } }))
@@ -145,7 +137,6 @@ export default function CadastroParceiro() {
     }
   }, [companyName])
 
-  // Validar CNPJ
   useEffect(() => {
     const cleanCnpj = cnpj.replace(/\D/g, '')
     if (cleanCnpj && cleanCnpj.length !== 14) {
@@ -155,98 +146,30 @@ export default function CadastroParceiro() {
     }
   }, [cnpj])
 
-  // Validar CEP
-  useEffect(() => {
-    const cleanCep = cep.replace(/\D/g, '')
-    if (cleanCep && cleanCep.length !== 8) {
-      setValidations(prev => ({ ...prev, cep: { valid: false, message: 'CEP deve ter 8 dígitos' } }))
-    }
-  }, [cep])
-
-  // Validar número
-  useEffect(() => {
-    if (numero && numero.length > 0) {
-      setValidations(prev => ({ ...prev, numero: { valid: true, message: '' } }))
-    }
-  }, [numero])
-
-  const validatePassword = (password: string) => {
-    const hasUpperCase = /[A-Z]/.test(password)
-    const hasNumber = /[0-9]/.test(password)
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
-    return hasUpperCase && hasNumber && hasSpecialChar && password.length >= 6
-  }
-
-  const getCoordinatesFromCEP = async (cep: string) => {
-    try {
-      const cleanCep = cep.replace(/\D/g, '')
-      if (cleanCep.length !== 8) return { latitude: null, longitude: null }
-
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-      if (apiKey) {
-        try {
-          const response = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?address=${cleanCep}&key=${apiKey}`
-          )
-          const data = await response.json()
-          if (data.status === 'OK' && data.results?.[0]) {
-            const { lat, lng } = data.results[0].geometry.location
-            return { latitude: lat, longitude: lng }
-          }
-        } catch (googleError) {
-          console.error('Google Maps falhou:', googleError)
-        }
-      }
-      
-      const viaCepResponse = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`)
-      const endereco = await viaCepResponse.json()
-      
-      if (endereco.erro) throw new Error('CEP não encontrado')
-      
-      const query = `${endereco.logradouro}, ${endereco.bairro}, ${endereco.localidade}, ${endereco.uf}`
-      const nominatimResponse = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`
-      )
-      const nominatimData = await nominatimResponse.json()
-      
-      if (nominatimData?.[0]) {
-        return {
-          latitude: parseFloat(nominatimData[0].lat),
-          longitude: parseFloat(nominatimData[0].lon)
-        }
-      }
-      
-      throw new Error('Não foi possível obter coordenadas')
-    } catch (error) {
-      console.error('Erro ao obter coordenadas:', error)
-      return { latitude: null, longitude: null }
-    }
-  }
-
   const handleNextStep = () => {
     if (step === 1) {
-      if (!validations.email.valid && email) {
+      if (!email || !password || !fullName || !companyName || !cnpj) {
+        setError('Preencha todos os campos')
+        return
+      }
+      if (!validations.email.valid) {
         setError('E-mail inválido')
         return
       }
-      if (!validations.password.valid && password) {
+      if (!validations.password.valid) {
         setError('Senha inválida')
         return
       }
-      if (!validations.fullName.valid && fullName) {
+      if (!validations.fullName.valid) {
         setError('Nome inválido')
         return
       }
-      if (!validations.companyName.valid && companyName) {
+      if (!validations.companyName.valid) {
         setError('Nome da empresa inválido')
         return
       }
-      if (!validations.cnpj.valid && cnpj) {
+      if (!validations.cnpj.valid) {
         setError('CNPJ inválido')
-        return
-      }
-      if (!email || !password || !fullName || !companyName || !cnpj) {
-        setError('Preencha todos os campos')
         return
       }
       setError('')
@@ -271,133 +194,97 @@ export default function CadastroParceiro() {
   }
 
   const handleSignUp = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setLoading(true)
-  setError('')
+    e.preventDefault()
+    setLoading(true)
+    setError('')
 
-  const cleanCep = cep.replace(/\D/g, '')
-  const cleanCnpj = cnpj.replace(/\D/g, '')
-  
-  if (cleanCep.length !== 8) {
-    setError('CEP inválido')
-    setLoading(false)
-    return
-  }
-
-  if (cleanCnpj.length !== 14) {
-    setError('CNPJ inválido')
-    setLoading(false)
-    return
-  }
-
-  if (!validatePassword(password)) {
-    setError('Senha inválida')
-    setLoading(false)
-    return
-  }
-
-  try {
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } }
-    })
-
-    if (signUpError) throw signUpError
-
-    if (authData.user) {
-      const { latitude, longitude } = await getCoordinatesFromCEP(cep)
-      
-      let groupId = null
-
-      if (latitude && longitude) {
-        try {
-          const cidade = 'Localização do Usuário'
-          
-          const { data: existingGroup } = await (supabase
-            .from('groups') as any)
-            .select('id')
-            .eq('city_name', cidade)
-            .maybeSingle()
-
-          if (existingGroup) {
-            groupId = existingGroup.id
-          } else {
-            const { data: newGroup } = await (supabase
-              .from('groups') as any)
-              .insert([{
-                name: `Grupo ${cidade}`,
-                city_name: cidade,
-                center_latitude: latitude,
-                center_longitude: longitude,
-                member_count: 1,
-                is_active: true
-              }])
-              .select('id')
-              .single()
-            
-            if (newGroup) {
-              groupId = newGroup.id
-            }
-          }
-        } catch (groupErr) {
-          console.error('Erro ao processar grupo:', groupErr)
-        }
-      }
-
-      // 🔥 CRIAR PERFIL DO PARCEIRO
-      const { error: profileError } = await (supabase
-        .from('profiles') as any)
-        .insert([{
-          id: authData.user.id,
-          full_name: fullName,
-          role: 'partner',
-          cep: cleanCep,
-          latitude: latitude || null,
-          longitude: longitude || null,
-          group_id: groupId,
-          trial_start_date: new Date().toISOString(),
-          trial_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date().toISOString()
-        }])
-
-      if (profileError) {
-        console.error('Erro ao criar perfil:', profileError)
-        throw new Error('Erro ao criar perfil')
-      }
-
-      // 🔥 CRIAR REGISTRO DO PARCEIRO
-      const { error: partnerError } = await (supabase
-        .from('partners') as any)
-        .insert([{
-          user_id: authData.user.id,
-          company_name: companyName,
-          cnpj: cleanCnpj,
-          email: email,
-          status: 'pending'
-        }])
-
-      if (partnerError) {
-        console.error('Erro ao criar parceiro:', partnerError)
-        // Não bloquear o cadastro se falhar
-      }
-
-      // 🔥 REDIRECIONAR
-      router.push('/parceiro/dashboard')
+    const cleanCep = cep.replace(/\D/g, '')
+    const cleanCnpj = cnpj.replace(/\D/g, '')
+    
+    if (cleanCep.length !== 8) {
+      setError('CEP inválido')
+      setLoading(false)
+      return
     }
-  } catch (err: any) {
-    console.error('Erro no cadastro:', err)
-    setError(err.message || 'Erro ao criar conta. Tente novamente.')
-  } finally {
-    setLoading(false)
+
+    if (cleanCnpj.length !== 14) {
+      setError('CNPJ inválido')
+      setLoading(false)
+      return
+    }
+
+    try {
+      // 🔥 1. Criar usuário
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName } }
+      })
+
+      if (signUpError) throw signUpError
+
+      if (authData.user) {
+        // 🔥 2. Criar perfil do parceiro
+        const { error: profileError } = await (supabase
+          .from('profiles') as any)
+          .insert([{
+            id: authData.user.id,
+            full_name: fullName,
+            role: 'partner',
+            cep: cleanCep,
+            street: logradouro,
+            number: numero,
+            complement: complemento || '',
+            neighborhood: bairro,
+            city: cidade,
+            state: estado,
+            phone: phone || '',
+            created_at: new Date().toISOString()
+          }])
+
+        if (profileError) {
+          console.error('❌ Erro ao criar perfil:', profileError)
+          throw new Error('Erro ao criar perfil')
+        }
+
+        // 🔥 3. Criar registro na tabela partners
+        const { error: partnerError } = await (supabase
+          .from('partners') as any)
+          .insert([{
+            user_id: authData.user.id,
+            company_name: companyName,
+            cnpj: cleanCnpj,
+            email: email,
+            phone: phone || '',
+            address: `${logradouro}, ${numero}${complemento ? ', ' + complemento : ''}`,
+            city: cidade,
+            state: estado,
+            zip: cleanCep,
+            status: 'pending',
+            commission_rate: 15.00,
+            created_at: new Date().toISOString()
+          }])
+
+        if (partnerError) {
+          console.error('❌ Erro ao criar parceiro:', partnerError)
+          // Não bloquear o cadastro se falhar
+        }
+
+        // 🔥 4. Redirecionar para o dashboard do parceiro
+        router.push('/parceiro/dashboard')
+      }
+    } catch (err: any) {
+      console.error('❌ Erro no cadastro:', err)
+      setError(err.message || 'Erro ao criar conta. Tente novamente.')
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          {/* Header com progresso */}
           <div className="bg-[#FFB800]/5 px-6 py-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -423,7 +310,6 @@ export default function CadastroParceiro() {
           </div>
 
           <div className="p-6">
-            {/* Título */}
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-900">
                 {step === 1 && 'Seja um Parceiro'}
@@ -432,7 +318,6 @@ export default function CadastroParceiro() {
               </h2>
             </div>
 
-            {/* Exibição de erro */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 flex items-center gap-2 text-sm">
                 <AlertCircle size={18} />
@@ -441,10 +326,8 @@ export default function CadastroParceiro() {
             )}
 
             <form onSubmit={handleSignUp} className="space-y-4">
-              {/* STEP 1: Dados Básicos */}
               {step === 1 && (
                 <div className="space-y-4">
-                  {/* Nome do Responsável */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Nome do Responsável
@@ -474,7 +357,6 @@ export default function CadastroParceiro() {
                     </div>
                   </div>
 
-                  {/* Nome da Empresa */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Nome da Empresa
@@ -504,7 +386,6 @@ export default function CadastroParceiro() {
                     </div>
                   </div>
 
-                  {/* CNPJ */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       CNPJ
@@ -534,7 +415,24 @@ export default function CadastroParceiro() {
                     </div>
                   </div>
 
-                  {/* E-mail */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Telefone
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <MapPin size={18} />
+                      </div>
+                      <input
+                        type="text"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition"
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       E-mail
@@ -564,7 +462,6 @@ export default function CadastroParceiro() {
                     </div>
                   </div>
 
-                  {/* Senha */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Senha
@@ -603,10 +500,8 @@ export default function CadastroParceiro() {
                 </div>
               )}
 
-              {/* STEP 2: Endereço */}
               {step === 2 && (
                 <div className="space-y-4">
-                  {/* CEP */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       CEP
@@ -642,7 +537,6 @@ export default function CadastroParceiro() {
                     </div>
                   </div>
 
-                  {/* Logradouro */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Logradouro
@@ -662,7 +556,6 @@ export default function CadastroParceiro() {
                     </div>
                   </div>
 
-                  {/* Número + Complemento */}
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -702,7 +595,6 @@ export default function CadastroParceiro() {
                     </div>
                   </div>
 
-                  {/* Bairro */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Bairro
@@ -722,7 +614,6 @@ export default function CadastroParceiro() {
                     </div>
                   </div>
 
-                  {/* Cidade + Estado */}
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -765,7 +656,6 @@ export default function CadastroParceiro() {
                 </div>
               )}
 
-              {/* STEP 3: Revisão */}
               {step === 3 && (
                 <div className="space-y-4">
                   <div className="bg-gray-50 rounded-lg p-4 space-y-3">
@@ -780,6 +670,10 @@ export default function CadastroParceiro() {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">CNPJ</span>
                       <span className="text-gray-900 font-medium">{cnpj}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Telefone</span>
+                      <span className="text-gray-900 font-medium">{phone || 'Não informado'}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">E-mail</span>
@@ -806,7 +700,6 @@ export default function CadastroParceiro() {
                 </div>
               )}
 
-              {/* Botões de Navegação */}
               <div className="flex gap-3 pt-4 border-t border-gray-100">
                 {step > 1 && (
                   <button
@@ -849,7 +742,6 @@ export default function CadastroParceiro() {
               </div>
             </form>
 
-            {/* Link para login */}
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-500">
                 Já tem uma conta?{' '}
@@ -861,7 +753,6 @@ export default function CadastroParceiro() {
           </div>
         </div>
 
-        {/* Rodapé */}
         <div className="mt-4 text-center">
           <p className="text-xs text-gray-400">
             Seus dados estão seguros. Não compartilhamos suas informações.
