@@ -7,9 +7,9 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://preparado.vercel.app
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { planId, planName, price, interval, userId, userEmail } = body
+    const { planId, planName, price, interval, userId, userEmail, paymentMethod } = body
 
-    console.log('📥 Criando assinatura:', { planId, planName, price, interval, userId })
+    console.log('📥 Criando assinatura:', { planId, planName, price, interval, userId, paymentMethod })
 
     if (!planId || !userId) {
       return NextResponse.json(
@@ -33,7 +33,78 @@ export async function POST(request: Request) {
       .eq('id', userId)
       .single()
 
-    // 🔥 Criar assinatura no Mercado Pago (sem trial)
+    // 🔥 Se for PIX, criar pagamento único (não assinatura)
+    if (paymentMethod === 'pix') {
+      const pixData = {
+        transaction_amount: 476.28,
+        description: 'Plano Anual - PREPARADO (PIX)',
+        payment_method_id: 'pix',
+        payer: {
+          email: userEmail || profile?.email || 'cliente@email.com',
+          first_name: profile?.full_name || 'Cliente',
+          identification: {
+            type: 'CPF',
+            number: '12345678909'
+          }
+        },
+        metadata: {
+          plan_id: planId,
+          plan_name: planName,
+          user_id: userId,
+          payment_type: 'pix'
+        }
+      }
+
+      console.log('📤 Enviando PIX para Mercado Pago:', JSON.stringify(pixData, null, 2))
+
+      const response = await fetch('https://api.mercadopago.com/v1/payments', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${MERCADO_PAGO_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': `${userId}-${Date.now()}`
+        },
+        body: JSON.stringify(pixData)
+      })
+
+      const data = await response.json()
+      console.log('📥 Resposta Mercado Pago (PIX):', JSON.stringify(data, null, 2))
+
+      if (!response.ok) {
+        console.error('❌ Erro Mercado Pago:', data)
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: data.message || 'Erro ao gerar PIX',
+            details: data
+          },
+          { status: response.status }
+        )
+      }
+
+      // 🔥 Salvar PIX no banco
+      await (supabase
+        .from('profiles') as any)
+        .update({
+          plan_id: planId,
+          subscription_status: 'pending_payment',
+          subscription_id: data.id,
+          payment_method: 'pix',
+          subscription_end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+        })
+        .eq('id', userId)
+
+      return NextResponse.json({
+        success: true,
+        paymentMethod: 'pix',
+        qrCode: data.point_of_interaction?.transaction_data?.qr_code_base64 || null,
+        codigoPix: data.point_of_interaction?.transaction_data?.qr_code || null,
+        paymentId: data.id,
+        message: 'PIX gerado com sucesso!'
+      })
+    }
+
+    // 🔥 Se for cartão, criar assinatura no Mercado Pago
     const subscriptionData = {
       reason: `Plano Anual - PREPARADO`,
       auto_recurring: {
@@ -52,7 +123,7 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log('📤 Enviando para Mercado Pago:', JSON.stringify(subscriptionData, null, 2))
+    console.log('📤 Enviando assinatura para Mercado Pago:', JSON.stringify(subscriptionData, null, 2))
 
     const response = await fetch('https://api.mercadopago.com/preapproval', {
       method: 'POST',
@@ -64,7 +135,7 @@ export async function POST(request: Request) {
     })
 
     const data = await response.json()
-    console.log('📥 Resposta Mercado Pago:', JSON.stringify(data, null, 2))
+    console.log('📥 Resposta Mercado Pago (cartão):', JSON.stringify(data, null, 2))
 
     if (!response.ok) {
       console.error('❌ Erro Mercado Pago:', data)
@@ -78,8 +149,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 🔥 Salvar assinatura no banco (ativa imediatamente)
-    const now = new Date()
+    // 🔥 Salvar assinatura no banco
     const endDate = new Date()
     endDate.setFullYear(endDate.getFullYear() + 1)
 
@@ -90,28 +160,13 @@ export async function POST(request: Request) {
         subscription_status: 'active',
         subscription_id: data.id,
         payment_method: 'card',
-        subscription_end_date: endDate.toISOString(),
-        trial_start_date: null,
-        trial_end_date: null,
+        subscription_end_date: endDate.toISOString()
       })
       .eq('id', userId)
 
-    await (supabase
-      .from('subscriptions') as any)
-      .insert([{
-        user_id: userId,
-        plan_id: planId,
-        status: 'active',
-        trial_start: null,
-        trial_end: null,
-        mp_subscription_id: data.id,
-        mp_preapproval_id: data.id
-      }])
-
-    console.log('✅ Assinatura criada com sucesso!')
-
     return NextResponse.json({
       success: true,
+      paymentMethod: 'card',
       initPoint: data.init_point,
       subscriptionId: data.id,
       message: 'Assinatura criada!'
