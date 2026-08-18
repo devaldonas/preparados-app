@@ -6,30 +6,32 @@ import { Share2, Check, Copy } from 'lucide-react'
 export default function BotaoIndicarAmigo() {
   const [copied, setCopied] = useState(false)
 
+  // 🔥 NOVO TEXTO COMPLETO
   const mensagemCompleta = 
-    `Olá! \n\n` +
-    `Estou usando o app PREPARADO e quero compartilhar com você.\n\n` +
-    ` O PREPARADO é um aplicativo que auxilia na preparação para emergências.\n\n` +
-    `O que você encontra no PREPARADO:\n` +
-    ` Checklist completo para sua mochila de emergência\n` +
-    ` Conexão com pessoas próximas e formação de grupos\n` +
-    ` Chat em tempo real com sua comunidade\n` +
-    ` Guia completo para catástrofes (terremoto, tsunami, frio extremo)\n` +
-    ` Dicas diárias de preparação\n\n` +
-    ` Acesse: https://preparado.vercel.app/\n\n` +
-    `Vamos nos preparar juntos! `
+    `QUERO TE FAZER UM CONVITE\n\n` +
+    `Sabe aquela coisa que a gente sempre fala: "é melhor estar preparado antes de precisar"?\n\n` +
+    `Foi pensando nisso que comecei a usar o PREPARADO e achei que você também deveria conhecer.\n\n` +
+    `O mais legal é que você pode ter acesso a mentoria com especialistas, para aprender de forma simples e prática como se preparar e como agir diante de diferentes situações de emergência.\n\n` +
+    `Além disso, o app oferece:\n\n` +
+    `• Checklist para montar sua mochila de emergência\n` +
+    `• Guias práticos para diferentes tipos de catástrofes\n` +
+    `• Conexão com pessoas próximas e formação de grupos\n` +
+    `• Chat em tempo real com a sua comunidade\n` +
+    `• Conteúdos e dicas de preparação\n\n` +
+    `Não é para ficar com medo. É justamente o contrário.\n\n` +
+    `É para ter informação, tranquilidade e saber o que fazer se um dia precisar.\n\n` +
+    `Quero você preparado também.\n\n` +
+    `Acesse e conheça:\n` +
+    `https://preparado.vercel.app/\n\n` +
+    `PREPARADO. Porque cuidar de quem a gente gosta também é ajudar a estar preparado.`
 
   const handleCompartilharWhatsApp = () => {
-    // 🔥 MÉTODO 1: Tentar com api.whatsapp.com (funciona na maioria dos casos)
     const mensagemEncoded = encodeURIComponent(mensagemCompleta)
     const url = `https://api.whatsapp.com/send?text=${mensagemEncoded}`
     
-    // Abrir em nova aba/janela
     const newWindow = window.open(url, '_blank')
     
-    // 🔥 FALLBACK: Se o Safari bloquear, tentar com wa.me
     if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-      // Fallback para wa.me (funciona melhor no iPhone)
       window.location.href = `https://wa.me/?text=${mensagemEncoded}`
     }
   }
@@ -40,7 +42,6 @@ export default function BotaoIndicarAmigo() {
       setCopied(true)
       setTimeout(() => setCopied(false), 3000)
     } catch (err) {
-      // Fallback para navegadores mais antigos
       const textarea = document.createElement('textarea')
       textarea.value = mensagemCompleta
       document.body.appendChild(textarea)
@@ -52,18 +53,15 @@ export default function BotaoIndicarAmigo() {
     }
   }
 
-  // 🔥 DETECTAR SE É IPHONE
   const isIphone = () => {
     return /iPhone|iPad|iPod/.test(navigator.userAgent)
   }
 
   const handleCompartilhar = () => {
-    // 🔥 SE FOR IPHONE, ABRIR COM WA.ME (MAIS CONFIÁVEL)
     if (isIphone()) {
       const mensagemEncoded = encodeURIComponent(mensagemCompleta)
       window.location.href = `https://wa.me/?text=${mensagemEncoded}`
     } else {
-      // Android/Desktop: usar api.whatsapp.com
       const mensagemEncoded = encodeURIComponent(mensagemCompleta)
       window.open(`https://api.whatsapp.com/send?text=${mensagemEncoded}`, '_blank')
     }
@@ -71,7 +69,6 @@ export default function BotaoIndicarAmigo() {
 
   return (
     <div className="flex flex-col gap-2">
-      {/* 🔥 BOTÃO PRINCIPAL - WHATSAPP */}
       <button
         onClick={handleCompartilhar}
         className="w-full flex items-center justify-center gap-2 bg-black hover:bg-[#1da851] text-white py-2.5 px-4 rounded-lg font-medium transition text-sm"
@@ -82,7 +79,7 @@ export default function BotaoIndicarAmigo() {
           className="w-5 h-5"
           onError={(e) => { e.currentTarget.style.display = 'none' }}
         />
-        Indique um Amigo
+        Compartilhar no WhatsApp
       </button>
     </div>
   )
