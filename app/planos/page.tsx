@@ -60,8 +60,13 @@ export default function PlanosPage() {
         throw new Error(data.error || 'Erro ao processar pagamento')
       }
 
+      console.log('📥 Resposta da API:', data)
+
       // 🔥 Se for PIX, mostrar QR Code
       if (data.paymentMethod === 'pix') {
+        console.log('🖼️ QR Code recebido:', data.qrCode ? 'Sim' : 'Não')
+        console.log('📝 Código PIX recebido:', data.codigoPix ? 'Sim' : 'Não')
+        
         setQrCode(data.qrCode)
         setCodigoPix(data.codigoPix)
         setShowPix(true)
@@ -89,7 +94,6 @@ export default function PlanosPage() {
   }
 
   const verificarPagamento = async () => {
-    // Verificar status do pagamento
     router.push('/dashboard')
   }
 
@@ -125,9 +129,19 @@ export default function PlanosPage() {
             Valor: {formatPrice(476.28)}
           </p>
           
-          <div className="bg-gray-50 rounded-xl p-4 mb-4 flex justify-center">
-            <img src={qrCode} alt="QR Code PIX" className="w-48 h-48" />
-          </div>
+          {qrCode && (
+            <div className="bg-gray-50 rounded-xl p-4 mb-4 flex justify-center">
+              <img 
+                src={qrCode} 
+                alt="QR Code PIX" 
+                className="w-48 h-48"
+                onError={(e) => {
+                  console.error('❌ Erro ao carregar QR Code:', e)
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            </div>
+          )}
           
           {codigoPix && (
             <button
@@ -181,7 +195,6 @@ export default function PlanosPage() {
 
           <div className="border-t border-gray-200 my-6"></div>
 
-          {/* Método de Pagamento */}
           <div className="space-y-4 mb-6">
             <p className="text-sm font-medium text-gray-700">Escolha a forma de pagamento:</p>
             

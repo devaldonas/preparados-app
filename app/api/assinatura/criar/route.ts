@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       .eq('id', userId)
       .single()
 
-    // 🔥 Se for PIX, criar pagamento único (não assinatura)
+    // 🔥 Se for PIX, criar pagamento único
     if (paymentMethod === 'pix') {
       const pixData = {
         transaction_amount: 476.28,
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
         }
       }
 
-      console.log('📤 Enviando PIX para Mercado Pago:', JSON.stringify(pixData, null, 2))
+      console.log('📤 Enviando PIX para Mercado Pago...')
 
       const response = await fetch('https://api.mercadopago.com/v1/payments', {
         method: 'POST',
@@ -82,6 +82,24 @@ export async function POST(request: Request) {
         )
       }
 
+      // 🔥 Extrair QR Code corretamente
+      let qrCode = null
+      let codigoPix = null
+      
+      // O QR Code pode vir em diferentes formatos
+      if (data.point_of_interaction?.transaction_data?.qr_code_base64) {
+        qrCode = `data:image/png;base64,${data.point_of_interaction.transaction_data.qr_code_base64}`
+      } else if (data.qr_code_base64) {
+        qrCode = `data:image/png;base64,${data.qr_code_base64}`
+      } else if (data.qr_code) {
+        qrCode = data.qr_code
+      }
+      
+      codigoPix = data.point_of_interaction?.transaction_data?.qr_code || null
+
+      console.log('✅ QR Code gerado:', qrCode ? 'Sim' : 'Não')
+      console.log('✅ Código PIX gerado:', codigoPix ? 'Sim' : 'Não')
+
       // 🔥 Salvar PIX no banco
       await (supabase
         .from('profiles') as any)
@@ -97,14 +115,14 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         paymentMethod: 'pix',
-        qrCode: data.point_of_interaction?.transaction_data?.qr_code_base64 || null,
-        codigoPix: data.point_of_interaction?.transaction_data?.qr_code || null,
+        qrCode: qrCode,
+        codigoPix: codigoPix,
         paymentId: data.id,
         message: 'PIX gerado com sucesso!'
       })
     }
 
-    // 🔥 Se for cartão, criar assinatura no Mercado Pago
+    // 🔥 Se for cartão, criar assinatura
     const subscriptionData = {
       reason: `Plano Anual - PREPARADO`,
       auto_recurring: {
@@ -123,7 +141,7 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log('📤 Enviando assinatura para Mercado Pago:', JSON.stringify(subscriptionData, null, 2))
+    console.log('📤 Enviando assinatura para Mercado Pago...')
 
     const response = await fetch('https://api.mercadopago.com/preapproval', {
       method: 'POST',
@@ -149,7 +167,6 @@ export async function POST(request: Request) {
       )
     }
 
-    // 🔥 Salvar assinatura no banco
     const endDate = new Date()
     endDate.setFullYear(endDate.getFullYear() + 1)
 
