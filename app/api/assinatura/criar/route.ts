@@ -18,6 +18,14 @@ export async function POST(request: Request) {
       )
     }
 
+    if (!MERCADO_PAGO_ACCESS_TOKEN) {
+      console.error('❌ MERCADO_PAGO_ACCESS_TOKEN não configurado')
+      return NextResponse.json(
+        { error: 'Token do Mercado Pago não configurado' },
+        { status: 500 }
+      )
+    }
+
     // 🔥 Buscar dados do usuário
     const { data: profile } = await (supabase
       .from('profiles') as any)
@@ -25,13 +33,13 @@ export async function POST(request: Request) {
       .eq('id', userId)
       .single()
 
-    // 🔥 Criar assinatura no Mercado Pago (preapproval)
+    // 🔥 Criar assinatura no Mercado Pago (sem trial)
     const subscriptionData = {
-      reason: `Plano ${planName} - PREPARADO`,
+      reason: `Plano Anual - PREPARADO`,
       auto_recurring: {
-        frequency: 1,
+        frequency: 12,
         frequency_type: 'months',
-        transaction_amount: price,
+        transaction_amount: 39.69,
         currency_id: 'BRL'
       },
       back_url: `${APP_URL}/auth/welcome`,
@@ -60,54 +68,63 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       console.error('❌ Erro Mercado Pago:', data)
-      
       return NextResponse.json(
         { 
           success: false, 
-          error: data.message || 'Erro ao criar assinatura.',
+          error: data.message || 'Erro ao criar assinatura',
           details: data
         },
         { status: response.status }
       )
     }
 
-    // 🔥 Salvar assinatura no banco (trial pendente)
+    // 🔥 Salvar assinatura no banco (ativa imediatamente)
+    const now = new Date()
+    const endDate = new Date()
+    endDate.setFullYear(endDate.getFullYear() + 1)
+
     await (supabase
       .from('profiles') as any)
       .update({
         plan_id: planId,
-        subscription_status: 'pending_payment',
+        subscription_status: 'active',
         subscription_id: data.id,
         payment_method: 'card',
-        trial_start_date: new Date().toISOString(),
-        trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        subscription_end_date: endDate.toISOString(),
+        trial_start_date: null,
+        trial_end_date: null,
       })
       .eq('id', userId)
 
-    // 🔥 Salvar na tabela de subscriptions
     await (supabase
       .from('subscriptions') as any)
       .insert([{
         user_id: userId,
         plan_id: planId,
-        status: 'pending_payment',
-        trial_start: new Date().toISOString(),
-        trial_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'active',
+        trial_start: null,
+        trial_end: null,
         mp_subscription_id: data.id,
         mp_preapproval_id: data.id
       }])
+
+    console.log('✅ Assinatura criada com sucesso!')
 
     return NextResponse.json({
       success: true,
       initPoint: data.init_point,
       subscriptionId: data.id,
-      message: 'Assinatura criada! Redirecione para o Mercado Pago.'
+      message: 'Assinatura criada!'
     })
 
   } catch (error) {
     console.error('❌ Erro ao criar assinatura:', error)
     return NextResponse.json(
-      { success: false, error: String(error) },
+      { 
+        success: false, 
+        error: String(error),
+        message: 'Erro interno ao criar assinatura'
+      },
       { status: 500 }
     )
   }
