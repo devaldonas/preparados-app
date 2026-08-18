@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { Loader2, Crown, Check } from 'lucide-react'
+import { Loader2, Crown, Check, CreditCard, QrCode } from 'lucide-react'
 
 interface Plan {
   id: number
@@ -72,7 +72,7 @@ export default function PlanosPage() {
         body: JSON.stringify({
           planId: plan.id,
           planName: plan.name,
-          price: plan.price,
+          price: 39.69,
           interval: plan.interval,
           userId: user.id,
           userEmail: user.email
@@ -85,12 +85,9 @@ export default function PlanosPage() {
         throw new Error(data.error || 'Erro ao criar assinatura')
       }
 
-      // 🔥 Redirecionar para o Mercado Pago para cadastrar o cartão
+      // 🔥 Redirecionar para o Mercado Pago
       if (data.initPoint) {
         window.location.href = data.initPoint
-      } else {
-        // Fallback: ir para welcome
-        router.push('/auth/welcome')
       }
 
     } catch (error) {
@@ -111,110 +108,107 @@ export default function PlanosPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-6xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-4">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-gray-900">
-            Escolha seu plano
+            Plano Anual
           </h1>
           <p className="text-gray-600 mt-2">
-            Teste grátis por 7 dias. Cancele a qualquer momento.
+            Acesso completo a todos os recursos do PREPARADO
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-          {plans.map((plan) => {
-            const isAnual = plan.interval === 'year'
-            const precoMensal = isAnual ? (plan.price / 12) : plan.price
-            const isSelected = selectedPlan === plan.id
-            
-            return (
-              <div
-                key={plan.id}
-                onClick={() => setSelectedPlan(plan.id)}
-                className={`bg-white rounded-2xl border-2 p-6 hover:shadow-lg transition cursor-pointer ${
-                  isSelected 
-                    ? 'border-[#FFB800] ring-2 ring-[#FFB800]/30 shadow-md' 
-                    : 'border-gray-100 hover:border-gray-300'
-                } ${isAnual ? 'relative' : ''}`}
-              >
-                {isAnual && (
-                  <div className="absolute -top-3 right-6 bg-[#FFB800] text-black text-xs font-bold px-3 py-1 rounded-full">
-                    Melhor Custo-Benefício
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <h2 className={`text-xl font-bold ${isAnual ? 'text-[#FFB800]' : 'text-gray-900'}`}>
-                    {plan.name}
-                  </h2>
-                  {isSelected && (
-                    <span className="bg-[#FFB800] text-black text-xs font-bold px-2 py-1 rounded-full">
-                      SELECIONADO
-                    </span>
-                  )}
-                </div>
-
-                <div className="mt-2">
-                  <span className="text-3xl font-bold text-gray-900">
-                    {formatPrice(isAnual ? precoMensal : plan.price)}
-                  </span>
-                  <span className="text-sm text-gray-500 ml-1">/mês</span>
-                </div>
-
-                {isAnual && (
-                  <p className="text-sm text-gray-500">
-                    Total: {formatPrice(plan.price)}/ano
-                  </p>
-                )}
-
-                <p className="text-xs text-gray-400 mt-3">
-                  ✅ Acesso completo a todos os recursos
-                </p>
-              </div>
-            )
-          })}
-        </div>
-
-        <div className="mt-10 flex flex-col items-center">
-          <button
-            onClick={handleAssinar}
-            disabled={processing || !selectedPlan}
-            className="bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold px-8 py-3 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-          >
-            {processing ? (
-              <>
-                <Loader2 size={24} className="animate-spin" />
-                Processando...
-              </>
-            ) : (
-              <>
-                <Crown size={20} />
-                Teste Grátis por 7 dias
-              </>
-            )}
-          </button>
-
-          <div className="mt-4 text-sm text-gray-600 bg-yellow-50 border border-yellow-200 px-4 py-3 rounded-lg text-center max-w-md">
-            <p>
-              Seu cartão <strong>não será cobrado</strong> durante os 7 dias de teste.
-              <br />
-              A cobrança começa automaticamente após o período gratuito.
-              <br />
-              Você pode cancelar a qualquer momento.
+        {/* Plano Único */}
+        <div className="bg-white rounded-2xl border-2 border-[#FFB800] shadow-lg p-8 max-w-lg mx-auto">
+          <div className="text-center">
+            <div className="inline-block bg-[#FFB800]/10 px-4 py-1 rounded-full mb-4">
+              <span className="text-sm font-semibold text-[#FFB800]">⭐ Melhor plano</span>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Plano Anual</h2>
+            <div className="mt-4">
+              <span className="text-4xl font-bold text-gray-900">12x de</span>
+              <span className="text-5xl font-bold text-[#FFB800] ml-2">R$ 39,69</span>
+            </div>
+            <p className="text-sm text-gray-400 mt-1">ou R$ 476,28 à vista no PIX</p>
+            <p className="text-sm text-gray-400 line-through mt-2">
+              De R$ 179,90/mês
             </p>
+          </div>
+
+          <div className="border-t border-gray-200 my-6"></div>
+
+          <div className="space-y-4">
+            <h3 className="font-semibold text-gray-900">Benefícios:</h3>
+            <ul className="space-y-3">
+              <li className="flex items-start gap-3">
+                <Check size={20} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                <span className="text-gray-600">Acesso completo à plataforma</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check size={20} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                <span className="text-gray-600">Mentoria com especialistas</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check size={20} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                <span className="text-gray-600">Monitoramento de emergências em tempo real</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check size={20} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                <span className="text-gray-600">Checklist completo de preparação</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check size={20} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                <span className="text-gray-600">Descontos exclusivos na loja</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Check size={20} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                <span className="text-gray-600">Suporte prioritário</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="mt-8">
+            <button
+              onClick={handleAssinar}
+              disabled={processing}
+              className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+            >
+              {processing ? (
+                <>
+                  <Loader2 size={24} className="animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  <CreditCard size={20} />
+                  Assinar agora
+                </>
+              )}
+            </button>
+            <p className="text-xs text-gray-400 text-center mt-4">
+              Pagamento seguro via Mercado Pago
+            </p>
+          </div>
+
+          <div className="mt-6 flex items-center justify-center gap-4 text-xs text-gray-400">
+            <span>🔒 Pagamento seguro</span>
+            <span>•</span>
+            <span>💳 12x sem juros</span>
+            <span>•</span>
+            <span>📱 PIX disponível</span>
           </div>
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
           Ao assinar, você concorda com nossos termos de uso.
-          Pagamento seguro via Mercado Pago.
+          Cancele a qualquer momento.
         </p>
       </div>
     </div>
