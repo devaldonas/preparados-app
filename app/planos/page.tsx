@@ -3,24 +3,17 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { Loader2, Crown, Check, CreditCard, QrCode } from 'lucide-react'
-
-interface Plan {
-  id: number
-  name: string
-  description: string
-  price: number
-  interval: 'month' | 'year'
-  is_active: boolean
-}
+import { Loader2, Crown, Check, CreditCard, QrCode, Copy, X } from 'lucide-react'
 
 export default function PlanosPage() {
   const router = useRouter()
-  const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [user, setUser] = useState<any>(null)
-  const [selectedPlan, setSelectedPlan] = useState<number | null>(null)
+  const [qrCode, setQrCode] = useState<string | null>(null)
+  const [codigoPix, setCodigoPix] = useState<string | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>('card')
+  const [showPix, setShowPix] = useState(false)
 
   useEffect(() => {
     carregarDados()
@@ -34,68 +27,70 @@ export default function PlanosPage() {
         return
       }
       setUser(user)
-
-      const { data, error } = await (supabase
-        .from('plans') as any)
-        .select('*')
-        .eq('is_active', true)
-        .order('price', { ascending: true })
-
-      if (error) throw error
-      setPlans(data || [])
-      
-      if (data && data.length > 0) {
-        setSelectedPlan(data[0].id)
-      }
     } catch (error) {
-      console.error('Erro ao carregar planos:', error)
+      console.error('Erro ao carregar dados:', error)
     } finally {
       setLoading(false)
     }
   }
 
   const handleAssinar = async () => {
-    if (!selectedPlan) {
-      alert('Selecione um plano')
-      return
-    }
-
-    const plan = plans.find(p => p.id === selectedPlan)
-    if (!plan) return
-
     setProcessing(true)
+    setQrCode(null)
+    setCodigoPix(null)
 
     try {
       const response = await fetch('/api/assinatura/criar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          planId: plan.id,
-          planName: plan.name,
+          planId: 1,
+          planName: 'Plano Anual',
           price: 39.69,
-          interval: plan.interval,
+          interval: 'year',
           userId: user.id,
-          userEmail: user.email
+          userEmail: user.email,
+          paymentMethod: paymentMethod
         })
       })
 
       const data = await response.json()
 
       if (!data.success) {
-        throw new Error(data.error || 'Erro ao criar assinatura')
+        throw new Error(data.error || 'Erro ao processar pagamento')
       }
 
-      // 🔥 Redirecionar para o Mercado Pago
+      // 🔥 Se for PIX, mostrar QR Code
+      if (data.paymentMethod === 'pix') {
+        setQrCode(data.qrCode)
+        setCodigoPix(data.codigoPix)
+        setShowPix(true)
+        setProcessing(false)
+        return
+      }
+
+      // 🔥 Se for cartão, redirecionar para Mercado Pago
       if (data.initPoint) {
         window.location.href = data.initPoint
       }
 
     } catch (error) {
       console.error('Erro ao assinar:', error)
-      alert('Erro ao processar assinatura. Tente novamente.')
-    } finally {
+      alert('Erro ao processar pagamento. Tente novamente.')
       setProcessing(false)
     }
+  }
+
+  const copiarCodigoPix = () => {
+    if (codigoPix) {
+      navigator.clipboard.writeText(codigoPix)
+      alert('✅ Código PIX copiado!')
+    }
+  }
+
+  const verificarPagamento = async () => {
+    // Verificar status do pagamento
+    router.push('/dashboard')
   }
 
   const formatPrice = (price: number) => {
@@ -113,6 +108,52 @@ export default function PlanosPage() {
     )
   }
 
+  if (showPix && qrCode) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+          <button
+            onClick={() => setShowPix(false)}
+            className="float-right text-gray-400 hover:text-gray-600"
+          >
+            <X size={24} />
+          </button>
+          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
+            Pagar com PIX
+          </h2>
+          <p className="text-center text-gray-500 text-sm mb-6">
+            Valor: {formatPrice(476.28)}
+          </p>
+          
+          <div className="bg-gray-50 rounded-xl p-4 mb-4 flex justify-center">
+            <img src={qrCode} alt="QR Code PIX" className="w-48 h-48" />
+          </div>
+          
+          {codigoPix && (
+            <button
+              onClick={copiarCodigoPix}
+              className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg transition"
+            >
+              <Copy size={18} />
+              Copiar código PIX
+            </button>
+          )}
+          
+          <button
+            onClick={verificarPagamento}
+            className="w-full mt-4 bg-[#FFB800] text-black py-3 rounded-lg font-semibold hover:bg-[#E5A600] transition"
+          >
+            Já paguei, verificar
+          </button>
+          
+          <p className="text-xs text-gray-400 text-center mt-4">
+            O pagamento será confirmado automaticamente em alguns minutos
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-4xl mx-auto px-4">
@@ -125,7 +166,6 @@ export default function PlanosPage() {
           </p>
         </div>
 
-        {/* Plano Único */}
         <div className="bg-white rounded-2xl border-2 border-[#FFB800] shadow-lg p-8 max-w-lg mx-auto">
           <div className="text-center">
             <div className="inline-block bg-[#FFB800]/10 px-4 py-1 rounded-full mb-4">
@@ -137,65 +177,64 @@ export default function PlanosPage() {
               <span className="text-5xl font-bold text-[#FFB800] ml-2">R$ 39,69</span>
             </div>
             <p className="text-sm text-gray-400 mt-1">ou R$ 476,28 à vista no PIX</p>
-            <p className="text-sm text-gray-400 line-through mt-2">
-              De R$ 179,90/mês
-            </p>
           </div>
 
           <div className="border-t border-gray-200 my-6"></div>
 
-          <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900">Benefícios:</h3>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-3">
-                <Check size={20} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                <span className="text-gray-600">Acesso completo à plataforma</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Check size={20} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                <span className="text-gray-600">Mentoria com especialistas</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Check size={20} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                <span className="text-gray-600">Monitoramento de emergências em tempo real</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Check size={20} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                <span className="text-gray-600">Checklist completo de preparação</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Check size={20} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                <span className="text-gray-600">Descontos exclusivos na loja</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Check size={20} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                <span className="text-gray-600">Suporte prioritário</span>
-              </li>
-            </ul>
+          {/* Método de Pagamento */}
+          <div className="space-y-4 mb-6">
+            <p className="text-sm font-medium text-gray-700">Escolha a forma de pagamento:</p>
+            
+            <button
+              onClick={() => setPaymentMethod('card')}
+              className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
+                paymentMethod === 'card' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
+              }`}
+            >
+              <CreditCard size={20} className={paymentMethod === 'card' ? 'text-[#FFB800]' : 'text-gray-400'} />
+              <div className="text-left">
+                <p className="font-medium text-sm">Cartão de Crédito</p>
+                <p className="text-xs text-gray-400">12x de R$ 39,69</p>
+              </div>
+              {paymentMethod === 'card' && <Check size={18} className="ml-auto text-[#FFB800]" />}
+            </button>
+
+            <button
+              onClick={() => setPaymentMethod('pix')}
+              className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
+                paymentMethod === 'pix' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
+              }`}
+            >
+              <QrCode size={20} className={paymentMethod === 'pix' ? 'text-[#FFB800]' : 'text-gray-400'} />
+              <div className="text-left">
+                <p className="font-medium text-sm">PIX</p>
+                <p className="text-xs text-gray-400">R$ 476,28 à vista</p>
+              </div>
+              {paymentMethod === 'pix' && <Check size={18} className="ml-auto text-[#FFB800]" />}
+            </button>
           </div>
 
-          <div className="mt-8">
-            <button
-              onClick={handleAssinar}
-              disabled={processing}
-              className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-            >
-              {processing ? (
-                <>
-                  <Loader2 size={24} className="animate-spin" />
-                  Processando...
-                </>
-              ) : (
-                <>
-                  <CreditCard size={20} />
-                  Assinar agora
-                </>
-              )}
-            </button>
-            <p className="text-xs text-gray-400 text-center mt-4">
-              Pagamento seguro via Mercado Pago
-            </p>
-          </div>
+          <button
+            onClick={handleAssinar}
+            disabled={processing}
+            className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+          >
+            {processing ? (
+              <>
+                <Loader2 size={24} className="animate-spin" />
+                Processando...
+              </>
+            ) : (
+              <>
+                {paymentMethod === 'pix' ? <QrCode size={20} /> : <CreditCard size={20} />}
+                {paymentMethod === 'pix' ? 'Gerar PIX' : 'Assinar agora'}
+              </>
+            )}
+          </button>
+
+          <p className="text-xs text-gray-400 text-center mt-4">
+            Pagamento seguro via Mercado Pago
+          </p>
 
           <div className="mt-6 flex items-center justify-center gap-4 text-xs text-gray-400">
             <span>🔒 Pagamento seguro</span>
