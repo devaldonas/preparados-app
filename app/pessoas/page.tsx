@@ -205,7 +205,7 @@ export default function PessoasProximas() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <img 
-            src="/images/pessoas-icon.png" 
+            src="/images/pessoas1-icon.png" 
             alt="Pessoas Próximas" 
             className="w-16 h-16 mx-auto mb-4 object-contain"
           />

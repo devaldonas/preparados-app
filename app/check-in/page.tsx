@@ -214,7 +214,7 @@ export default function CheckIn() {
       <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-black mb-2">CHECK-IN</h1>
+          <h1 className="text-3xl font-bold text-black mb-2">PREPARÔMETRO</h1>
           <p className="text-gray-600">Descubra seu nível de preparação</p>
         </div>
 
