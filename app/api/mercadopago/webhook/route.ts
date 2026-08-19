@@ -1,210 +1,108 @@
-// app/api/mercadopago/webhook/route.ts
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
-import { enviarEbookPorEmail } from '@/lib/email'
+
+// 🔥 Usar credenciais de teste em desenvolvimento
+const isDevelopment = process.env.NODE_ENV === 'development'
+const MERCADO_PAGO_ACCESS_TOKEN = isDevelopment 
+  ? process.env.MERCADO_PAGO_ACCESS_TOKEN_TEST 
+  : process.env.MERCADO_PAGO_ACCESS_TOKEN
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    console.log('📨 Webhook Mercado Pago recebido:', JSON.stringify(body, null, 2))
+    console.log('📦 Webhook recebido do Mercado Pago:', JSON.stringify(body, null, 2))
+    console.log('🔑 Modo:', isDevelopment ? '🧪 TESTE' : '🚀 PRODUÇÃO')
 
-    if (body.type === 'payment' || body.action === 'payment.updated') {
-      const paymentId = body.data?.id
+    const { type, data } = body
 
-      if (!paymentId) {
-        console.log('⚠️ Payment ID não encontrado no webhook')
-        return NextResponse.json({ success: true })
+    if (type !== 'payment') {
+      console.log('ℹ️ Evento ignorado:', type)
+      return NextResponse.json({ success: true })
+    }
+
+    const paymentId = data.id
+    console.log('💰 Payment ID:', paymentId)
+
+    const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: {
+        'Authorization': `Bearer ${MERCADO_PAGO_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
       }
+    })
 
-      console.log('🔍 Buscando detalhes do pagamento:', paymentId)
+    const payment = await mpResponse.json()
+    console.log('📥 Detalhes do pagamento:', JSON.stringify(payment, null, 2))
 
-      const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
+    if (payment.status === 'approved') {
+      const userId = payment.metadata?.user_id || payment.external_reference
       
-      if (!accessToken) {
-        console.error('❌ Token do Mercado Pago não configurado')
-        return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
+      if (!userId) {
+        console.log('❌ User ID não encontrado no pagamento')
+        return NextResponse.json({ success: false }, { status: 400 })
       }
 
-      const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      })
+      console.log('👤 Usuário ID:', userId)
 
-      const payment = await response.json()
-      console.log('💰 Pagamento:', payment.status, payment.external_reference)
+      const subscriptionEndDate = new Date()
+      subscriptionEndDate.setFullYear(subscriptionEndDate.getFullYear() + 1)
 
-      if (payment.status === 'approved') {
-        const externalReference = payment.external_reference || ''
-        console.log('📦 External Reference:', externalReference)
+      const { error: updateError } = await (supabase
+        .from('profiles') as any)
+        .update({
+          subscription_status: 'active',
+          subscription_id: payment.id,
+          payment_method: payment.payment_method_id || 'pix',
+          subscription_end_date: subscriptionEndDate.toISOString(),
+          plan_id: 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
 
-        let orderId = null
-        
-        if (externalReference.includes('order_')) {
-          orderId = externalReference.replace('order_', '')
-        } else if (externalReference.includes('pedido_')) {
-          orderId = externalReference.replace('pedido_', '')
-        } else if (/^\d+$/.test(externalReference)) {
-          orderId = externalReference
-        }
+      if (updateError) {
+        console.error('❌ Erro ao atualizar perfil:', updateError)
+        return NextResponse.json(
+          { error: 'Erro ao atualizar perfil' },
+          { status: 500 }
+        )
+      }
 
-        console.log('📦 Order ID extraído:', orderId)
+      await (supabase
+        .from('orders') as any)
+        .update({
+          payment_status: 'paid',
+          status: 'paid',
+          updated_at: new Date().toISOString()
+        })
+        .eq('transaction_id', payment.id)
 
-        if (orderId) {
-          const orderIdNumber = parseInt(orderId, 10)
-          
-          if (isNaN(orderIdNumber)) {
-            console.error('❌ Order ID inválido:', orderId)
-            return NextResponse.json({ success: true })
-          }
+      await (supabase
+        .from('subscriptions') as any)
+        .upsert({
+          user_id: userId,
+          plan_id: 1,
+          status: 'active',
+          mp_subscription_id: payment.id,
+          trial_start: null,
+          trial_end: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'mp_subscription_id'
+        })
 
-          // 🔥 CORRIGIDO: usando as any
-          const { error: updateError } = await (supabase
-            .from('orders') as any)
-            .update({
-              payment_status: 'paid',
-              status: 'paid',
-              payment_method: 'pix',
-              transaction_id: paymentId,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', orderIdNumber)
-
-          if (updateError) {
-            console.error('❌ Erro ao atualizar pedido:', updateError)
-          } else {
-            console.log(`✅ Pedido ${orderIdNumber} atualizado para PAGO`)
-          }
-
-          // Buscar o pedido
-          const { data: orderData, error: orderError } = await (supabase
-            .from('orders') as any)
-            .select('user_id')
-            .eq('id', orderIdNumber)
-            .single()
-
-          if (orderError) {
-            console.error('❌ Erro ao buscar pedido:', orderError)
-          }
-
-          if (orderData) {
-            console.log('📦 Pedido encontrado:', orderData)
-
-            // Buscar os itens
-            const { data: itemsData, error: itemsError } = await (supabase
-              .from('order_items') as any)
-              .select(`
-                *,
-                products:product_id (
-                  id,
-                  name,
-                  is_digital,
-                  file_url,
-                  price
-                )
-              `)
-              .eq('order_id', orderIdNumber)
-
-            if (itemsError) {
-              console.error('❌ Erro ao buscar itens:', itemsError)
-            }
-
-            console.log('📦 Itens encontrados:', itemsData?.length || 0)
-
-            if (itemsData && itemsData.length > 0) {
-              const produtosDigitais = itemsData.filter((item: any) => {
-                return item.products?.is_digital === true
-              })
-              
-              console.log('📦 Produtos digitais encontrados:', produtosDigitais.length)
-
-              if (produtosDigitais.length > 0) {
-                // Buscar nome do usuário
-                let userEmail = null
-                let userNome = null
-
-                console.log('🔍 Buscando dados do usuário via profiles...')
-                const { data: profileData, error: profileError } = await (supabase
-                  .from('profiles') as any)
-                  .select('full_name')
-                  .eq('id', orderData.user_id)
-                  .single()
-
-                console.log('📦 profileData:', profileData)
-
-                if (profileError) {
-                  console.error('❌ Erro ao buscar profiles:', profileError)
-                } else if (profileData && profileData.full_name) {
-                  userNome = profileData.full_name
-                  console.log('👤 Nome via profiles:', userNome)
-                } else {
-                  console.log('⚠️ Nome não encontrado no profiles')
-                }
-
-                if (!userNome) {
-                  userNome = 'Cliente'
-                  console.log('⚠️ Usando nome padrão:', userNome)
-                }
-
-                // Buscar email via RPC
-                // Buscar email via RPC
-console.log('🔍 Buscando email via RPC...')
-try {
-  // 🔥 CORRIGIDO: as any no rpc, não nos parâmetros
-  const { data: emailData, error: emailError } = await (supabase
-    .rpc('get_user_email', { 
-      user_id: orderData.user_id 
-    } as any) as any)  // ← as any em toda a chamada
-
-  if (emailError) {
-    console.error('❌ Erro na RPC:', emailError)
-  } else if (emailData) {
-    userEmail = emailData
-    console.log('📧 E-mail via RPC:', userEmail)
-  }
-} catch (rpcError) {
-  console.error('❌ Exceção na RPC:', rpcError)
-}
-
-
-                if (!userEmail) {
-                  userEmail = 'cliente@preparado.com'
-                  console.log('⚠️ Usando email fallback:', userEmail)
-                }
-
-                console.log('📧 E-mail final:', userEmail)
-                console.log('👤 Nome final:', userNome)
-
-                // Enviar e-book
-                for (const item of produtosDigitais) {
-                  console.log('📚 Produto:', item.products?.name)
-                  console.log('🔗 Link:', item.products?.file_url)
-
-                  const result = await enviarEbookPorEmail({
-                    email: userEmail,
-                    nome: userNome,
-                    produtoNome: item.products?.name || 'E-book',
-                    fileUrl: item.products?.file_url || '',
-                    pedidoId: orderIdNumber
-                  })
-
-                  console.log('📧 Resultado do envio:', result)
-                }
-
-                console.log(`✅ E-books enviados para ${userEmail} (${userNome})`)
-              } else {
-                console.log('⚠️ Nenhum produto digital encontrado no pedido')
-              }
-            } else {
-              console.log('⚠️ Nenhum item encontrado no pedido')
-            }
-          } else {
-            console.log('⚠️ Pedido não encontrado:', orderIdNumber)
-          }
-        } else {
-          console.log('⚠️ Não foi possível extrair o Order ID do external_reference:', externalReference)
-        }
+      console.log('✅ Usuário atualizado com sucesso!', { userId, status: 'active' })
+    } else if (payment.status === 'rejected' || payment.status === 'cancelled') {
+      console.log('❌ Pagamento não aprovado:', payment.status)
+      const userId = payment.metadata?.user_id || payment.external_reference
+      
+      if (userId) {
+        await (supabase
+          .from('profiles') as any)
+          .update({
+            subscription_status: 'rejected',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId)
       }
     }
 
@@ -212,6 +110,9 @@ try {
 
   } catch (error) {
     console.error('❌ Erro no webhook:', error)
-    return NextResponse.json({ error: 'Erro no webhook' }, { status: 500 })
+    return NextResponse.json(
+      { error: String(error) },
+      { status: 500 }
+    )
   }
 }
