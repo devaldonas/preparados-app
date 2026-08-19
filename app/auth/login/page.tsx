@@ -80,7 +80,7 @@ function LoginContent() {
           <div className="bg-[#FFB800]/5 px-6 py-4 border-b border-gray-100">
             <div className="flex items-center justify-center gap-2">
               <img 
-                src="/logo1.svg" 
+                src="/logo.svg" 
                 alt="PREPARADO" 
                 className="h-8 w-auto"
                 onError={(e) => { e.currentTarget.style.display = 'none' }}

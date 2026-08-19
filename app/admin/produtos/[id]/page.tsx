@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Edit, Trash2, Save, X } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Save, X, Upload } from 'lucide-react'
 
 interface Product {
   id: number
@@ -24,14 +24,36 @@ interface Product {
   updated_at: string
 }
 
-export default function ProdutoDetalhes({ params }: { params: { id: string } }) {
+const CATEGORIAS = [
+  { value: '', label: 'Selecione uma categoria' },
+  { value: 'mochilas', label: 'Mochilas' },
+  { value: 'acessorios', label: 'Acessórios' },
+  { value: 'equipamentos', label: 'Equipamentos' },
+  { value: 'e-books', label: 'E-books' },
+  { value: 'alimentacao', label: 'Alimentação' },
+  { value: 'hidratacao', label: 'Hidratação' },
+  { value: 'primeiros_socorros', label: 'Primeiros Socorros' },
+  { value: 'ferramentas', label: 'Ferramentas' },
+  { value: 'iluminacao', label: 'Iluminação' },
+  { value: 'comunicacao', label: 'Comunicação' },
+  { value: 'navegacao', label: 'Navegação' },
+  { value: 'abrigo', label: 'Abrigo' },
+  { value: 'vestuario', label: 'Vestuário' },
+  { value: 'higiene', label: 'Higiene' },
+  { value: 'documentos', label: 'Documentos' },
+  { value: 'dinheiro', label: 'Dinheiro/Cartões' },
+  { value: 'outros', label: 'Outros' },
+]
+
+export default function ProdutoDetalhes({ params }: { params: Promise<{ id: string }> }) {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [selectedImage, setSelectedImage] = useState(0)
   const router = useRouter()
+  const STORAGE_BUCKET = 'produtos'
 
-  // Form state
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -53,16 +75,15 @@ export default function ProdutoDetalhes({ params }: { params: { id: string } }) 
 
   const carregarProduto = async () => {
     try {
-      // 🔥 CORRIGIDO: usando as any para evitar erro de tipo
+      const resolvedParams = await params
       const { data, error } = await (supabase
         .from('products') as any)
         .select('*')
-        .eq('id', parseInt(params.id))
+        .eq('id', parseInt(resolvedParams.id))
         .single()
 
       if (error) throw error
 
-      // 🔥 CORRIGIDO: usando as Product para garantir o tipo
       const productData = data as Product
       setProduct(productData)
       setFormData({
@@ -79,11 +100,6 @@ export default function ProdutoDetalhes({ params }: { params: { id: string } }) 
         free_shipping: productData.free_shipping || false,
         file_url: productData.file_url || '',
       })
-
-      // 🔥 CORRIGIDO: verificando images com segurança
-      if (productData.images && Array.isArray(productData.images) && productData.images.length > 0) {
-        setSelectedImage(0)
-      }
     } catch (error) {
       console.error('Erro ao carregar produto:', error)
       alert('Erro ao carregar produto')
@@ -91,6 +107,69 @@ export default function ProdutoDetalhes({ params }: { params: { id: string } }) 
     } finally {
       setLoading(false)
     }
+  }
+
+  // 🔥 FUNÇÃO DE UPLOAD COM LIMITE DE 20 IMAGENS
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione uma imagem')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 5MB')
+      return
+    }
+
+    // 🔥 VERIFICAR LIMITE DE 20 IMAGENS
+    if (formData.images.length >= 20) {
+      alert('Limite máximo de 20 imagens atingido')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const fileName = `${Date.now()}-${file.name}`
+      
+      const { data, error } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (error) throw error
+
+      const { data: urlData } = supabase.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(fileName)
+
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, urlData.publicUrl]
+      }))
+      
+      alert('✅ Imagem enviada com sucesso!')
+    } catch (error: any) {
+      console.error('Erro ao fazer upload:', error)
+      alert(`Erro ao fazer upload: ${error.message || 'Tente novamente'}`)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removeImage = (index: number) => {
+    setFormData(prev => {
+      const newImages = prev.images.filter((_, i) => i !== index)
+      return {
+        ...prev,
+        images: newImages,
+        image_url: newImages.length > 0 ? newImages[0] : ''
+      }
+    })
   }
 
   const handleUpdate = async () => {
@@ -103,7 +182,7 @@ export default function ProdutoDetalhes({ params }: { params: { id: string } }) 
           price: formData.price,
           category: formData.category,
           stock: formData.stock,
-          image_url: formData.image_url,
+          image_url: formData.images.length > 0 ? formData.images[0] : '',
           images: formData.images,
           mochila_tipo: formData.mochila_tipo,
           is_active: formData.is_active,
@@ -112,11 +191,11 @@ export default function ProdutoDetalhes({ params }: { params: { id: string } }) 
           file_url: formData.file_url || null,
           updated_at: new Date().toISOString()
         })
-        .eq('id', parseInt(params.id))
+        .eq('id', product?.id)
 
       if (error) throw error
 
-      alert('Produto atualizado com sucesso!')
+      alert('✅ Produto atualizado com sucesso!')
       setEditing(false)
       await carregarProduto()
     } catch (error) {
@@ -132,11 +211,11 @@ export default function ProdutoDetalhes({ params }: { params: { id: string } }) 
       const { error } = await (supabase
         .from('products') as any)
         .delete()
-        .eq('id', parseInt(params.id))
+        .eq('id', product?.id)
 
       if (error) throw error
 
-      alert('Produto deletado com sucesso!')
+      alert('✅ Produto deletado com sucesso!')
       router.push('/admin/produtos')
     } catch (error) {
       console.error('Erro ao deletar produto:', error)
@@ -150,6 +229,21 @@ export default function ProdutoDetalhes({ params }: { params: { id: string } }) 
       ...prev,
       [name]: type === 'number' ? parseFloat(value) || 0 : value
     }))
+  }
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedValue = e.target.value
+    const categoria = CATEGORIAS.find(c => c.value === selectedValue)
+    setFormData(prev => ({
+      ...prev,
+      category: categoria ? categoria.label : selectedValue
+    }))
+  }
+
+  const getSelectedValue = () => {
+    if (!formData.category) return ''
+    const categoria = CATEGORIAS.find(c => c.label === formData.category)
+    return categoria ? categoria.value : ''
   }
 
   const handleCheckbox = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -259,16 +353,15 @@ export default function ProdutoDetalhes({ params }: { params: { id: string } }) 
                 <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
                 <select
                   name="category"
-                  value={formData.category}
-                  onChange={handleChange}
+                  value={getSelectedValue()}
+                  onChange={handleCategoryChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800]"
                 >
-                  <option value="">Selecione</option>
-                  <option value="mochilas">Mochilas</option>
-                  <option value="acessorios">Acessórios</option>
-                  <option value="equipamentos">Equipamentos</option>
-                  <option value="e-books">E-books</option>
-                  <option value="outros">Outros</option>
+                  {CATEGORIAS.map((cat) => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -317,6 +410,62 @@ export default function ProdutoDetalhes({ params }: { params: { id: string } }) 
                   />
                   <span className="text-sm text-gray-700">Frete grátis</span>
                 </label>
+              </div>
+
+              {/* 🔥 IMAGENS COM SUPORTE A 20 IMAGENS */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Imagens (até 20)
+                </label>
+                <div className="flex items-center gap-4 flex-wrap">
+                  <label className="cursor-pointer">
+                    <div className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+                      uploading ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200'
+                    }`}>
+                      <Upload size={18} />
+                      <span className="text-sm">{uploading ? 'Enviando...' : 'Adicionar imagem'}</span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUpload}
+                      disabled={uploading || formData.images.length >= 20}
+                      className="hidden"
+                    />
+                  </label>
+                  <span className="text-xs text-gray-400">
+                    {formData.images.length}/20 imagens
+                  </span>
+                </div>
+
+                {formData.images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-3 mt-3">
+                    {formData.images.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Imagem ${index + 1}`}
+                          className="w-full h-20 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition opacity-0 group-hover:opacity-100"
+                        >
+                          <X size={14} />
+                        </button>
+                        {index === 0 && (
+                          <span className="absolute bottom-1 left-1 bg-[#FFB800] text-black text-[0.5rem] font-bold px-1.5 py-0.5 rounded">
+                            PRINCIPAL
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-gray-400 mt-2">
+                  Formatos: JPG, PNG, WebP. Máximo 5MB. A primeira imagem é a principal.
+                </p>
               </div>
 
               <div className="flex gap-3 pt-4 border-t border-gray-100">
@@ -417,14 +566,20 @@ export default function ProdutoDetalhes({ params }: { params: { id: string } }) 
                   )}
                 </div>
 
-                {product.image_url && (
+                {/* 🔥 IMAGENS NA VISUALIZAÇÃO */}
+                {product.images && product.images.length > 0 && (
                   <div className="pt-4 border-t border-gray-100">
-                    <p className="text-sm text-gray-500 mb-2">Imagem</p>
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="max-w-xs max-h-48 object-contain rounded-lg border border-gray-100"
-                    />
+                    <p className="text-sm text-gray-500 mb-2">Imagens ({product.images.length})</p>
+                    <div className="grid grid-cols-4 gap-3">
+                      {product.images.map((url, index) => (
+                        <img
+                          key={index}
+                          src={url}
+                          alt={`${product.name} - Imagem ${index + 1}`}
+                          className="w-full h-20 object-cover rounded-lg border border-gray-200"
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
