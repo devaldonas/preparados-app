@@ -552,16 +552,16 @@ export default function AdminProdutos() {
                 {/* Upload de Imagens */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Imagens do Produto * (até 5)
+                    Imagens do Produto * (até 20)
                   </label>
                   <UploadMultiplasImagens 
                     onUploadComplete={handleImagesUploadComplete}
                     currentImages={imageUrls}
-                    maxImages={5}
+                    maxImages={20}
                     produtoNome={editForm.name || 'produto'}
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    Adicione até 5 imagens. A primeira imagem será a principal.
+                    Adicione até 20 imagens. A primeira imagem será a principal.
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
                     Tamanho máximo: 2MB por imagem • Formatos: JPG, PNG, WEBP • Dimensão recomendada: 800x800 pixels

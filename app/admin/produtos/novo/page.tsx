@@ -1,4 +1,3 @@
-// app/admin/produtos/novo/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -22,7 +21,6 @@ interface ProductForm {
   file_url: string | null
 }
 
-// 🔥 CATEGORIAS COM VALUE E LABEL
 const CATEGORIAS = [
   { value: '', label: 'Selecione uma categoria' },
   { value: 'mochilas', label: 'Mochilas' },
@@ -44,7 +42,7 @@ const CATEGORIAS = [
   { value: 'outros', label: 'Outros' },
 ]
 
-export default function NovoProduto() {
+export default function NovoProdutoAdmin() {
   const [loading, setLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [formData, setFormData] = useState<ProductForm>({
@@ -63,7 +61,6 @@ export default function NovoProduto() {
   })
   const [mochilaOptions] = useState(['EDC', 'BOB', 'BOLT'])
   const router = useRouter()
-
   const STORAGE_BUCKET = 'produtos'
 
   useEffect(() => {
@@ -75,13 +72,13 @@ export default function NovoProduto() {
           return
         }
 
-        const { data: profile } = await supabase
-          .from('profiles')
+        const { data: profile } = await (supabase
+          .from('profiles') as any)
           .select('role')
           .eq('id', user.id)
           .single()
 
-        if ((profile as any)?.role !== 'admin') {
+        if (profile?.role !== 'admin') {
           router.push('/dashboard')
           return
         }
@@ -104,9 +101,7 @@ export default function NovoProduto() {
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedValue = e.target.value
-    // 🔥 Encontrar o label correspondente
     const categoria = CATEGORIAS.find(c => c.value === selectedValue)
-    // 🔥 Salvar o label no banco
     setFormData(prev => ({
       ...prev,
       category: categoria ? categoria.label : selectedValue
@@ -146,12 +141,15 @@ export default function NovoProduto() {
       return
     }
 
+    // 🔥 LIMITE DE 20 IMAGENS
+    if (formData.images.length >= 20) {
+      alert('Limite máximo de 20 imagens atingido')
+      return
+    }
+
     setUploading(true)
     try {
       const fileName = `${Date.now()}-${file.name}`
-      
-      console.log('📤 Fazendo upload para bucket:', STORAGE_BUCKET)
-      console.log('📤 Arquivo:', fileName)
       
       const { data, error } = await supabase.storage
         .from(STORAGE_BUCKET)
@@ -160,18 +158,11 @@ export default function NovoProduto() {
           upsert: false
         })
 
-      if (error) {
-        console.error('❌ Erro no upload:', error)
-        throw error
-      }
-
-      console.log('✅ Upload concluído:', data)
+      if (error) throw error
 
       const { data: urlData } = supabase.storage
         .from(STORAGE_BUCKET)
         .getPublicUrl(fileName)
-
-      console.log('✅ URL pública:', urlData.publicUrl)
 
       setFormData(prev => ({
         ...prev,
@@ -181,7 +172,7 @@ export default function NovoProduto() {
       
       alert('✅ Imagem enviada com sucesso!')
     } catch (error: any) {
-      console.error('❌ Erro ao fazer upload:', error)
+      console.error('Erro ao fazer upload:', error)
       alert(`Erro ao fazer upload: ${error.message || 'Tente novamente'}`)
     } finally {
       setUploading(false)
@@ -193,6 +184,24 @@ export default function NovoProduto() {
       ...prev,
       images: (prev.images || []).filter((_, i) => i !== index)
     }))
+    // Se remover a imagem principal, atualizar image_url
+    if (index === 0 && formData.images.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        image_url: prev.images[1] || ''
+      }))
+    } else if (formData.images.length === 1) {
+      setFormData(prev => ({
+        ...prev,
+        image_url: ''
+      }))
+    }
+  }
+
+  const getSelectedValue = () => {
+    if (!formData.category) return ''
+    const categoria = CATEGORIAS.find(c => c.label === formData.category)
+    return categoria ? categoria.value : ''
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -206,7 +215,7 @@ export default function NovoProduto() {
           name: formData.name,
           description: formData.description || null,
           price: formData.price,
-          category: formData.category, // 🔥 Agora salva o label
+          category: formData.category,
           stock: formData.stock,
           image_url: formData.image_url,
           images: formData.images || [],
@@ -222,18 +231,11 @@ export default function NovoProduto() {
       alert('✅ Produto criado com sucesso!')
       router.push('/admin/produtos')
     } catch (error) {
-      console.error('❌ Erro ao criar produto:', error)
-      alert('❌ Erro ao criar produto')
+      console.error('Erro ao criar produto:', error)
+      alert('Erro ao criar produto: ' + (error as any).message)
     } finally {
       setLoading(false)
     }
-  }
-
-  // 🔥 Função para obter o valor selecionado baseado no label atual
-  const getSelectedValue = () => {
-    if (!formData.category) return ''
-    const categoria = CATEGORIAS.find(c => c.label === formData.category)
-    return categoria ? categoria.value : ''
   }
 
   return (
@@ -250,7 +252,6 @@ export default function NovoProduto() {
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
-          {/* Nome */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Nome do Produto *
@@ -266,7 +267,6 @@ export default function NovoProduto() {
             />
           </div>
 
-          {/* Descrição */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Descrição
@@ -281,7 +281,6 @@ export default function NovoProduto() {
             />
           </div>
 
-          {/* Preço e Estoque */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -316,7 +315,6 @@ export default function NovoProduto() {
             </div>
           </div>
 
-          {/* Categoria */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Categoria
@@ -335,7 +333,6 @@ export default function NovoProduto() {
             </select>
           </div>
 
-          {/* Tipo de Mochila */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Tipo de Mochila
@@ -358,7 +355,6 @@ export default function NovoProduto() {
             </div>
           </div>
 
-          {/* Checkboxes */}
           <div className="space-y-2">
             <label className="flex items-center gap-2">
               <input
@@ -392,50 +388,62 @@ export default function NovoProduto() {
             </label>
           </div>
 
-          {/* Upload de Imagem */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Imagem do Produto
+              Imagens do Produto (até 20)
             </label>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <label className="cursor-pointer">
                 <div className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
                   uploading ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200'
                 }`}>
                   <Upload size={18} />
-                  <span className="text-sm">{uploading ? 'Enviando...' : 'Escolher imagem'}</span>
+                  <span className="text-sm">{uploading ? 'Enviando...' : 'Adicionar imagem'}</span>
                 </div>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleUpload}
-                  disabled={uploading}
+                  disabled={uploading || formData.images.length >= 20}
                   className="hidden"
                 />
               </label>
-              {formData.image_url && (
-                <div className="relative w-16 h-16">
-                  <img
-                    src={formData.image_url}
-                    alt="Preview"
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(0)}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              )}
+              <span className="text-xs text-gray-400">
+                {formData.images.length}/20 imagens
+              </span>
             </div>
+
+            {formData.images.length > 0 && (
+              <div className="grid grid-cols-4 gap-3 mt-3">
+                {formData.images.map((url, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={url}
+                      alt={`Imagem ${index + 1}`}
+                      className="w-full h-20 object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition opacity-0 group-hover:opacity-100"
+                    >
+                      <X size={14} />
+                    </button>
+                    {index === 0 && (
+                      <span className="absolute bottom-1 left-1 bg-[#FFB800] text-black text-[0.5rem] font-bold px-1.5 py-0.5 rounded">
+                        PRINCIPAL
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
             <p className="text-xs text-gray-400 mt-2">
-              Formatos aceitos: JPG, PNG, WebP. Máximo 5MB.
+              Formatos aceitos: JPG, PNG, WebP. Máximo 5MB por imagem.
+              A primeira imagem é a principal.
             </p>
           </div>
 
-          {/* Botões */}
           <div className="flex gap-4 pt-4 border-t border-gray-100">
             <button
               type="submit"

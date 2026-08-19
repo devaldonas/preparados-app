@@ -60,7 +60,7 @@ export default function WelcomePage() {
           <div className="bg-gradient-to-r from-[#FFB800] to-[#E5A600] px-6 py-8 text-center">
             <div className="flex justify-center mb-4">
               <img 
-                src="/logo1.svg" 
+                src="/logo.svg" 
                 alt="PREPARADO" 
                 className="h-16 w-auto"
                 onError={(e) => { e.currentTarget.style.display = 'none' }}

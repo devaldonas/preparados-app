@@ -44,12 +44,10 @@ export default function PlanosPage() {
     setPaymentId(null)
 
     try {
-      // 🔥 Calcular valor com base nas parcelas
       let valorTotal = 476.28
       let valorParcela = 39.69
       
       if (paymentMethod === 'card') {
-        // 🔥 Calcular juros do Mercado Pago para parcelas
         const jurosPorParcela: Record<number, number> = {
           1: 0, 2: 0, 3: 0, 4: 2.5, 5: 3.0, 6: 3.5, 7: 4.0, 8: 4.5, 9: 5.0, 10: 5.5, 11: 6.0, 12: 6.5
         }
@@ -226,10 +224,11 @@ export default function PlanosPage() {
             Assine
           </h1>
           <div className="flex items-center justify-center gap-2 mt-2">
+            <span className="text-gray-600">Você</span>
             <img 
               src="/images/preparado.png" 
               alt="PREPARADO" 
-              className="h-6 w-auto"
+              className="h-4 w-auto"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
           </div>
@@ -251,7 +250,6 @@ export default function PlanosPage() {
 
           <div className="border-t border-gray-200 my-6"></div>
 
-          {/* Método de Pagamento */}
           <div className="space-y-4 mb-6">
             <p className="text-sm font-medium text-gray-700">Escolha a forma de pagamento:</p>
             
@@ -269,7 +267,6 @@ export default function PlanosPage() {
               {paymentMethod === 'card' && <Check size={18} className="ml-auto text-[#FFB800]" />}
             </button>
 
-            {/* 🔥 OPÇÃO DE PARCELAS */}
             {paymentMethod === 'card' && (
               <div className="pl-12 pr-4 pb-2">
                 <label className="text-xs text-gray-500 block mb-1">Parcelas:</label>
@@ -303,7 +300,11 @@ export default function PlanosPage() {
                 paymentMethod === 'pix' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
               }`}
             >
-              <QrCode size={20} className={paymentMethod === 'pix' ? 'text-[#FFB800]' : 'text-gray-400'} />
+              <img 
+                src={paymentMethod === 'pix' ? '/images/pix-icon-amarelo.svg' : '/images/pix-icon-cinza.svg'} 
+                alt="PIX" 
+                className="w-5 h-5"
+              />
               <div className="text-left">
                 <p className="font-medium text-sm">PIX</p>
                 <p className="text-xs text-gray-400">{formatPrice(476.28)} à vista</p>
@@ -324,7 +325,11 @@ export default function PlanosPage() {
               </>
             ) : (
               <>
-                {paymentMethod === 'pix' ? <QrCode size={20} /> : <CreditCard size={20} />}
+                {paymentMethod === 'pix' ? (
+                  <img src="/images/pix-icon-amarelo.svg" alt="PIX" className="w-5 h-5" />
+                ) : (
+                  <CreditCard size={20} />
+                )}
                 {paymentMethod === 'pix' ? 'Gerar PIX' : 'Assinar agora'}
               </>
             )}
@@ -338,7 +343,7 @@ export default function PlanosPage() {
             <span>🔒 Pagamento seguro</span>
             <span>•</span>
             <span className="flex items-center gap-1">
-              <QrCode size={14} />
+              <img src="/images/pix-icon-amarelo.svg" alt="PIX" className="w-4 h-4" />
               PIX disponível
             </span>
           </div>
