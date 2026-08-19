@@ -14,6 +14,8 @@ export default function PlanosPage() {
   const [codigoPix, setCodigoPix] = useState<string | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>('card')
   const [showPix, setShowPix] = useState(false)
+  const [paymentId, setPaymentId] = useState<string | null>(null)
+  const [checkingPayment, setCheckingPayment] = useState(false)
 
   useEffect(() => {
     carregarDados()
@@ -38,6 +40,7 @@ export default function PlanosPage() {
     setProcessing(true)
     setQrCode(null)
     setCodigoPix(null)
+    setPaymentId(null)
 
     try {
       const response = await fetch('/api/assinatura/criar', {
@@ -60,17 +63,16 @@ export default function PlanosPage() {
         throw new Error(data.error || 'Erro ao processar pagamento')
       }
 
-      console.log('📥 Resposta da API:', data)
-
       // 🔥 Se for PIX, mostrar QR Code
       if (data.paymentMethod === 'pix') {
-        console.log('🖼️ QR Code recebido:', data.qrCode ? 'Sim' : 'Não')
-        console.log('📝 Código PIX recebido:', data.codigoPix ? 'Sim' : 'Não')
-        
         setQrCode(data.qrCode)
         setCodigoPix(data.codigoPix)
+        setPaymentId(data.paymentId)
         setShowPix(true)
         setProcessing(false)
+        
+        // 🔥 Iniciar verificação automática de pagamento
+        verificarPagamentoAutomatico(data.paymentId)
         return
       }
 
@@ -86,15 +88,50 @@ export default function PlanosPage() {
     }
   }
 
+  // 🔥 VERIFICAÇÃO AUTOMÁTICA DE PAGAMENTO
+  const verificarPagamentoAutomatico = async (paymentId: string) => {
+    setCheckingPayment(true)
+    
+    let tentativas = 0
+    const maxTentativas = 24 // 2 minutos (5 segundos * 24)
+    
+    const intervalo = setInterval(async () => {
+      tentativas++
+      
+      try {
+        const response = await fetch(`/api/mercadopago/status?payment_id=${paymentId}`)
+        const data = await response.json()
+        
+        console.log(`🔍 Verificando pagamento (${tentativas}/${maxTentativas}):`, data.status)
+        
+        if (data.status === 'approved') {
+          clearInterval(intervalo)
+          setCheckingPayment(false)
+          // 🔥 Pagamento confirmado, redirecionar para welcome
+          router.push('/auth/welcome')
+        } else if (tentativas >= maxTentativas) {
+          clearInterval(intervalo)
+          setCheckingPayment(false)
+          // 🔥 Tempo esgotado, mostrar mensagem
+          alert('⏳ O pagamento está sendo processado. Você será notificado quando for confirmado.')
+          setShowPix(false)
+          router.push('/dashboard')
+        }
+      } catch (error) {
+        console.error('Erro ao verificar pagamento:', error)
+        if (tentativas >= maxTentativas) {
+          clearInterval(intervalo)
+          setCheckingPayment(false)
+        }
+      }
+    }, 5000) // Verificar a cada 5 segundos
+  }
+
   const copiarCodigoPix = () => {
     if (codigoPix) {
       navigator.clipboard.writeText(codigoPix)
       alert('✅ Código PIX copiado!')
     }
-  }
-
-  const verificarPagamento = async () => {
-    router.push('/dashboard')
   }
 
   const formatPrice = (price: number) => {
@@ -116,18 +153,19 @@ export default function PlanosPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-          <button
-            onClick={() => setShowPix(false)}
-            className="float-right text-gray-400 hover:text-gray-600"
-          >
-            <X size={24} />
-          </button>
           <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
             Pagar com PIX
           </h2>
           <p className="text-center text-gray-500 text-sm mb-6">
             Valor: {formatPrice(476.28)}
           </p>
+          
+          {checkingPayment && (
+            <div className="text-center mb-4">
+              <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-[#FFB800]"></div>
+              <p className="text-sm text-gray-500 mt-2">Aguardando confirmação do pagamento...</p>
+            </div>
+          )}
           
           {qrCode && (
             <div className="bg-gray-50 rounded-xl p-4 mb-4 flex justify-center">
@@ -153,16 +191,16 @@ export default function PlanosPage() {
             </button>
           )}
           
-          <button
-            onClick={verificarPagamento}
-            className="w-full mt-4 bg-[#FFB800] text-black py-3 rounded-lg font-semibold hover:bg-[#E5A600] transition"
-          >
-            Já paguei, verificar
-          </button>
-          
           <p className="text-xs text-gray-400 text-center mt-4">
-            O pagamento será confirmado automaticamente em alguns minutos
+            Após o pagamento, você será redirecionado automaticamente.
           </p>
+          
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="w-full mt-4 bg-gray-200 text-gray-600 py-2 rounded-lg font-medium hover:bg-gray-300 transition"
+          >
+            Voltar ao início
+          </button>
         </div>
       </div>
     )
