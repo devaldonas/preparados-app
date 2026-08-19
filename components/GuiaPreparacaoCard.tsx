@@ -201,6 +201,44 @@ export default function GuiaPreparacaoCard() {
 
       {/* Conteúdo do guia */}
       <div className="p-5 space-y-6">
+        {/* 🔥 PILARES DA PREPARAÇÃO - Adicionado aqui */}
+        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+            <img src="/images/logo.jpeg" alt="Defesa" className="w-5 h-5 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+            Pilares da Preparação
+          </h4>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <div className="bg-white rounded-lg p-2 text-center">
+              <img src="/images/defesa.jpeg" alt="Defesa" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+              <p className="font-bold text-gray-900 text-xs">Defesa</p>
+              <p className="text-[0.55rem] text-gray-500">Atitude mental</p>
+            </div>
+            <div className="bg-white rounded-lg p-2 text-center">
+              <img src="/images/agua.jpeg" alt="Água" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+              <p className="font-bold text-gray-900 text-xs">Água</p>
+              <p className="text-[0.55rem] text-gray-500">Hidratação</p>
+            </div>
+            <div className="bg-white rounded-lg p-2 text-center">
+              <img src="/images/abrigo.jpeg" alt="Abrigo" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+              <p className="font-bold text-gray-900 text-xs">Abrigo</p>
+              <p className="text-[0.55rem] text-gray-500">Proteção</p>
+            </div>
+            <div className="bg-white rounded-lg p-2 text-center">
+              <img src="/images/alimento.jpeg" alt="Alimento" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+              <p className="font-bold text-gray-900 text-xs">Alimento</p>
+              <p className="text-[0.55rem] text-gray-500">Energia</p>
+            </div>
+            <div className="bg-white rounded-lg p-2 text-center">
+              <img src="/images/fogo.jpeg" alt="Fogo" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+              <p className="font-bold text-gray-900 text-xs">Fogo</p>
+              <p className="text-[0.55rem] text-gray-500">Calor e preparo</p>
+            </div>
+          </div>
+          <p className="text-[0.6rem] text-center text-gray-400 mt-2">
+            A Defesa é o primeiro pilar: esteja mentalmente preparado para qualquer situação.
+          </p>
+        </div>
+
         {/* Citação */}
         <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-[#FFB800]">
           <p className="text-gray-700 text-sm italic font-medium">
