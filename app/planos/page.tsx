@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { Loader2, Crown, Check, CreditCard, QrCode, Copy, X } from 'lucide-react'
+import { Loader2, Crown, Check, CreditCard, QrCode, Copy, X, Zap } from 'lucide-react'
 
 export default function PlanosPage() {
   const router = useRouter()
@@ -16,6 +16,7 @@ export default function PlanosPage() {
   const [showPix, setShowPix] = useState(false)
   const [paymentId, setPaymentId] = useState<string | null>(null)
   const [checkingPayment, setCheckingPayment] = useState(false)
+  const [parcelas, setParcelas] = useState(1)
 
   useEffect(() => {
     carregarDados()
@@ -43,17 +44,34 @@ export default function PlanosPage() {
     setPaymentId(null)
 
     try {
+      // 🔥 Calcular valor com base nas parcelas
+      let valorTotal = 476.28
+      let valorParcela = 39.69
+      
+      if (paymentMethod === 'card') {
+        // 🔥 Calcular juros do Mercado Pago para parcelas
+        const jurosPorParcela: Record<number, number> = {
+          1: 0, 2: 0, 3: 0, 4: 2.5, 5: 3.0, 6: 3.5, 7: 4.0, 8: 4.5, 9: 5.0, 10: 5.5, 11: 6.0, 12: 6.5
+        }
+        const juros = jurosPorParcela[parcelas] || 0
+        const totalComJuros = valorTotal * (1 + juros / 100)
+        valorParcela = totalComJuros / parcelas
+        valorTotal = totalComJuros
+      }
+
       const response = await fetch('/api/assinatura/criar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           planId: 1,
           planName: 'Plano Anual',
-          price: 39.69,
+          price: valorParcela,
+          totalPrice: valorTotal,
           interval: 'year',
           userId: user.id,
           userEmail: user.email,
-          paymentMethod: paymentMethod
+          paymentMethod: paymentMethod,
+          parcelas: parcelas
         })
       })
 
@@ -63,7 +81,6 @@ export default function PlanosPage() {
         throw new Error(data.error || 'Erro ao processar pagamento')
       }
 
-      // 🔥 Se for PIX, mostrar QR Code
       if (data.paymentMethod === 'pix') {
         setQrCode(data.qrCode)
         setCodigoPix(data.codigoPix)
@@ -71,12 +88,10 @@ export default function PlanosPage() {
         setShowPix(true)
         setProcessing(false)
         
-        // 🔥 Iniciar verificação automática de pagamento
         verificarPagamentoAutomatico(data.paymentId)
         return
       }
 
-      // 🔥 Se for cartão, redirecionar para Mercado Pago
       if (data.initPoint) {
         window.location.href = data.initPoint
       }
@@ -88,12 +103,11 @@ export default function PlanosPage() {
     }
   }
 
-  // 🔥 VERIFICAÇÃO AUTOMÁTICA DE PAGAMENTO
   const verificarPagamentoAutomatico = async (paymentId: string) => {
     setCheckingPayment(true)
     
     let tentativas = 0
-    const maxTentativas = 24 // 2 minutos (5 segundos * 24)
+    const maxTentativas = 24
     
     const intervalo = setInterval(async () => {
       tentativas++
@@ -107,12 +121,10 @@ export default function PlanosPage() {
         if (data.status === 'approved') {
           clearInterval(intervalo)
           setCheckingPayment(false)
-          // 🔥 Pagamento confirmado, redirecionar para welcome
           router.push('/auth/welcome')
         } else if (tentativas >= maxTentativas) {
           clearInterval(intervalo)
           setCheckingPayment(false)
-          // 🔥 Tempo esgotado, mostrar mensagem
           alert('⏳ O pagamento está sendo processado. Você será notificado quando for confirmado.')
           setShowPix(false)
           router.push('/dashboard')
@@ -124,7 +136,7 @@ export default function PlanosPage() {
           setCheckingPayment(false)
         }
       }
-    }, 5000) // Verificar a cada 5 segundos
+    }, 5000)
   }
 
   const copiarCodigoPix = () => {
@@ -211,28 +223,35 @@ export default function PlanosPage() {
       <div className="max-w-4xl mx-auto px-4">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-gray-900">
-            Plano Anual
+            Assine
           </h1>
-          <p className="text-gray-600 mt-2">
-            Acesso completo a todos os recursos do PREPARADO
-          </p>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <img 
+              src="/images/preparado.png" 
+              alt="PREPARADO" 
+              className="h-6 w-auto"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl border-2 border-[#FFB800] shadow-lg p-8 max-w-lg mx-auto">
           <div className="text-center">
-            <div className="inline-block bg-[#FFB800]/10 px-4 py-1 rounded-full mb-4">
-              <span className="text-sm font-semibold text-[#FFB800]">⭐ Melhor plano</span>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900">Plano Anual</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Acesso Total</h2>
             <div className="mt-4">
-              <span className="text-4xl font-bold text-gray-900">12x de</span>
-              <span className="text-5xl font-bold text-[#FFB800] ml-2">R$ 39,69</span>
+              <p className="text-sm text-red-500 line-through">
+                De {formatPrice(279.90)}/mês
+              </p>
+              <p className="text-4xl font-bold text-[#FFB800] mt-1">
+                12x de {formatPrice(39.69)}
+              </p>
+              <p className="text-sm text-gray-400 mt-1">Assinatura anual</p>
             </div>
-            <p className="text-sm text-gray-400 mt-1">ou R$ 476,28 à vista no PIX</p>
           </div>
 
           <div className="border-t border-gray-200 my-6"></div>
 
+          {/* Método de Pagamento */}
           <div className="space-y-4 mb-6">
             <p className="text-sm font-medium text-gray-700">Escolha a forma de pagamento:</p>
             
@@ -245,10 +264,38 @@ export default function PlanosPage() {
               <CreditCard size={20} className={paymentMethod === 'card' ? 'text-[#FFB800]' : 'text-gray-400'} />
               <div className="text-left">
                 <p className="font-medium text-sm">Cartão de Crédito</p>
-                <p className="text-xs text-gray-400">12x de R$ 39,69</p>
+                <p className="text-xs text-gray-400">12x de {formatPrice(39.69)}</p>
               </div>
               {paymentMethod === 'card' && <Check size={18} className="ml-auto text-[#FFB800]" />}
             </button>
+
+            {/* 🔥 OPÇÃO DE PARCELAS */}
+            {paymentMethod === 'card' && (
+              <div className="pl-12 pr-4 pb-2">
+                <label className="text-xs text-gray-500 block mb-1">Parcelas:</label>
+                <select
+                  value={parcelas}
+                  onChange={(e) => setParcelas(parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
+                >
+                  <option value="1">1x sem juros</option>
+                  <option value="2">2x sem juros</option>
+                  <option value="3">3x sem juros</option>
+                  <option value="4">4x com juros</option>
+                  <option value="5">5x com juros</option>
+                  <option value="6">6x com juros</option>
+                  <option value="7">7x com juros</option>
+                  <option value="8">8x com juros</option>
+                  <option value="9">9x com juros</option>
+                  <option value="10">10x com juros</option>
+                  <option value="11">11x com juros</option>
+                  <option value="12">12x com juros</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  {parcelas <= 3 ? '✅ Sem juros' : '🏦 Taxa de juros aplicada'}
+                </p>
+              </div>
+            )}
 
             <button
               onClick={() => setPaymentMethod('pix')}
@@ -259,7 +306,7 @@ export default function PlanosPage() {
               <QrCode size={20} className={paymentMethod === 'pix' ? 'text-[#FFB800]' : 'text-gray-400'} />
               <div className="text-left">
                 <p className="font-medium text-sm">PIX</p>
-                <p className="text-xs text-gray-400">R$ 476,28 à vista</p>
+                <p className="text-xs text-gray-400">{formatPrice(476.28)} à vista</p>
               </div>
               {paymentMethod === 'pix' && <Check size={18} className="ml-auto text-[#FFB800]" />}
             </button>
@@ -290,9 +337,10 @@ export default function PlanosPage() {
           <div className="mt-6 flex items-center justify-center gap-4 text-xs text-gray-400">
             <span>🔒 Pagamento seguro</span>
             <span>•</span>
-            <span>💳 12x sem juros</span>
-            <span>•</span>
-            <span>📱 PIX disponível</span>
+            <span className="flex items-center gap-1">
+              <QrCode size={14} />
+              PIX disponível
+            </span>
           </div>
         </div>
 
