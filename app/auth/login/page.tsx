@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react'
 
-export default function LoginPage() {
+// 🔥 Componente que usa useSearchParams (envolvido em Suspense)
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams?.get('redirectTo') || '/dashboard'
@@ -19,7 +20,6 @@ export default function LoginPage() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    // Verificar se o usuário já está logado
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
@@ -44,20 +44,17 @@ export default function LoginPage() {
       if (authError) throw authError
 
       if (data.user) {
-        // 🔥 Buscar o perfil do usuário
         const { data: profile } = await (supabase
           .from('profiles') as any)
           .select('subscription_status, role')
           .eq('id', data.user.id)
           .single()
 
-        // Se for admin, vai para dashboard
         if (profile?.role === 'admin') {
           router.push('/dashboard')
           return
         }
 
-        // Verificar se tem acesso pago
         const hasAccess = profile?.subscription_status === 'active' || 
                          profile?.subscription_status === 'paid' ||
                          profile?.subscription_status === 'approved'
@@ -65,7 +62,6 @@ export default function LoginPage() {
         if (hasAccess) {
           router.push('/dashboard')
         } else {
-          // Se não tem acesso, vai para planos
           router.push('/planos')
         }
       }
@@ -191,5 +187,18 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// 🔥 Componente principal com Suspense
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }
