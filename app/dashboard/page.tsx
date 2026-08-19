@@ -24,19 +24,19 @@ export default function Dashboard() {
   const [mostrarRadio, setMostrarRadio] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [onlineUsers, setOnlineUsers] = useState(0)
- const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
   const [userProgress, setUserProgress] = useState<UserProgress[]>([])
 
   useEffect(() => {
-  const checkSession = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    console.log('🔐 Sessão atual:', session ? '✅ Ativa' : '❌ Nenhuma');
-    if (session) {
-      console.log('👤 Usuário:', session.user.email);
-    }
-  };
-  checkSession();
-}, []);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('🔐 Sessão atual:', session ? '✅ Ativa' : '❌ Nenhuma');
+      if (session) {
+        console.log('👤 Usuário:', session.user.email);
+      }
+    };
+    checkSession();
+  }, []);
 
   useEffect(() => {
     const getUser = async () => {
@@ -48,16 +48,27 @@ export default function Dashboard() {
         }
         setUser(user)
         
-        // 🔥 VERIFICAR SE É PARCEIRO E REDIRECIONAR
+        // 🔥 VERIFICAR SE É PARCEIRO
         const { data: profile } = await (supabase
           .from('profiles') as any)
-          .select('role')
+          .select('role, subscription_status')
           .eq('id', user.id)
           .maybeSingle()
 
         // Se for parceiro, redireciona para o dashboard do parceiro
         if (profile?.role === 'partner') {
           router.push('/parceiro/dashboard')
+          return
+        }
+
+        // 🔥 VERIFICAR SE TEM ACESSO (NÃO É ADMIN)
+        const hasAccess = profile?.subscription_status === 'active' || 
+                         profile?.subscription_status === 'paid' ||
+                         profile?.subscription_status === 'approved'
+
+        // Se for admin, permite acesso (admin não precisa pagar)
+        if (profile?.role !== 'admin' && !hasAccess) {
+          router.push('/planos')
           return
         }
 
@@ -76,74 +87,76 @@ export default function Dashboard() {
   }, [])
 
   const loadProfile = async (userId: string) => {
-  try {
-    const { data, error } = await (supabase
-      .from('profiles') as any)
-      .select('full_name, mochila_tipo, city, state, role')
-      .eq('id', userId)
-      .maybeSingle()
+    try {
+      const { data, error } = await (supabase
+        .from('profiles') as any)
+        .select('full_name, mochila_tipo, city, state, role')
+        .eq('id', userId)
+        .maybeSingle()
 
-    if (error) {
-      console.error('Erro ao buscar perfil:', error)
-      return
-    }
+      if (error) {
+        console.error('Erro ao buscar perfil:', error)
+        return
+      }
 
-    if (data) {
-      setProfile(data)
-      setUser((prev: any) => ({
-        ...prev,
-        user_metadata: {
-          ...prev?.user_metadata,
-          full_name: data.full_name,
-          mochila_tipo: data.mochila_tipo,
-        }
-      }))
+      if (data) {
+        setProfile(data)
+        setUser((prev: any) => ({
+          ...prev,
+          user_metadata: {
+            ...prev?.user_metadata,
+            full_name: data.full_name,
+            mochila_tipo: data.mochila_tipo,
+          }
+        }))
+      }
+    } catch (error) {
+      console.error('Erro ao carregar perfil:', error)
     }
-  } catch (error) {
-    console.error('Erro ao carregar perfil:', error)
   }
-}
 
   const checkAdminStatus = async (userId: string) => {
-  try {
-    const { data, error } = await (supabase
-      .from('profiles') as any)
-      .select('role')
-      .eq('id', userId)
-      .maybeSingle()
+    try {
+      const { data, error } = await (supabase
+        .from('profiles') as any)
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle()
 
-    if (error) {
+      if (error) {
+        console.error('Erro ao verificar admin:', error)
+        return
+      }
+
+      console.log('🔍 Role encontrada no dashboard:', data?.role)
+      console.log('🔍 É admin?', data?.role === 'admin')
+
+      if (data?.role === 'admin') {
+        setIsAdmin(true)
+        console.log('📊 Estado isAdmin após carregamento:', isAdmin)
+        console.log('✅ setIsAdmin(true) executado!')
+      } else {
+        console.log('❌ Usuário NÃO é admin')
+      }
+    } catch (error) {
       console.error('Erro ao verificar admin:', error)
-      return
     }
-
-    console.log('🔍 Role encontrada no dashboard:', data?.role)
-    console.log('🔍 É admin?', data?.role === 'admin')
-
-    if (data?.role === 'admin') {
-      setIsAdmin(true)
-      console.log('📊 Estado isAdmin após carregamento:', isAdmin)
-      console.log('✅ setIsAdmin(true) executado!')
-    } else {
-      console.log('❌ Usuário NÃO é admin')
-    }
-  } catch (error) {
-    console.error('Erro ao verificar admin:', error)
   }
-}
+
   const loadOnlineUsers = async () => {
-  try {
-    const { count, error } = await (supabase
-      .from('profiles') as any)
-      .select('*', { count: 'exact', head: true })
+    try {
+      const { count, error } = await (supabase
+        .from('profiles') as any)
+        .select('*', { count: 'exact', head: true })
 
-    if (error) throw error
-    setOnlineUsers(count || 0)
-  } catch (error) {
-    console.error('Erro ao buscar usuários:', error)
-    setOnlineUsers(Math.floor(Math.random() * 15) + 3)
+      if (error) throw error
+      setOnlineUsers(count || 0)
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error)
+      setOnlineUsers(Math.floor(Math.random() * 15) + 3)
+    }
   }
-}
+
   const loadProgress = async (userId: string) => {
     try {
       const { data: userProgressData, error: progressError } = await supabase
