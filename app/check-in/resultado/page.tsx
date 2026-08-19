@@ -31,7 +31,6 @@ function ResultadoContent() {
     getUser()
   }, [])
 
-  // 🔥 CORRIGIDO: loadProfile com as any
   const loadProfile = async (userId: string) => {
     try {
       const { data } = await (supabase
@@ -48,7 +47,6 @@ function ResultadoContent() {
     }
   }
 
-  // 🔥 CORRIGIDO: checkCheckinStatus com as any
   const checkCheckinStatus = async (userId: string) => {
     try {
       const { data } = await (supabase
@@ -155,11 +153,12 @@ function ResultadoContent() {
         </div>
 
         <div className="flex gap-4">
+          {/* 🔥 REDIRECIONA PARA /mochilas EM VEZ DE /checklist */}
           <Link
-            href="/checklist"
+            href="/mochilas"
             className="flex-1 bg-[#FFB800] text-black py-3 px-4 rounded-lg font-semibold text-center hover:bg-[#E5A600] transition"
           >
-            Ver Checklist
+            Ver Minhas Mochilas
           </Link>
           <Link
             href="/dashboard"

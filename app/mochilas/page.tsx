@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import NavBar from '@/components/NavBar'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
 interface UserBackpack {
@@ -28,7 +27,6 @@ export default function MinhasMochilas() {
     carregarMochilas()
   }, [])
 
-  // 🔥 CORRIGIDO: carregarMochilas com as any
   const carregarMochilas = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -55,7 +53,6 @@ export default function MinhasMochilas() {
     }
   }
 
-  // 🔥 CORRIGIDO: criarMochila com as any
   const criarMochila = async () => {
     if (!newBackpackName.trim()) {
       alert('Digite um nome para sua mochila')
@@ -97,12 +94,6 @@ export default function MinhasMochilas() {
     if (tipo === 'EDC') return 'Every Day Carry - Dia a dia'
     if (tipo === 'BOB') return 'Bug Out Bag - 72 horas'
     return 'Bug Out Long Term - Autossuficiência'
-  }
-
-  const getTipoIcon = (tipo: string) => {
-    if (tipo === 'EDC') return ''
-    if (tipo === 'BOB') return ''
-    return ''
   }
 
   const getProgressColor = (progress: number) => {
@@ -173,7 +164,6 @@ export default function MinhasMochilas() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">{getTipoIcon(backpack.tipo)}</span>
                     <div>
                       <h3 className="font-bold text-gray-900">{backpack.name}</h3>
                       <p className="text-xs text-gray-500">{getTipoLabel(backpack.tipo)}</p>
@@ -202,12 +192,12 @@ export default function MinhasMochilas() {
           </div>
         )}
 
-        {/* Guia de Preparação da Mochila */}
+        {/* 🔥 GUIA DE PREPARAÇÃO DA MOCHILA COM PILARES DENTRO */}
         <Link
           href="/guia"
           className="block bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition mb-8"
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 mb-4">
             <div className="w-12 h-12 bg-[#FFB800] bg-opacity-10 rounded-xl flex items-center justify-center">
               <img 
                 src="/images/mochila-icon.png" 
@@ -218,18 +208,54 @@ export default function MinhasMochilas() {
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-gray-900">Guia de Preparação da Mochila</h3>
-              <p className="text-sm text-gray-500">Dicas e orientacoes para montar sua mochila</p>
+              <p className="text-sm text-gray-500">Dicas e orientações para montar sua mochila</p>
             </div>
             <div className="text-[#FFB800]">
               <span className="text-xl">→</span>
             </div>
+          </div>
+
+          {/* 🔥 PILARES DA PREPARAÇÃO DENTRO DO GUIA */}
+          <div className="border-t border-gray-100 pt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Pilares da Preparação</h4>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <img src="/images/defesa.jpeg" alt="Defesa" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+                <p className="font-bold text-gray-900 text-xs">Defesa</p>
+                <p className="text-[0.6rem] text-gray-500">Atitude mental</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <img src="/images/agua.jpeg" alt="Água" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+                <p className="font-bold text-gray-900 text-xs">Água</p>
+                <p className="text-[0.6rem] text-gray-500">Hidratação</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <img src="/images/abrigo.jpeg" alt="Abrigo" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+                <p className="font-bold text-gray-900 text-xs">Abrigo</p>
+                <p className="text-[0.6rem] text-gray-500">Proteção</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <img src="/images/alimento.jpeg" alt="Alimento" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+                <p className="font-bold text-gray-900 text-xs">Alimento</p>
+                <p className="text-[0.6rem] text-gray-500">Energia</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 text-center">
+                <img src="/images/fogo.jpeg" alt="Fogo" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+                <p className="font-bold text-gray-900 text-xs">Fogo</p>
+                <p className="text-[0.6rem] text-gray-500">Calor e preparo</p>
+              </div>
+            </div>
+            <p className="text-[0.6rem] text-center text-gray-400 mt-2">
+              A Defesa é o primeiro pilar: esteja mentalmente preparado para qualquer situação.
+            </p>
           </div>
         </Link>
 
         <div className="mt-8 space-y-4">
           <Link
             href="/dashboard"
-            className="text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"          >
+            className="text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
+          >
             Voltar ao Início
           </Link>
 
@@ -271,7 +297,6 @@ export default function MinhasMochilas() {
                           : 'border-gray-200 hover:border-[#FFB800]'
                       }`}
                     >
-                      <span className="text-xl block"></span>
                       <span className="text-xs font-semibold">EDC</span>
                       <span className="text-xs text-gray-500 block">Dia a dia</span>
                     </button>
@@ -283,7 +308,6 @@ export default function MinhasMochilas() {
                           : 'border-gray-200 hover:border-[#FFB800]'
                       }`}
                     >
-                      <span className="text-xl block"></span>
                       <span className="text-xs font-semibold">BOB</span>
                       <span className="text-xs text-gray-500 block">72 horas</span>
                     </button>
@@ -295,7 +319,6 @@ export default function MinhasMochilas() {
                           : 'border-gray-200 hover:border-[#FFB800]'
                       }`}
                     >
-                      <span className="text-xl block"></span>
                       <span className="text-xs font-semibold">BOLT</span>
                       <span className="text-xs text-gray-500 block">Longo prazo</span>
                     </button>
