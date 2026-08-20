@@ -1,3 +1,4 @@
+// app/admin/parceiros/page.tsx (CORRIGIDO)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -5,13 +6,18 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AdminGuard from '@/components/AdminGuard'
-import { Check, X, Eye, Store, Users } from 'lucide-react'
+import { Check, X, Eye, Store, Users, Edit, Trash2 } from 'lucide-react'
 
 interface Partner {
   id: number
   user_id: string
+  company_name: string
+  cnpj: string
+  email: string
+  phone: string
   status: string
   created_at: string
+  updated_at: string
 }
 
 function AdminParceirosContent() {
@@ -26,8 +32,11 @@ function AdminParceirosContent() {
 
   const carregarParceiros = async () => {
     try {
-      const { data, error } = await (supabase
-        .from('partners') as any)
+      setLoading(true)
+      
+      // 🔥 BUSCAR TODOS OS DADOS DO PARCEIRO
+      const { data, error } = await supabase
+        .from('partners')
         .select('*')
         .order('created_at', { ascending: false })
 
@@ -36,11 +45,11 @@ function AdminParceirosContent() {
       const partnersData = (data as Partner[]) || []
       setPartners(partnersData)
 
-      // Buscar perfis dos usuários
+      // Buscar perfis dos usuários (para pegar o nome completo)
       const userIds = partnersData.map(p => p.user_id).filter(id => id)
       if (userIds.length > 0) {
-        const { data: profiles, error: profilesError } = await (supabase
-          .from('profiles') as any)
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
           .select('id, full_name, email')
           .in('id', userIds)
 
@@ -60,9 +69,13 @@ function AdminParceirosContent() {
   }
 
   const atualizarStatus = async (partnerId: number, novoStatus: string) => {
+    if (!confirm(`Tem certeza que deseja ${novoStatus === 'approved' ? 'aprovar' : 'rejeitar'} este parceiro?`)) {
+      return
+    }
+
     try {
-      const { error } = await (supabase
-        .from('partners') as any)
+      const { error } = await supabase
+        .from('partners')
         .update({ 
           status: novoStatus,
           updated_at: new Date().toISOString()
@@ -79,6 +92,35 @@ function AdminParceirosContent() {
     }
   }
 
+  const excluirParceiro = async (partnerId: number) => {
+    if (!confirm('Tem certeza que deseja EXCLUIR este parceiro permanentemente? Esta ação não pode ser desfeita!')) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('partners')
+        .delete()
+        .eq('id', partnerId)
+
+      if (error) throw error
+
+      await carregarParceiros()
+      alert('Parceiro excluído com sucesso!')
+    } catch (error) {
+      console.error('Erro ao excluir parceiro:', error)
+      alert('Erro ao excluir parceiro')
+    }
+  }
+
+  const editarParceiro = (partnerId: number) => {
+    router.push(`/admin/parceiros/${partnerId}/editar`)
+  }
+
+  const verParceiro = (partnerId: number) => {
+    router.push(`/admin/parceiros/${partnerId}`)
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
@@ -90,6 +132,11 @@ function AdminParceirosContent() {
       default:
         return <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">{status}</span>
     }
+  }
+
+  const formatarCNPJ = (cnpj: string) => {
+    if (!cnpj) return '-'
+    return cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
   }
 
   if (loading) {
@@ -128,6 +175,7 @@ function AdminParceirosContent() {
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
                     <th className="text-left p-4 text-sm font-semibold text-gray-600">Parceiro</th>
+                    <th className="text-left p-4 text-sm font-semibold text-gray-600">CNPJ</th>
                     <th className="text-left p-4 text-sm font-semibold text-gray-600">Status</th>
                     <th className="text-left p-4 text-sm font-semibold text-gray-600">Data</th>
                     <th className="text-left p-4 text-sm font-semibold text-gray-600">Ações</th>
@@ -136,6 +184,8 @@ function AdminParceirosContent() {
                 <tbody>
                   {partners.map((partner) => {
                     const profile = profilesMap[partner.user_id]
+                    const nomeExibicao = partner.company_name || profile?.full_name || 'Usuário'
+                    
                     return (
                       <tr key={partner.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="p-4">
@@ -145,13 +195,16 @@ function AdminParceirosContent() {
                             </div>
                             <div>
                               <p className="font-medium text-black">
-                                {profile?.full_name || 'Usuário'}
+                                {nomeExibicao}
                               </p>
                               <p className="text-sm text-gray-500">
-                                ID: {partner.user_id.slice(0, 8)}...
+                                {partner.email || profile?.email || 'Sem email'}
                               </p>
                             </div>
                           </div>
+                        </td>
+                        <td className="p-4 text-sm text-gray-600">
+                          {formatarCNPJ(partner.cnpj)}
                         </td>
                         <td className="p-4">
                           {getStatusBadge(partner.status)}
@@ -161,30 +214,53 @@ function AdminParceirosContent() {
                         </td>
                         <td className="p-4">
                           <div className="flex items-center gap-2">
+                            {/* 🔥 BOTÃO APROVAR */}
                             {partner.status === 'pending' && (
-                              <>
-                                <button
-                                  onClick={() => atualizarStatus(partner.id, 'approved')}
-                                  className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition"
-                                  title="Aprovar"
-                                >
-                                  <Check size={18} />
-                                </button>
-                                <button
-                                  onClick={() => atualizarStatus(partner.id, 'rejected')}
-                                  className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition"
-                                  title="Rejeitar"
-                                >
-                                  <X size={18} />
-                                </button>
-                              </>
+                              <button
+                                onClick={() => atualizarStatus(partner.id, 'approved')}
+                                className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition"
+                                title="Aprovar"
+                              >
+                                <Check size={18} />
+                              </button>
                             )}
+                            
+                            {/* 🔥 BOTÃO REJEITAR */}
+                            {partner.status === 'pending' && (
+                              <button
+                                onClick={() => atualizarStatus(partner.id, 'rejected')}
+                                className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition"
+                                title="Rejeitar"
+                              >
+                                <X size={18} />
+                              </button>
+                            )}
+                            
+                            {/* 🔥 BOTÃO EDITAR */}
                             <button
-                              onClick={() => router.push(`/admin/parceiros/${partner.id}`)}
+                              onClick={() => editarParceiro(partner.id)}
                               className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
+                              title="Editar"
+                            >
+                              <Edit size={18} />
+                            </button>
+                            
+                            {/* 🔥 BOTÃO VER */}
+                            <button
+                              onClick={() => verParceiro(partner.id)}
+                              className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition"
                               title="Ver detalhes"
                             >
                               <Eye size={18} />
+                            </button>
+                            
+                            {/* 🔥 BOTÃO EXCLUIR */}
+                            <button
+                              onClick={() => excluirParceiro(partner.id)}
+                              className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"
+                              title="Excluir"
+                            >
+                              <Trash2 size={18} />
                             </button>
                           </div>
                         </td>
