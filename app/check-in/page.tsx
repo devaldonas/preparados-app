@@ -283,7 +283,7 @@ export default function CheckIn() {
             }`}
           >
             {currentStep === questions.length - 1 
-              ? (saving ? 'Salvando...' : 'Finalizar') 
+              ? (saving ? 'Salvando...' : 'Salvar') 
               : 'Próxima'}
           </button>
         </div>
