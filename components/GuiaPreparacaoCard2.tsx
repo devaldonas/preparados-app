@@ -1,4 +1,5 @@
-'use client'
+
+///home/devaldo/AutoDev/preparado-app/components/GuiaPreparacaoCard2.tsx'use client'
 
 import { useState } from 'react'
 

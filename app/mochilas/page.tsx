@@ -1,6 +1,7 @@
+// app/mochilas/page.tsx (COM RECARREGAMENTO FORÇADO)
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -23,35 +24,68 @@ export default function MinhasMochilas() {
   const [creating, setCreating] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    carregarMochilas()
-  }, [])
-
-  const carregarMochilas = async () => {
+  // 🔥 FUNÇÃO PARA CARREGAR MOCHILAS - COM LOGS PARA DEBUG
+  const carregarMochilas = useCallback(async () => {
     try {
+      setLoading(true)
+      
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/auth/login')
         return
       }
 
-      const { data, error } = await (supabase
-        .from('user_backpacks') as any)
-        .select('*')
+      console.log('🔄 Buscando mochilas do usuário:', user.id)
+
+      // 🔥 BUSCAR MOCHILAS DIRETO DO BANCO - SEM CACHE
+      const { data, error } = await supabase
+        .from('user_backpacks')
+        .select('id, name, tipo, progress, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Erro ao carregar mochilas:', error)
-      } else {
-        setBackpacks(data || [])
+        console.error('❌ Erro ao carregar mochilas:', error)
+        setBackpacks([])
+        return
       }
+
+      console.log('📦 Dados brutos do banco:', JSON.stringify(data, null, 2))
+
+      // 🔥 GARANTIR QUE O PROGRESSO É UM NÚMERO
+      const mochilasProcessadas = data?.map(item => ({
+        ...item,
+        progress: typeof item.progress === 'number' ? item.progress : 0
+      })) || []
+
+      console.log('📦 Mochilas processadas:', mochilasProcessadas)
+      setBackpacks(mochilasProcessadas)
+
     } catch (error) {
-      console.error('Erro ao carregar mochilas:', error)
+      console.error('❌ Erro ao carregar mochilas:', error)
+      setBackpacks([])
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
+
+  // 🔥 RECARREGAR QUANDO A PÁGINA GANHAR FOCO
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('👁️ Página visível - recarregando mochilas...')
+        carregarMochilas()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [carregarMochilas])
+
+  // 🔥 CARREGAR AO INICIAR
+  useEffect(() => {
+    carregarMochilas()
+  }, [carregarMochilas])
 
   const criarMochila = async () => {
     if (!newBackpackName.trim()) {
@@ -63,8 +97,8 @@ export default function MinhasMochilas() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
 
-      const { data, error } = await (supabase
-        .from('user_backpacks') as any)
+      const { data, error } = await supabase
+        .from('user_backpacks')
         .insert({
           user_id: user?.id,
           name: newBackpackName,
@@ -93,7 +127,8 @@ export default function MinhasMochilas() {
   const getTipoLabel = (tipo: string) => {
     if (tipo === 'EDC') return 'Every Day Carry - Dia a dia'
     if (tipo === 'BOB') return 'Bug Out Bag - 72 horas'
-    return 'Bug Out Long Term - Autossuficiência'
+    if (tipo === 'BOLT') return 'Bug Out Long Term - Autossuficiência'
+    return 'Tipo desconhecido'
   }
 
   const getProgressColor = (progress: number) => {
@@ -136,6 +171,16 @@ export default function MinhasMochilas() {
           <p className="text-gray-500 text-sm mt-2">Gerencie todas as suas mochilas de preparação</p>
         </div>
 
+        {/* 🔥 BOTÃO PARA FORÇAR RECARREGAMENTO MANUAL */}
+        <div className="mb-4 text-right">
+          <button
+            onClick={carregarMochilas}
+            className="text-sm text-[#FFB800] hover:text-[#E5A600] transition"
+          >
+            🔄 Atualizar lista
+          </button>
+        </div>
+
         {/* Lista de mochilas */}
         {backpacks.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
@@ -156,105 +201,52 @@ export default function MinhasMochilas() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {backpacks.map((backpack) => (
-              <Link
-                key={backpack.id}
-                href={`/mochilas/${backpack.id}`}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition block"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div>
-                      <h3 className="font-bold text-gray-900">{backpack.name}</h3>
-                      <p className="text-xs text-gray-500">{getTipoLabel(backpack.tipo)}</p>
+            {backpacks.map((backpack) => {
+              // 🔥 LOG PARA VER O VALOR DE CADA MOCHILA
+              console.log(`🎒 ${backpack.name}: progress = ${backpack.progress}%`)
+              
+              return (
+                <Link
+                  key={backpack.id}
+                  href={`/mochilas/${backpack.id}`}
+                  className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition block"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <h3 className="font-bold text-gray-900">{backpack.name}</h3>
+                        <p className="text-xs text-gray-500">{getTipoLabel(backpack.tipo)}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-400">
+                      {new Date(backpack.created_at).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                  
+                  {/* 🔥 BARRA DE PROGRESSO - USANDO O VALOR DO BANCO */}
+                  <div className="mt-3">
+                    <div className="flex justify-between text-xs text-gray-600 mb-1">
+                      <span>Progresso</span>
+                      <span className="font-bold">{backpack.progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`${getProgressColor(backpack.progress)} h-2 rounded-full transition-all duration-500`}
+                        style={{ width: `${Math.min(backpack.progress, 100)}%` }}
+                      />
                     </div>
                   </div>
-                  <span className="text-xs text-gray-400">
-                    {new Date(backpack.created_at).toLocaleDateString('pt-BR')}
-                  </span>
-                </div>
-                
-                {/* Barra de progresso */}
-                <div className="mt-3">
-                  <div className="flex justify-between text-xs text-gray-600 mb-1">
-                    <span>Progresso</span>
-                    <span>{backpack.progress}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`${getProgressColor(backpack.progress)} h-2 rounded-full transition-all duration-500`}
-                      style={{ width: `${backpack.progress}%` }}
-                    />
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         )}
 
-        {/* 🔥 GUIA DE PREPARAÇÃO DA MOCHILA COM PILARES DENTRO */}
-        <Link
-          href="/guia"
-          className="block bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition mb-8"
-        >
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-[#FFB800] bg-opacity-10 rounded-xl flex items-center justify-center">
-              <img 
-                src="/images/mochila-icon.png" 
-                alt="Guia" 
-                className="w-6 h-6 object-contain"
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
-              />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-gray-900">Guia de Preparação da Mochila</h3>
-              <p className="text-sm text-gray-500">Dicas e orientações para montar sua mochila</p>
-            </div>
-            <div className="text-[#FFB800]">
-              <span className="text-xl">→</span>
-            </div>
-          </div>
-
-          {/* 🔥 PILARES DA PREPARAÇÃO DENTRO DO GUIA */}
-          <div className="border-t border-gray-100 pt-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Pilares da Preparação</h4>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <img src="/images/defesa.jpeg" alt="Defesa" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-                <p className="font-bold text-gray-900 text-xs">Defesa</p>
-                <p className="text-[0.6rem] text-gray-500">Atitude mental</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <img src="/images/agua.jpeg" alt="Água" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-                <p className="font-bold text-gray-900 text-xs">Água</p>
-                <p className="text-[0.6rem] text-gray-500">Hidratação</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <img src="/images/abrigo.jpeg" alt="Abrigo" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-                <p className="font-bold text-gray-900 text-xs">Abrigo</p>
-                <p className="text-[0.6rem] text-gray-500">Proteção</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <img src="/images/alimento.jpeg" alt="Alimento" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-                <p className="font-bold text-gray-900 text-xs">Alimento</p>
-                <p className="text-[0.6rem] text-gray-500">Energia</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <img src="/images/fogo.jpeg" alt="Fogo" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-                <p className="font-bold text-gray-900 text-xs">Fogo</p>
-                <p className="text-[0.6rem] text-gray-500">Calor e preparo</p>
-              </div>
-            </div>
-            <p className="text-[0.6rem] text-center text-gray-400 mt-2">
-              A Defesa é o primeiro pilar: esteja mentalmente preparado para qualquer situação.
-            </p>
-          </div>
-        </Link>
-
+        {/* Botão Voltar ao Início */}
         <div className="mt-8 space-y-4">
           <Link
             href="/dashboard"
-            className="text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
+            className="block text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition"
           >
             Voltar ao Início
           </Link>
