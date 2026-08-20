@@ -1,3 +1,4 @@
+// app/dashboard/page.tsx (CORRIGIDO)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -9,34 +10,16 @@ import RadioPlayer from '@/components/RadioPlayer'
 import MapaMonitoramentoCompleto from '@/components/MapaMonitoramentoCompleto'
 import MentoriaCard from '@/components/MentoriaCard'
 
-interface UserProgress {
-  completed: boolean
-}
-
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [checkinCompleted, setCheckinCompleted] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [totalItems, setTotalItems] = useState(0)
-  const [completedItems, setCompletedItems] = useState(0)
   const router = useRouter()
   const [mostrarRadio, setMostrarRadio] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
-  const [onlineUsers, setOnlineUsers] = useState(0)
   const [profile, setProfile] = useState<any>(null)
-  const [userProgress, setUserProgress] = useState<UserProgress[]>([])
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('🔐 Sessão atual:', session ? '✅ Ativa' : '❌ Nenhuma');
-      if (session) {
-        console.log('👤 Usuário:', session.user.email);
-      }
-    };
-    checkSession();
-  }, []);
+  const [mochilaProgress, setMochilaProgress] = useState(0)
 
   useEffect(() => {
     const getUser = async () => {
@@ -48,25 +31,21 @@ export default function Dashboard() {
         }
         setUser(user)
         
-        // 🔥 VERIFICAR SE É PARCEIRO
-        const { data: profile } = await (supabase
-          .from('profiles') as any)
+        const { data: profile } = await supabase
+          .from('profiles')
           .select('role, subscription_status')
           .eq('id', user.id)
           .maybeSingle()
 
-        // Se for parceiro, redireciona para o dashboard do parceiro
         if (profile?.role === 'partner') {
           router.push('/parceiro/dashboard')
           return
         }
 
-        // 🔥 VERIFICAR SE TEM ACESSO (NÃO É ADMIN)
         const hasAccess = profile?.subscription_status === 'active' || 
                          profile?.subscription_status === 'paid' ||
                          profile?.subscription_status === 'approved'
 
-        // Se for admin, permite acesso (admin não precisa pagar)
         if (profile?.role !== 'admin' && !hasAccess) {
           router.push('/planos')
           return
@@ -76,7 +55,6 @@ export default function Dashboard() {
         await loadProgress(user.id)
         await checkCheckinStatus(user.id)
         await checkAdminStatus(user.id)
-        await loadOnlineUsers()
       } catch (error) {
         console.error('Erro ao carregar dados:', error)
       } finally {
@@ -86,10 +64,23 @@ export default function Dashboard() {
     getUser()
   }, [])
 
+  // 🔥 RECARREGAR QUANDO A PÁGINA GANHAR FOCO
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        console.log('🔄 Dashboard visível - recarregando progresso...')
+        loadProgress(user.id)
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [user])
+
   const loadProfile = async (userId: string) => {
     try {
-      const { data, error } = await (supabase
-        .from('profiles') as any)
+      const { data, error } = await supabase
+        .from('profiles')
         .select('full_name, mochila_tipo, city, state, role')
         .eq('id', userId)
         .maybeSingle()
@@ -101,14 +92,6 @@ export default function Dashboard() {
 
       if (data) {
         setProfile(data)
-        setUser((prev: any) => ({
-          ...prev,
-          user_metadata: {
-            ...prev?.user_metadata,
-            full_name: data.full_name,
-            mochila_tipo: data.mochila_tipo,
-          }
-        }))
       }
     } catch (error) {
       console.error('Erro ao carregar perfil:', error)
@@ -117,8 +100,8 @@ export default function Dashboard() {
 
   const checkAdminStatus = async (userId: string) => {
     try {
-      const { data, error } = await (supabase
-        .from('profiles') as any)
+      const { data, error } = await supabase
+        .from('profiles')
         .select('role')
         .eq('id', userId)
         .maybeSingle()
@@ -128,58 +111,71 @@ export default function Dashboard() {
         return
       }
 
-      console.log('🔍 Role encontrada no dashboard:', data?.role)
-      console.log('🔍 É admin?', data?.role === 'admin')
-
       if (data?.role === 'admin') {
         setIsAdmin(true)
-        console.log('📊 Estado isAdmin após carregamento:', isAdmin)
-        console.log('✅ setIsAdmin(true) executado!')
-      } else {
-        console.log('❌ Usuário NÃO é admin')
       }
     } catch (error) {
       console.error('Erro ao verificar admin:', error)
     }
   }
 
-  const loadOnlineUsers = async () => {
-    try {
-      const { count, error } = await (supabase
-        .from('profiles') as any)
-        .select('*', { count: 'exact', head: true })
-
-      if (error) throw error
-      setOnlineUsers(count || 0)
-    } catch (error) {
-      console.error('Erro ao buscar usuários:', error)
-      setOnlineUsers(Math.floor(Math.random() * 15) + 3)
-    }
-  }
-
+  // 🔥 FUNÇÃO DE PROGRESSO CORRIGIDA - USA O PROGRESSO TOTAL DA MOCHILA
   const loadProgress = async (userId: string) => {
     try {
-      const { data: userProgressData, error: progressError } = await supabase
-        .from('user_progress')
-        .select('completed')
+      // 1. CALCULAR CHECK-IN (máximo 100%)
+      const { data: checkinData, error: checkinError } = await supabase
+        .from('checkin_answers')
+        .select('score')
         .eq('user_id', userId)
 
-      if (progressError) throw progressError
+      if (checkinError) {
+        console.error('Erro ao carregar check-in:', checkinError)
+        setProgress(0)
+        return
+      }
 
-      const { data: allItems, error: itemsError } = await supabase
-        .from('checklist_items')
-        .select('id')
+      const maxScore = 90
+      const totalScore = checkinData?.reduce((sum: number, item: any) => sum + (item.score || 0), 0) || 0
+      const checkinPercent = Math.min(Math.round((totalScore / maxScore) * 100), 100)
+      
+      console.log('📊 Check-in:', checkinPercent + '%')
 
-      if (itemsError) throw itemsError
+      // 2. 🔥 BUSCAR PROGRESSO TOTAL DE CADA MOCHILA
+      const { data: mochilas, error: mochilasError } = await supabase
+        .from('user_backpacks')
+        .select('id, name, tipo, progress')
+        .eq('user_id', userId)
 
-      const total = allItems?.length || 0
-      const completed = userProgressData?.filter((item: { completed: boolean }) => item.completed).length || 0
+      if (mochilasError) {
+        console.error('Erro ao carregar mochilas:', mochilasError)
+        setProgress(checkinPercent)
+        return
+      }
 
-      setTotalItems(total)
-      setCompletedItems(completed)
-      setProgress(total > 0 ? (completed / total) * 100 : 0)
+      console.log('📦 Mochilas encontradas:', mochilas)
+
+      // 🔥 CALCULAR A MÉDIA DO PROGRESSO TOTAL DAS MOCHILAS
+      let mochilaPercent = 0
+      if (mochilas && mochilas.length > 0) {
+        // Soma todos os progressos das mochilas
+        const totalMochilaProgress = mochilas.reduce((sum: number, m: any) => sum + (m.progress || 0), 0)
+        // Calcula a média
+        mochilaPercent = Math.round(totalMochilaProgress / mochilas.length)
+      }
+      
+      console.log('📊 Mochilas (média):', mochilaPercent + '% (' + mochilas?.length + ' mochilas)')
+      setMochilaProgress(mochilaPercent)
+
+      // 3. 🔥 PROGRESSO TOTAL = MÉDIA PONDERADA (NUNCA > 100%)
+      const totalProgress = Math.min(Math.round((checkinPercent + mochilaPercent) / 2), 100)
+      
+      console.log('📊 Progresso Total:', totalProgress + '%')
+
+      setProgress(totalProgress)
+
     } catch (error) {
       console.error('Erro ao carregar progresso:', error)
+      setProgress(0)
     }
   }
 
@@ -196,20 +192,6 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Erro ao verificar check-in:', error)
     }
-  }
-
-  const getTipoLabel = () => {
-    const tipo = user?.user_metadata?.mochila_tipo || 'BOB'
-    if (tipo === 'EDC') return 'Every Day Carry (uso diário)'
-    if (tipo === 'BOB') return 'Bug Out Bag (72h)'
-    return 'Bug Out Long Term (longo período)'
-  }
-
-  const getTipoIcon = () => {
-    const tipo = user?.user_metadata?.mochila_tipo || 'BOB'
-    if (tipo === 'EDC') return '🎒'
-    if (tipo === 'BOB') return '🎒⚡'
-    return '⛰️'
   }
 
   const getFirstName = (fullName: string) => {
@@ -231,7 +213,6 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
         
-        {/* Header com saudação e logo */}
         <div className="mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
@@ -254,16 +235,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Cards de Progresso */}
+        {/* 🔥 LAYOUT ORIGINAL - Preparometro + Botao Check-in */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           
-          {/* Card de Progresso */}
+          {/* Card de Progresso - Preparometro */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <div className="text-center">
               <p className="font-bold text-black text-xl">Você está</p>
               <div className="flex items-center justify-center gap-3 mt-1 mb-3">
                 <span className="text-2xl font-bold text-[#FFB800]">
-                  {Math.round(progress)}%
+                  {progress}%
                 </span>
                 <img 
                   src="/images/preparado.png" 
@@ -275,13 +256,14 @@ export default function Dashboard() {
               <div className="w-full bg-gray-200 rounded-full h-2.5">
                 <div 
                   className="bg-[#FFB800] h-2.5 rounded-full transition-all duration-500"
-                  style={{ width: `${progress}%` }}
+                  style={{ width: `${Math.min(progress, 100)}%` }}
                 />
               </div>
+              {/* 🔥 REMOVIDO: Check-in: X% • Mochilas: X% */}
             </div>
           </div>
           
-          {/* Card Check-in */}
+          {/* 🔥 BOTÃO PREPARÔMETRO */}
           <Link 
             href="/check-in"
             className="bg-[#FFB800] rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition group flex items-center justify-center"
@@ -293,10 +275,9 @@ export default function Dashboard() {
           
         </div>
 
-        {/* Menu Principal - Cards de Acesso Rápido */}
+        {/* Menu Grid - Original */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
 
-          {/* Pessoas */}
           <Link
             href="/pessoas"
             className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
@@ -304,19 +285,16 @@ export default function Dashboard() {
             <div className="w-20 h-20 flex items-center justify-center">
               <img
                 src="/images/pessoas1-icon.png"
-                alt="Pessoas Próximas"
+                alt="Pessoas Proximas"
                 className="w-16 h-16 object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none"
-                }}
+                onError={(e) => { e.currentTarget.style.display = "none" }}
               />
             </div>
             <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
-              Pessoas Próximas
+              Pessoas Proximas
             </h3>
           </Link>
 
-          {/* Mochila */}
           <Link
             href="/mochilas"
             className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
@@ -326,9 +304,7 @@ export default function Dashboard() {
                 src="/images/mochila-icon.png"
                 alt="Mochila"
                 className="w-16 h-16 object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none"
-                }}
+                onError={(e) => { e.currentTarget.style.display = "none" }}
               />
             </div>
             <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
@@ -336,7 +312,6 @@ export default function Dashboard() {
             </h3>
           </Link>
 
-          {/* Catástrofes */}
           <Link
             href="/catastrofes"
             className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
@@ -344,22 +319,18 @@ export default function Dashboard() {
             <div className="w-20 h-20 flex items-center justify-center">
               <img
                 src="/images/catastrofes-icon.png"
-                alt="Catástrofes"
+                alt="Catastrofes"
                 className="w-16 h-16 object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none"
-                }}
+                onError={(e) => { e.currentTarget.style.display = "none" }}
               />
             </div>
             <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
-              Catástrofes
+              Catastrofes
             </h3>
           </Link>
 
-          {/* Mentoria */}
           <MentoriaCard isLive={false} nextEvent="Domingo 19h" />
 
-          {/* Loja */}
           <Link
             href="/loja"
             className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
@@ -369,9 +340,7 @@ export default function Dashboard() {
                 src="/images/loja-icon.png"
                 alt="Loja"
                 className="w-16 h-16 object-contain"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none"
-                }}
+                onError={(e) => { e.currentTarget.style.display = "none" }}
               />
             </div>
             <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
@@ -379,7 +348,6 @@ export default function Dashboard() {
             </h3>
           </Link>
 
-          {/* Primeiros Socorros */}
           <Link
             href="/primeiros-socorros"
             className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px] cursor-pointer hover:border-[#FFB800] group relative overflow-hidden"
@@ -389,9 +357,7 @@ export default function Dashboard() {
                 src="/images/primeiros-socorros.jpeg"
                 alt="Primeiros Socorros"
                 className="w-16 h-16 object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none"
-                }}
+                onError={(e) => { e.currentTarget.style.display = "none" }}
               />
             </div>
             <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
@@ -401,7 +367,6 @@ export default function Dashboard() {
 
         </div>
 
-        {/* Rádio Diamante */}
         <div className="mb-8">
           <RadioPlayer 
             minimizado={false}
@@ -410,19 +375,17 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Mapa de Monitoramento Global com fundo preto */}
         <div className="mb-8">
-          <div className="bg-[#000000] rounded-xl overflow-hidden">
-            <div className="p-1 border-b border-[#FFB800]-800">
-              <h3 className="font-semibold text-[#080808] flex items-center gap-2">
-                <span className="text-xl"></span> Monitoramento Global - Terremotos
+          <div className="bg-black rounded-xl overflow-hidden">
+            <div className="p-1 border-b border-[#FFB800]">
+              <h3 className="font-semibold text-white flex items-center gap-2">
+                <span className="text-xl">📍</span> Monitoramento Global - Terremotos
               </h3>
             </div>
             <MapaMonitoramentoCompleto />
           </div>
         </div>
 
-        {/* Seção de Dicas */}
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5 border border-gray-200">
           <div className="flex items-start gap-3">
             <img 
@@ -435,8 +398,8 @@ export default function Dashboard() {
               <h3 className="font-semibold text-gray-800 mb-1">Dica do dia</h3>
               <p className="text-sm text-gray-600">
                 "A maior arma de todas é a mente humana. Continue se preparando, 
-                compartilhe sua localização para conectar-se com pessoas próximas 
-                e ajude sua comunidade a estar preparada também!"
+                compartilhe sua localizacao para conectar-se com pessoas proximas 
+                e ajude sua comunidade a estar preparada tambem!"
               </p>
             </div>
           </div>
