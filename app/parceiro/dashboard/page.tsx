@@ -1,13 +1,15 @@
+// app/parceiro/dashboard/page.tsx (ATUALIZADO)
 'use client'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Package, ShoppingBag, DollarSign, TrendingUp, ArrowRight } from 'lucide-react'
+import { Package, ShoppingBag, DollarSign, TrendingUp, ArrowRight, Plus } from 'lucide-react'
 
 export default function ParceiroDashboard() {
   const [loading, setLoading] = useState(true)
+  const [partner, setPartner] = useState<any>(null)
   const [stats, setStats] = useState({
     pedidos: 0,
     produtos: 0,
@@ -25,57 +27,59 @@ export default function ParceiroDashboard() {
           return
         }
 
-        const { data: profile } = await (supabase
-          .from('profiles') as any)
+        // 🔥 VERIFICAR SE É PARCEIRO
+        const { data: profile } = await supabase
+          .from('profiles')
           .select('role')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
 
-        if (profile?.role !== 'partner') {
+        // 🔥 BUSCAR PARCEIRO
+        const { data: partnerData } = await supabase
+          .from('partners')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        console.log('🔍 Verificando parceiro:', { profile, partnerData })
+
+        // Se não for parceiro, redireciona para dashboard normal
+        if (profile?.role !== 'partner' && partnerData?.status !== 'approved') {
+          console.log('❌ Não é parceiro - redirecionando para /dashboard')
           router.push('/dashboard')
           return
         }
 
-        await carregarDados(user.id)
+        setPartner(partnerData)
+        await carregarDados(partnerData)
+
       } catch (error) {
-        console.error('Erro ao verificar parceiro:', error)
+        console.error('❌ Erro ao verificar parceiro:', error)
         router.push('/dashboard')
+      } finally {
+        setLoading(false)
       }
     }
 
     verificarParceiro()
-  }, [])
+  }, [router])
 
-  const carregarDados = async (userId: string) => {
+  const carregarDados = async (partnerData: any) => {
     try {
       console.log('🔍 Carregando dados do parceiro...')
       
-      // 🔥 Buscar o ID do parceiro
-      const { data: partner, error: partnerError } = await (supabase
-        .from('partners') as any)
-        .select('id')
-        .eq('user_id', userId)
-        .single()
-
-      if (partnerError) {
-        console.error('❌ Erro ao buscar parceiro:', partnerError)
-        setLoading(false)
-        return
-      }
-
-      if (!partner) {
+      if (!partnerData) {
         console.log('❌ Parceiro não encontrado')
-        setLoading(false)
         return
       }
 
-      console.log('✅ Parceiro ID:', partner.id)
+      console.log('✅ Parceiro ID:', partnerData.id)
 
       // 🔥 Buscar produtos do parceiro
-      const { data: produtos, error: produtosError } = await (supabase
-        .from('products') as any)
+      const { data: produtos, error: produtosError } = await supabase
+        .from('products')
         .select('id, name, stock, price')
-        .eq('partner_id', partner.id)
+        .eq('partner_id', partnerData.id)
 
       if (produtosError) {
         console.error('❌ Erro ao buscar produtos:', produtosError)
@@ -90,8 +94,8 @@ export default function ParceiroDashboard() {
 
       if (productIds.length > 0) {
         // Buscar todos os pedidos
-        const { data: pedidos, error: pedidosError } = await (supabase
-          .from('orders') as any)
+        const { data: pedidos, error: pedidosError } = await supabase
+          .from('orders')
           .select('*')
           .order('created_at', { ascending: false })
 
@@ -100,8 +104,8 @@ export default function ParceiroDashboard() {
         } else if (pedidos) {
           // 🔥 Buscar os itens dos pedidos para verificar se contêm produtos do parceiro
           for (const pedido of pedidos) {
-            const { data: items } = await (supabase
-              .from('order_items') as any)
+            const { data: items } = await supabase
+              .from('order_items')
               .select('product_id')
               .eq('order_id', pedido.id)
 
@@ -140,9 +144,14 @@ export default function ParceiroDashboard() {
 
     } catch (error) {
       console.error('❌ Erro ao carregar dados:', error)
-    } finally {
-      setLoading(false)
     }
+  }
+
+  const formatarMoeda = (valor: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(valor)
   }
 
   if (loading) {
@@ -156,7 +165,22 @@ export default function ParceiroDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-black mb-6">Dashboard Parceiro</h1>
+        
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-black">Dashboard Parceiro</h1>
+            <p className="text-sm text-gray-500">
+              {partner?.company_name || 'Sua loja'}
+            </p>
+          </div>
+          <Link
+            href="/parceiro/produtos/novo"
+            className="bg-[#FFB800] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition flex items-center gap-2"
+          >
+            <Plus size={18} />
+            Novo Produto
+          </Link>
+        </div>
 
         {/* Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -189,7 +213,7 @@ export default function ParceiroDashboard() {
               <div>
                 <p className="text-sm text-gray-500">Comissões</p>
                 <p className="text-2xl font-bold text-black">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.comissoes)}
+                  {formatarMoeda(stats.comissoes)}
                 </p>
               </div>
               <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
@@ -203,7 +227,7 @@ export default function ParceiroDashboard() {
               <div>
                 <p className="text-sm text-gray-500">Vendas (mês)</p>
                 <p className="text-2xl font-bold text-black">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.vendas)}
+                  {formatarMoeda(stats.vendas)}
                 </p>
               </div>
               <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
@@ -251,7 +275,7 @@ export default function ParceiroDashboard() {
               <DollarSign size={20} className="text-green-500" />
               <span className="font-medium text-black">Comissões</span>
               <span className="text-xs bg-green-50 text-green-500 px-2 py-0.5 rounded-full">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.comissoes)}
+                {formatarMoeda(stats.comissoes)}
               </span>
             </div>
             <ArrowRight size={18} className="text-gray-400" />

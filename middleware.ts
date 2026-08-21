@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// 🔥 MIDDLEWARE ESTÁVEL
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
@@ -42,6 +41,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|images/|logo.svg|logo1.svg).*)',
+    '/((?!_next/static|_next/image|favicon.ico|images/|logo.svg|logo1.svg|.*\\.png|.*\\.jpg|.*\\.jpeg).*)',
   ],
 }
