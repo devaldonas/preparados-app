@@ -5,8 +5,7 @@ export async function POST(request: Request) {
     const { total, orderId, userEmail, items } = await request.json()
 
     console.log('💰 Criando PIX para pedido:', orderId)
-    console.log('💰 Total:', total, 'Tipo:', typeof total)
-    console.log('📧 E-mail:', userEmail)
+    console.log('💰 Total:', total)
 
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
 
@@ -18,7 +17,6 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
-    // 🔥 GARANTIR QUE O VALOR É UM NÚMERO
     const unitPrice = Number(total)
     if (isNaN(unitPrice) || unitPrice <= 0) {
       console.error('❌ Valor inválido:', total)
@@ -28,7 +26,6 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    // 🔥 GERAR IDEMPOTENCY KEY
     const idempotencyKey = `pix_${orderId}_${Date.now()}`
 
     const paymentData = {
@@ -42,11 +39,13 @@ export async function POST(request: Request) {
       metadata: {
         order_id: orderId,
         platform: 'preparados'
-      }
+      },
+      // 🔥 URL COMPLETA DO WEBHOOK
+      notification_url: `https://preparado.vercel.app/api/mercadopago/webhook`
     }
 
-    console.log('📤 Enviando para API de pagamentos:', JSON.stringify(paymentData, null, 2))
-    console.log('🔑 Idempotency Key:', idempotencyKey)
+    console.log('📤 Enviando para API de pagamentos...')
+    console.log('🔗 Webhook URL:', paymentData.notification_url)
 
     const response = await fetch('https://api.mercadopago.com/v1/payments', {
       method: 'POST',
@@ -70,12 +69,8 @@ export async function POST(request: Request) {
 
     console.log('✅ Pagamento criado:', data.id)
 
-    // Extrair QR Code
     const qrCode = data.point_of_interaction?.transaction_data?.qr_code_base64 || null
     const copiaCola = data.point_of_interaction?.transaction_data?.qr_code || null
-
-    console.log('✅ QR Code gerado:', qrCode ? 'Sim' : 'Não')
-    console.log('✅ Código PIX gerado:', copiaCola ? 'Sim' : 'Não')
 
     return NextResponse.json({
       success: true,
