@@ -39,6 +39,7 @@ export function middleware(request: NextRequest) {
   return NextResponse.next()
 }
 
+// 🔥 MATCHER ATUALIZADO
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|images/|logo.svg|logo1.svg|.*\\.png|.*\\.jpg|.*\\.jpeg).*)',

@@ -1,4 +1,3 @@
-// 📁 components/Preparometro.tsx (CRIAR ESTE ARQUIVO)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -8,9 +7,17 @@ interface PreparometroProps {
   userId: string
 }
 
+interface CheckinAnswer {
+  score: number
+}
+
+interface UserBackpack {
+  progress: number
+}
+
 export default function Preparometro({ userId }: PreparometroProps) {
   const [checkInProgress, setCheckInProgress] = useState(0)
-  const [mochilasProgress, setMochilasProgress] = useState<any[]>([])
+  const [mochilasProgress, setMochilasProgress] = useState<UserBackpack[]>([])
   const [totalProgress, setTotalProgress] = useState(0)
   const [loading, setLoading] = useState(true)
 
@@ -23,31 +30,44 @@ export default function Preparometro({ userId }: PreparometroProps) {
       setLoading(true)
 
       // 1. Buscar check-in
-      const { data: checkinData } = await supabase
+      const { data: checkinData, error: checkinError } = await supabase
         .from('checkin_answers')
         .select('score')
         .eq('user_id', userId)
 
+      if (checkinError) {
+        console.error('Erro ao buscar check-in:', checkinError)
+        setLoading(false)
+        return
+      }
+
       const totalCheckin = checkinData?.length || 0
-      const totalScore = checkinData?.reduce((acc, curr) => acc + (curr.score || 0), 0) || 0
+      const totalScore = checkinData?.reduce((acc: number, curr: CheckinAnswer) => acc + (curr.score || 0), 0) || 0
       const checkInPercent = totalCheckin > 0 ? Math.round((totalScore / (totalCheckin * 5)) * 100) : 0
       setCheckInProgress(checkInPercent)
 
       // 2. Buscar mochilas
-      const { data: mochilas } = await supabase
+      const { data: mochilas, error: mochilasError } = await supabase
         .from('user_backpacks')
-        .select('*')
+        .select('progress')
         .eq('user_id', userId)
 
-      setMochilasProgress(mochilas || [])
+      if (mochilasError) {
+        console.error('Erro ao buscar mochilas:', mochilasError)
+        setLoading(false)
+        return
+      }
+
+      const mochilasData = mochilas || []
+      setMochilasProgress(mochilasData)
 
       // 3. Calcular progresso total (NUNCA PASSA DE 100%)
-      const mochilasValidas = mochilas?.filter(m => m.progress > 0) || []
+      const mochilasValidas = mochilasData.filter((m: UserBackpack) => m.progress > 0)
       const mediaMochilas = mochilasValidas.length > 0
-        ? mochilasValidas.reduce((acc, m) => acc + m.progress, 0) / mochilasValidas.length
+        ? mochilasValidas.reduce((acc: number, m: UserBackpack) => acc + m.progress, 0) / mochilasValidas.length
         : 0
 
-      // ✅ PESO: 50% check-in + 50% mochilas
+      // PESO: 50% check-in + 50% mochilas
       const total = (checkInPercent * 0.5) + (mediaMochilas * 0.5)
       const progressoFinal = Math.min(Math.round(total), 100) // NUNCA > 100%
       
@@ -97,7 +117,7 @@ export default function Preparometro({ userId }: PreparometroProps) {
           <p className="text-gray-500">Mochilas</p>
           <p className="font-semibold">
             {mochilasProgress.length > 0 
-              ? Math.round(mochilasProgress.reduce((acc, m) => acc + m.progress, 0) / mochilasProgress.length)
+              ? Math.round(mochilasProgress.reduce((acc: number, m: UserBackpack) => acc + m.progress, 0) / mochilasProgress.length)
               : 0}%
           </p>
         </div>

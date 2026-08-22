@@ -1,4 +1,3 @@
-// app/admin/parceiros/[id]/page.tsx (COMPLETO - CORRIGIDO)
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -113,7 +112,7 @@ function PartnerDetalhesContent({ params }: { params: Promise<{ id: string }> })
           setProfile(profileData)
         }
 
-        // 🔥 BUSCAR PRODUTOS DO PARCEIRO
+        // BUSCAR PRODUTOS DO PARCEIRO
         const { data: productsData, error: productsError } = await supabase
           .from('products')
           .select('*')
@@ -125,12 +124,12 @@ function PartnerDetalhesContent({ params }: { params: Promise<{ id: string }> })
           
           // Calcular estatísticas de produtos
           const total = productsData?.length || 0
-          const active = productsData?.filter(p => p.is_active === true).length || 0
+          const active = productsData?.filter((p: Product) => p.is_active === true).length || 0
           setStats(prev => ({ ...prev, totalProducts: total, activeProducts: active }))
         }
 
-        // 🔥 BUSCAR VENDAS (pedidos) DO PARCEIRO
-        const productIds = productsData?.map(p => p.id) || []
+        // BUSCAR VENDAS (pedidos) DO PARCEIRO
+        const productIds = productsData?.map((p: Product) => p.id) || []
 
         if (productIds.length > 0) {
           const { data: orderItems, error: orderItemsError } = await supabase
@@ -144,7 +143,7 @@ function PartnerDetalhesContent({ params }: { params: Promise<{ id: string }> })
             .in('product_id', productIds)
 
           if (!orderItemsError && orderItems && orderItems.length > 0) {
-            const orderIds = [...new Set(orderItems.map(item => item.order_id))]
+            const orderIds = [...new Set(orderItems.map((item: any) => item.order_id))]
             
             if (orderIds.length > 0) {
               const { data: ordersData, error: ordersError } = await supabase
@@ -160,9 +159,9 @@ function PartnerDetalhesContent({ params }: { params: Promise<{ id: string }> })
                 .order('created_at', { ascending: false })
 
               if (!ordersError && ordersData) {
-                const ordersWithTotal = ordersData.map(order => {
-                  const items = orderItems.filter(item => item.order_id === order.id)
-                  const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                const ordersWithTotal = ordersData.map((order: any) => {
+                  const items = orderItems.filter((item: any) => item.order_id === order.id)
+                  const total = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
                   
                   const profile = order.profiles as any
                   
@@ -176,7 +175,7 @@ function PartnerDetalhesContent({ params }: { params: Promise<{ id: string }> })
 
                 setOrders(ordersWithTotal)
 
-                const totalRevenue = ordersWithTotal.reduce((sum, order) => sum + order.total_amount, 0)
+                const totalRevenue = ordersWithTotal.reduce((sum: number, order: any) => sum + order.total_amount, 0)
                 setStats(prev => ({ 
                   ...prev, 
                   totalOrders: ordersWithTotal.length,

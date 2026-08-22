@@ -1,4 +1,3 @@
-// app/mochilas/page.tsx (COM RECARREGAMENTO FORÇADO)
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -24,7 +23,6 @@ export default function MinhasMochilas() {
   const [creating, setCreating] = useState(false)
   const router = useRouter()
 
-  // 🔥 FUNÇÃO PARA CARREGAR MOCHILAS - COM LOGS PARA DEBUG
   const carregarMochilas = useCallback(async () => {
     try {
       setLoading(true)
@@ -37,7 +35,6 @@ export default function MinhasMochilas() {
 
       console.log('🔄 Buscando mochilas do usuário:', user.id)
 
-      // 🔥 BUSCAR MOCHILAS DIRETO DO BANCO - SEM CACHE
       const { data, error } = await supabase
         .from('user_backpacks')
         .select('id, name, tipo, progress, created_at')
@@ -52,11 +49,11 @@ export default function MinhasMochilas() {
 
       console.log('📦 Dados brutos do banco:', JSON.stringify(data, null, 2))
 
-      // 🔥 GARANTIR QUE O PROGRESSO É UM NÚMERO
-      const mochilasProcessadas = data?.map(item => ({
+      // 🔥 GARANTIR QUE O PROGRESSO É UM NÚMERO - COM TIPAGEM EXPLÍCITA
+      const mochilasProcessadas: UserBackpack[] = (data || []).map((item: any) => ({
         ...item,
         progress: typeof item.progress === 'number' ? item.progress : 0
-      })) || []
+      }))
 
       console.log('📦 Mochilas processadas:', mochilasProcessadas)
       setBackpacks(mochilasProcessadas)
@@ -69,7 +66,7 @@ export default function MinhasMochilas() {
     }
   }, [router])
 
-  // 🔥 RECARREGAR QUANDO A PÁGINA GANHAR FOCO
+  // Recarregar quando a página ganhar foco
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -82,7 +79,7 @@ export default function MinhasMochilas() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [carregarMochilas])
 
-  // 🔥 CARREGAR AO INICIAR
+  // Carregar ao iniciar
   useEffect(() => {
     carregarMochilas()
   }, [carregarMochilas])
@@ -171,7 +168,7 @@ export default function MinhasMochilas() {
           <p className="text-gray-500 text-sm mt-2">Gerencie todas as suas mochilas de preparação</p>
         </div>
 
-        {/* 🔥 BOTÃO PARA FORÇAR RECARREGAMENTO MANUAL */}
+        {/* Botão para forçar recarregamento manual */}
         <div className="mb-4 text-right">
           <button
             onClick={carregarMochilas}
@@ -202,7 +199,6 @@ export default function MinhasMochilas() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {backpacks.map((backpack) => {
-              // 🔥 LOG PARA VER O VALOR DE CADA MOCHILA
               console.log(`🎒 ${backpack.name}: progress = ${backpack.progress}%`)
               
               return (
@@ -223,7 +219,7 @@ export default function MinhasMochilas() {
                     </span>
                   </div>
                   
-                  {/* 🔥 BARRA DE PROGRESSO - USANDO O VALOR DO BANCO */}
+                  {/* Barra de progresso */}
                   <div className="mt-3">
                     <div className="flex justify-between text-xs text-gray-600 mb-1">
                       <span>Progresso</span>
