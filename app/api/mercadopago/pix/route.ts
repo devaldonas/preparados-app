@@ -4,6 +4,10 @@ export async function POST(request: Request) {
   try {
     const { total, orderId, userEmail, items } = await request.json()
 
+    console.log('💰 Criando preferência para pedido:', orderId)
+    console.log('💰 Total:', total, 'Tipo:', typeof total)
+    console.log('📧 E-mail:', userEmail)
+
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
 
     if (!accessToken) {
@@ -14,41 +18,41 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
-    console.log('💰 Criando preferência para pedido:', orderId)
-    console.log('💰 Total:', total)
-    console.log('📧 E-mail:', userEmail)
-
-    // 🔥 CRIAR PREFERÊNCIA DE PAGAMENTO - APENAS PIX
-    const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${accessToken}`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    items: [{
-      id: `order-${orderId}`,
-      title: `Pedido #${orderId} - PREPARADO`,
-      quantity: 1,
-      currency_id: 'BRL',
-      unit_price: Number(total)
-    }],
-    payer: {
-      email: userEmail
-    },
-    payment_methods: {
-      installments: 1
-    },
-    auto_return: 'approved',
-    notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/mercadopago/webhook`,
-    external_reference: `order_${orderId}`,
-    back_urls: {
-      success: `${process.env.NEXT_PUBLIC_APP_URL}/loja/pedidos`,
-      failure: `${process.env.NEXT_PUBLIC_APP_URL}/loja/carrinho`,
-      pending: `${process.env.NEXT_PUBLIC_APP_URL}/loja/checkout?order=${orderId}`
+    // 🔥 GARANTIR QUE O VALOR É UM NÚMERO
+    const unitPrice = Number(total)
+    if (isNaN(unitPrice) || unitPrice <= 0) {
+      console.error('❌ Valor inválido:', total)
+      return NextResponse.json({
+        success: false,
+        error: 'Valor inválido para pagamento'
+      }, { status: 400 })
     }
-  })
-})
+
+    // 🔥 USAR A API DE PAGAMENTOS (NÃO PREFERÊNCIAS) PARA PIX
+    const paymentData = {
+      transaction_amount: unitPrice,
+      description: `Pedido #${orderId} - PREPARADO`,
+      payment_method_id: 'pix',
+      external_reference: `order_${orderId}`,
+      payer: {
+        email: userEmail || 'cliente@email.com'
+      },
+      metadata: {
+        order_id: orderId,
+        platform: 'preparados'
+      }
+    }
+
+    console.log('📤 Enviando para API de pagamentos:', JSON.stringify(paymentData, null, 2))
+
+    const response = await fetch('https://api.mercadopago.com/v1/payments', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(paymentData)
+    })
 
     const data = await response.json()
 
@@ -56,18 +60,25 @@ export async function POST(request: Request) {
       console.error('❌ Erro Mercado Pago:', data)
       return NextResponse.json({
         success: false,
-        error: data.message || 'Erro ao criar preferência'
+        error: data.message || 'Erro ao criar pagamento'
       }, { status: response.status })
     }
 
-    console.log('✅ Preferência criada:', data.id)
-    console.log('🔗 Link:', data.init_point)
+    console.log('✅ Pagamento criado:', data.id)
+
+    // Extrair QR Code
+    const qrCode = data.point_of_interaction?.transaction_data?.qr_code_base64 || null
+    const copiaCola = data.point_of_interaction?.transaction_data?.qr_code || null
+
+    console.log('✅ QR Code gerado:', qrCode ? 'Sim' : 'Não')
+    console.log('✅ Código PIX gerado:', copiaCola ? 'Sim' : 'Não')
 
     return NextResponse.json({
       success: true,
-      preferenceId: data.id,
-      initPoint: data.init_point,
-      sandboxInitPoint: data.sandbox_init_point
+      qrCode: qrCode,
+      codigoPix: copiaCola,
+      paymentId: data.id,
+      status: data.status
     })
 
   } catch (error) {
