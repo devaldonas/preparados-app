@@ -65,13 +65,20 @@ export default function Notificacoes() {
         .order('created_at', { ascending: false })
         .limit(50)
 
-      if (error) throw error
+      if (error) {
+        console.error('Erro ao carregar notificações:', error)
+        setNotificacoes([])
+        setUnreadCount(0)
+        return
+      }
 
       setNotificacoes(data || [])
       const unread = data?.filter((n: Notificacao) => !n.lida).length || 0
       setUnreadCount(unread)
     } catch (error) {
-      console.error('Erro ao carregar notificações:', error)
+      console.log('ℹ️ Erro ao carregar notificações:', error)
+      setNotificacoes([])
+      setUnreadCount(0)
     }
   }
 
@@ -83,9 +90,12 @@ export default function Notificacoes() {
 
     console.log('🔌 Inscrevendo no canal de notificações...')
 
-    const newChannel = supabase
-      .channel(`notificacoes:${userId}`)
-      .on(
+    try {
+      // 🔥 PRIMEIRO: CRIAR O CANAL
+      const newChannel = supabase.channel(`notificacoes:${userId}`)
+
+      // 🔥 SEGUNDO: ADICIONAR OS LISTENERS
+      newChannel.on(
         'postgres_changes',
         {
           event: 'INSERT',
@@ -100,14 +110,19 @@ export default function Notificacoes() {
           setUnreadCount(prev => prev + 1)
         }
       )
-      .subscribe((status: string) => {
+
+      // 🔥 TERCEIRO: INSCREVER O CANAL
+      newChannel.subscribe((status: string) => {
         console.log('📡 Status da inscrição:', status)
         if (status === 'SUBSCRIBED') {
           setSubscribed(true)
         }
       })
 
-    setChannel(newChannel)
+      setChannel(newChannel)
+    } catch (error) {
+      console.log('ℹ️ Erro ao inscrever notificações:', error)
+    }
   }
 
   const marcarComoLida = async (id: string) => {
@@ -168,7 +183,6 @@ export default function Notificacoes() {
 
   return (
     <div className="relative">
-      {/* Botão do sino */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 hover:bg-gray-100 rounded-lg transition"
@@ -181,10 +195,8 @@ export default function Notificacoes() {
         )}
       </button>
 
-      {/* Dropdown de notificações */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-lg border border-gray-100 z-50 max-h-[500px] flex flex-col">
-          {/* Cabeçalho */}
           <div className="flex items-center justify-between p-4 border-b border-gray-100">
             <h3 className="font-semibold text-black">Notificações</h3>
             <div className="flex items-center gap-2">
@@ -205,7 +217,6 @@ export default function Notificacoes() {
             </div>
           </div>
 
-          {/* Lista de notificações */}
           <div className="overflow-y-auto flex-1">
             {notificacoes.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -263,7 +274,6 @@ export default function Notificacoes() {
             )}
           </div>
 
-          {/* Rodapé */}
           {notificacoes.length > 0 && (
             <div className="p-3 border-t border-gray-100 text-center">
               <Link
