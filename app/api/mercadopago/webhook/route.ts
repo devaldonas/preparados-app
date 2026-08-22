@@ -6,12 +6,15 @@ export async function POST(request: Request) {
   
   try {
     const body = await request.json()
-    console.log('📦 Body:', body)
+    console.log('📦 Body:', JSON.stringify(body, null, 2))
 
     const paymentId = body.data?.id
     if (!paymentId) {
+      console.log('❌ Sem payment ID')
       return NextResponse.json({ error: 'No payment ID' }, { status: 400 })
     }
+
+    console.log('💰 Payment ID:', paymentId)
 
     // 🔥 BUSCAR PAGAMENTO NO MERCADO PAGO
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
@@ -27,45 +30,71 @@ export async function POST(request: Request) {
       }
     })
 
+    if (!mpResponse.ok) {
+      console.error('❌ Erro ao buscar pagamento:', mpResponse.status)
+      return NextResponse.json({ error: 'Erro ao buscar pagamento' }, { status: mpResponse.status })
+    }
+
     const payment = await mpResponse.json()
-    console.log('📥 Pagamento:', payment)
+    console.log('📥 Pagamento recebido:', JSON.stringify(payment, null, 2))
 
     // 🔥 EXTRAIR O EXTERNAL_REFERENCE
-    const orderId = payment.external_reference?.replace('order_', '')
+    const orderId = payment.external_reference
     console.log('📋 Order ID do external_reference:', orderId)
 
+    // 🔥 PROCURAR O PEDIDO
     let order = null
 
-    // 🔥 1. TENTAR PELO TRANSACTION_ID
-    const { data: orderByTransaction, error: error1 } = await supabase
+    // 1. TENTAR PELO TRANSACTION_ID
+    const { data: orderByTransaction } = await supabase
       .from('orders')
       .select('*')
       .eq('transaction_id', String(paymentId))
       .maybeSingle()
 
-    if (!error1 && orderByTransaction) {
+    if (orderByTransaction) {
       order = orderByTransaction
       console.log('✅ Pedido encontrado pelo transaction_id:', order.id)
     }
 
-    // 🔥 2. TENTAR PELO ID (se não encontrou)
+    // 2. TENTAR PELO ID
     if (!order && orderId) {
-      const { data: orderById, error: error2 } = await supabase
+      const orderIdNum = parseInt(orderId.replace('order_', ''))
+      if (!isNaN(orderIdNum)) {
+        const { data: orderById } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('id', orderIdNum)
+          .maybeSingle()
+
+        if (orderById) {
+          order = orderById
+          console.log('✅ Pedido encontrado pelo ID:', order.id)
+        }
+      }
+    }
+
+    // 3. TENTAR PELO PAYMENT ID (BUSCA DIRETA)
+    if (!order) {
+      console.log('🔍 Buscando pedido com transaction_id:', paymentId)
+      const { data: orderByPayment } = await supabase
         .from('orders')
         .select('*')
-        .eq('id', parseInt(orderId))
+        .eq('transaction_id', paymentId)
         .maybeSingle()
 
-      if (!error2 && orderById) {
-        order = orderById
-        console.log('✅ Pedido encontrado pelo ID:', order.id)
+      if (orderByPayment) {
+        order = orderByPayment
+        console.log('✅ Pedido encontrado pelo payment_id:', order.id)
       }
     }
 
     if (!order) {
-      console.log('❌ Pedido não encontrado')
+      console.log('❌ Pedido não encontrado para payment_id:', paymentId)
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
+
+    console.log('✅ Pedido encontrado:', order.id)
 
     // 🔥 ATUALIZAR O PEDIDO
     const { error: updateError } = await supabase
@@ -87,7 +116,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, orderId: order.id })
 
   } catch (error) {
-    console.error('❌ Erro:', error)
+    console.error('❌ Erro no webhook:', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }
