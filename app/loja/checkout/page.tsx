@@ -63,10 +63,8 @@ function CheckoutContent() {
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [copiarCodigo, setCopiarCodigo] = useState('')
 
-  // 🔥 VERIFICAR SE TODOS OS ITENS TÊM FRETE GRÁTIS
+  // Verificar se todos os itens têm frete grátis
   const allFreeShipping = order?.items?.every(item => item.product?.free_shipping === true) || false
-
-  // 🔥 CALCULAR VALOR DO FRETE (SE TIVER FRETE GRÁTIS, É ZERO)
   const valorFrete = allFreeShipping ? 0 : frete.valor
 
   useEffect(() => {
@@ -103,7 +101,6 @@ function CheckoutContent() {
           if (orderData) {
             setOrder(orderData)
             
-            // 🔥 SE TODOS OS ITENS TIVEREM FRETE GRÁTIS, NÃO CALCULAR FRETE
             const hasFreeShipping = orderData.items?.every((item: any) => item.product?.free_shipping === true)
             if (hasFreeShipping) {
               setFrete({ valor: 0, prazo: 'Grátis', detalhes: [] })
@@ -132,7 +129,6 @@ function CheckoutContent() {
       return
     }
 
-    // 🔥 SE TODOS OS ITENS TIVEREM FRETE GRÁTIS, NÃO CALCULA
     if (items.every((item: any) => item.product?.free_shipping === true)) {
       setFrete({ valor: 0, prazo: 'Grátis', detalhes: [] })
       setCepDestino(cep)
@@ -176,14 +172,16 @@ function CheckoutContent() {
     try {
       console.log('📤 Gerando PIX para pedido:', orderId)
       console.log('📤 Valor:', order?.total_amount)
-      
-      const response = await fetch('/api/mercadopago/criar-pix', {
+
+      // 🔥 USAR A ROTA CORRETA: /api/mercadopago/pix
+      const response = await fetch('/api/mercadopago/pix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          total: order?.total_amount || 0,
           orderId: parseInt(orderId as string),
-          amount: order?.total_amount || 0,
-          description: `Pedido #${orderId}`
+          userEmail: user?.email || 'cliente@email.com',
+          items: order?.items || []
         })
       })
 
@@ -244,8 +242,6 @@ function CheckoutContent() {
   }
 
   const subtotal = order.items?.reduce((acc, item) => acc + (item.price * item.quantity), 0) || 0
-  
-  // 🔥 USAR O VALOR CORRETO DO FRETE (GRÁTIS SE FOR O CASO)
   const totalComFrete = subtotal + valorFrete
 
   return (
@@ -307,7 +303,6 @@ function CheckoutContent() {
                   <span className="font-medium">{formatPrice(subtotal)}</span>
                 </div>
                 
-                {/* 🔥 FRETE - MOSTRA GRÁTIS OU VALOR CALCULADO */}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Frete</span>
                   <span className={`font-medium ${allFreeShipping || valorFrete === 0 ? 'text-green-600' : ''}`}>
@@ -325,7 +320,7 @@ function CheckoutContent() {
               </div>
             </div>
 
-            {/* Calcular Frete - SÓ MOSTRA SE NÃO TIVER FRETE GRÁTIS */}
+            {/* Calcular Frete - só mostra se não tiver frete grátis */}
             {!allFreeShipping && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <h3 className="font-bold text-black mb-3 flex items-center gap-2">
@@ -357,7 +352,6 @@ function CheckoutContent() {
               </div>
             )}
 
-            {/* 🔥 MOSTRA MENSAGEM DE FRETE GRÁTIS */}
             {allFreeShipping && (
               <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
                 <span className="text-lg">🎉</span>
