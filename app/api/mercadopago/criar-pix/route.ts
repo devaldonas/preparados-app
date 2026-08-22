@@ -109,3 +109,5 @@ export async function POST(request: Request) {
     )
   }
 }
+
+// 🔥 Redeploy forçado em sáb 22 ago 2026 15:15:50 -03
