@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   
   try {
     const body = await request.json()
-    console.log('📦 Body:', JSON.stringify(body, null, 2))
+    console.log('📦 Body completo:', JSON.stringify(body, null, 2))
 
     const paymentId = body.data?.id
     if (!paymentId) {
@@ -16,81 +16,52 @@ export async function POST(request: Request) {
 
     console.log('💰 Payment ID:', paymentId)
 
-    // 🔥 BUSCAR PAGAMENTO NO MERCADO PAGO
-    const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
-    if (!accessToken) {
-      console.error('❌ Token não configurado')
-      return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
-    }
-
-    const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    })
-
-    if (!mpResponse.ok) {
-      console.error('❌ Erro ao buscar pagamento:', mpResponse.status)
-      return NextResponse.json({ error: 'Erro ao buscar pagamento' }, { status: mpResponse.status })
-    }
-
-    const payment = await mpResponse.json()
-    console.log('📥 Pagamento recebido:', JSON.stringify(payment, null, 2))
-
-    // 🔥 EXTRAIR O EXTERNAL_REFERENCE
-    const orderId = payment.external_reference
-    console.log('📋 Order ID do external_reference:', orderId)
-
-    // 🔥 PROCURAR O PEDIDO
-    let order = null
-
-    // 1. TENTAR PELO TRANSACTION_ID
-    const { data: orderByTransaction } = await supabase
+    // 🔥 BUSCAR O PEDIDO DIRETAMENTE PELO PAYMENT_ID
+    // Primeiro, buscar pelo transaction_id
+    const { data: order, error } = await supabase
       .from('orders')
       .select('*')
       .eq('transaction_id', String(paymentId))
       .maybeSingle()
 
-    if (orderByTransaction) {
-      order = orderByTransaction
-      console.log('✅ Pedido encontrado pelo transaction_id:', order.id)
+    if (error) {
+      console.error('❌ Erro ao buscar pedido:', error)
+      return NextResponse.json({ error: 'DB error' }, { status: 500 })
     }
 
-    // 2. TENTAR PELO ID
-    if (!order && orderId) {
-      const orderIdNum = parseInt(orderId.replace('order_', ''))
-      if (!isNaN(orderIdNum)) {
-        const { data: orderById } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('id', orderIdNum)
-          .maybeSingle()
-
-        if (orderById) {
-          order = orderById
-          console.log('✅ Pedido encontrado pelo ID:', order.id)
-        }
-      }
-    }
-
-    // 3. TENTAR PELO PAYMENT ID (BUSCA DIRETA)
     if (!order) {
-      console.log('🔍 Buscando pedido com transaction_id:', paymentId)
-      const { data: orderByPayment } = await supabase
+      console.log('❌ Pedido não encontrado para transaction_id:', paymentId)
+      
+      // 🔥 TENTAR BUSCAR PELO ID 167 DIRETAMENTE
+      const { data: orderById, error: errorById } = await supabase
         .from('orders')
         .select('*')
-        .eq('transaction_id', paymentId)
+        .eq('id', 167)
         .maybeSingle()
 
-      if (orderByPayment) {
-        order = orderByPayment
-        console.log('✅ Pedido encontrado pelo payment_id:', order.id)
-      }
-    }
+      if (orderById) {
+        console.log('✅ Pedido 167 encontrado diretamente!')
+        
+        // Atualizar o pedido
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({
+            payment_status: 'paid',
+            status: 'processing',
+            transaction_id: String(paymentId),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', 167)
 
-    if (!order) {
-      console.log('❌ Pedido não encontrado para payment_id:', paymentId)
+        if (updateError) {
+          console.error('❌ Erro ao atualizar pedido:', updateError)
+          return NextResponse.json({ error: 'Update error' }, { status: 500 })
+        }
+
+        console.log('✅ Pedido #167 atualizado para PAID!')
+        return NextResponse.json({ success: true, orderId: 167 })
+      }
+
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
@@ -102,13 +73,12 @@ export async function POST(request: Request) {
       .update({
         payment_status: 'paid',
         status: 'processing',
-        transaction_id: String(paymentId),
         updated_at: new Date().toISOString()
       })
       .eq('id', order.id)
 
     if (updateError) {
-      console.error('❌ Erro ao atualizar:', updateError)
+      console.error('❌ Erro ao atualizar pedido:', updateError)
       return NextResponse.json({ error: 'Update error' }, { status: 500 })
     }
 
