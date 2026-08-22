@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
 
 export async function POST(request: Request) {
-  console.log('🚀 WEBHOOK VERSÃO FINAL - Buscando pedido 168!')
+  console.log('🚀 WEBHOOK ATUALIZADO - Buscando pedido 168')
   
   try {
     const body = await request.json()
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
     console.log('💰 Payment ID:', paymentId)
 
-    // 🔥 BUSCAR DIRETAMENTE O PEDIDO 168
+    // 🔥 BUSCAR O PEDIDO 168
     console.log('🔍 Buscando pedido 168...')
     
     const { data: order, error } = await supabase
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, orderId: 168 })
 
   } catch (error) {
-    console.error('❌ Erro:', error)
+    console.error('❌ Erro no webhook:', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }
