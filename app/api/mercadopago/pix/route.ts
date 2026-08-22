@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabaseClient'
 
 export async function POST(request: Request) {
   try {
@@ -40,12 +41,10 @@ export async function POST(request: Request) {
         order_id: orderId,
         platform: 'preparados'
       },
-      // 🔥 URL COMPLETA DO WEBHOOK
       notification_url: `https://preparado.vercel.app/api/mercadopago/webhook`
     }
 
     console.log('📤 Enviando para API de pagamentos...')
-    console.log('🔗 Webhook URL:', paymentData.notification_url)
 
     const response = await fetch('https://api.mercadopago.com/v1/payments', {
       method: 'POST',
@@ -68,6 +67,22 @@ export async function POST(request: Request) {
     }
 
     console.log('✅ Pagamento criado:', data.id)
+
+    // 🔥 ATUALIZAR O PEDIDO COM O TRANSACTION_ID
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        transaction_id: String(data.id),
+        payment_status: 'pending',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId)
+
+    if (updateError) {
+      console.error('❌ Erro ao atualizar pedido com transaction_id:', updateError)
+    } else {
+      console.log('✅ Pedido #', orderId, 'atualizado com transaction_id:', data.id)
+    }
 
     const qrCode = data.point_of_interaction?.transaction_data?.qr_code_base64 || null
     const copiaCola = data.point_of_interaction?.transaction_data?.qr_code || null
