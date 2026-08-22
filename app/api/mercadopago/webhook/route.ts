@@ -73,3 +73,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }
+// 🔥 Deploy forçado sáb 22 ago 2026 18:40:34 -03
