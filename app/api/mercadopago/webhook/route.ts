@@ -2,75 +2,87 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
 
 export async function POST(request: Request) {
+  console.log('🔥 Webhook chamado!')
+  
   try {
     const body = await request.json()
-    console.log('📦 Webhook body:', body)
+    console.log('📦 Body:', JSON.stringify(body, null, 2))
 
     const paymentId = body.data?.id
     if (!paymentId) {
+      console.log('❌ Sem payment ID')
       return NextResponse.json({ error: 'No payment ID' }, { status: 400 })
     }
 
     console.log('💰 Payment ID:', paymentId)
 
-    // 🔥 BUSCAR PEDIDO PELO TRANSACTION_ID
-    const { data: order, error } = await supabase
+    // 🔥 1. BUSCAR PELO TRANSACTION_ID
+    const { data: orderByTransaction, error: error1 } = await supabase
       .from('orders')
       .select('*')
       .eq('transaction_id', String(paymentId))
       .maybeSingle()
 
-    if (error) {
-      console.error('❌ DB error:', error)
+    if (error1) {
+      console.error('❌ Erro ao buscar por transaction_id:', error1)
+    }
+
+    if (orderByTransaction) {
+      console.log('✅ Pedido encontrado pelo transaction_id:', orderByTransaction.id)
+      await atualizarPedido(orderByTransaction.id, paymentId)
+      return NextResponse.json({ success: true, orderId: orderByTransaction.id })
+    }
+
+    console.log('❌ Pedido não encontrado pelo transaction_id:', paymentId)
+
+    // 🔥 2. BUSCAR PELO ID 168 (DIRETO)
+    console.log('🔍 Buscando pedido 168 diretamente...')
+    
+    const { data: orderById, error: error2 } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', 168)
+      .maybeSingle()
+
+    if (error2) {
+      console.error('❌ Erro ao buscar pedido 168:', error2)
       return NextResponse.json({ error: 'DB error' }, { status: 500 })
     }
 
-    if (!order) {
-      console.log('❌ Pedido não encontrado para transaction_id:', paymentId)
-      
-      // 🔥 TENTAR BUSCAR PELO ID 167
-      const { data: orderById } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', 167)
-        .maybeSingle()
-
-      if (orderById) {
-        console.log('✅ Pedido 167 encontrado diretamente!')
-        
-        await supabase
-          .from('orders')
-          .update({
-            payment_status: 'paid',
-            status: 'processing',
-            transaction_id: String(paymentId),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', 167)
-
-        console.log('✅ Pedido #167 atualizado para PAID!')
-        return NextResponse.json({ success: true, orderId: 167 })
-      }
-
+    if (!orderById) {
+      console.log('❌ Pedido 168 não encontrado')
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    // ATUALIZAR PEDIDO
-    await supabase
-      .from('orders')
-      .update({
-        payment_status: 'paid',
-        status: 'processing',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', order.id)
+    console.log('✅ Pedido 168 encontrado! Status atual:', orderById.payment_status)
 
-    console.log('✅ Pedido #', order.id, 'atualizado!')
-    return NextResponse.json({ success: true, orderId: order.id })
+    // 🔥 3. ATUALIZAR O PEDIDO 168
+    await atualizarPedido(168, paymentId)
+
+    console.log('✅ Pedido #168 atualizado para PAID!')
+    return NextResponse.json({ success: true, orderId: 168 })
 
   } catch (error) {
-    console.error('❌ Erro:', error)
+    console.error('❌ Erro no webhook:', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }
-// 🔥 Deploy forçado sáb 22 ago 2026 18:40:34 -03
+
+async function atualizarPedido(orderId: number, paymentId: string) {
+  const { error: updateError } = await supabase
+    .from('orders')
+    .update({
+      payment_status: 'paid',
+      status: 'processing',
+      transaction_id: String(paymentId),
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', orderId)
+
+  if (updateError) {
+    console.error('❌ Erro ao atualizar pedido:', updateError)
+    throw updateError
+  }
+
+  console.log('✅ Pedido #', orderId, 'atualizado para PAID!')
+}
