@@ -4,7 +4,7 @@ export async function POST(request: Request) {
   try {
     const { total, orderId, userEmail, items } = await request.json()
 
-    console.log('💰 Criando preferência para pedido:', orderId)
+    console.log('💰 Criando PIX para pedido:', orderId)
     console.log('💰 Total:', total, 'Tipo:', typeof total)
     console.log('📧 E-mail:', userEmail)
 
@@ -28,7 +28,9 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    // 🔥 USAR A API DE PAGAMENTOS (NÃO PREFERÊNCIAS) PARA PIX
+    // 🔥 GERAR IDEMPOTENCY KEY
+    const idempotencyKey = `pix_${orderId}_${Date.now()}`
+
     const paymentData = {
       transaction_amount: unitPrice,
       description: `Pedido #${orderId} - PREPARADO`,
@@ -44,12 +46,14 @@ export async function POST(request: Request) {
     }
 
     console.log('📤 Enviando para API de pagamentos:', JSON.stringify(paymentData, null, 2))
+    console.log('🔑 Idempotency Key:', idempotencyKey)
 
     const response = await fetch('https://api.mercadopago.com/v1/payments', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-Idempotency-Key': idempotencyKey
       },
       body: JSON.stringify(paymentData)
     })
