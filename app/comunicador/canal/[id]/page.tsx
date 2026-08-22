@@ -1,378 +1,315 @@
-// app/comunicador/canal/[id]/page.tsx
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ArrowLeft, Mic, Send, Volume2, VolumeX, Trash2 } from 'lucide-react'
 
-// Silenciar erro específico do Supabase Realtime
-const originalConsoleError = console.error
-console.error = (...args: any[]) => {
-  if (args[0]?.includes?.('cannot add `postgres_changes` callbacks')) return
-  if (args[0]?.includes?.('after `subscribe()`')) return
-  originalConsoleError(...args)
+interface AudioMessage {
+  id: string
+  user_id: string
+  user_name: string
+  audio_url: string
+  created_at: string
 }
 
-export default function SalaComunicador() {
-  const [user, setUser] = useState<any>(null)
-  const [canal, setCanal] = useState<any>(null)
-  const [participantes, setParticipantes] = useState<any[]>([])
-  const [isRecording, setIsRecording] = useState(false)
-  const [error, setError] = useState('')
+export default function CanalPage({ params }: { params: Promise<{ id: string }> }) {
+  const [canalId, setCanalId] = useState<string>('')
+  const [canalNome, setCanalNome] = useState('')
+  const [messages, setMessages] = useState<AudioMessage[]>([])
   const [loading, setLoading] = useState(true)
-  const [audioURLs, setAudioURLs] = useState<{ id: string; url: string; from: string }[]>([])
-
+  const [recording, setRecording] = useState(false)
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const router = useRouter()
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
-  
-  const router = useRouter()
-  const params = useParams()
-  const canalId = params.id as string
-
-  const gerarRogerBeep = () => {
-    try {
-      const audio = new Audio('/sounds/roger-beep.mp3')
-      audio.volume = 0.5
-      audio.play().catch(e => console.log('Erro ao tocar beep:', e))
-    } catch (err) {
-      console.log('Erro ao reproduzir beep:', err)
-    }
-  }
-
-  const gerarBeepRecebido = () => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-      const oscillator = audioContext.createOscillator()
-      const gainNode = audioContext.createGain()
-      
-      oscillator.connect(gainNode)
-      gainNode.connect(audioContext.destination)
-      
-      oscillator.frequency.value = 660
-      gainNode.gain.value = 0.2
-      
-      oscillator.start()
-      gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.2)
-      oscillator.stop(audioContext.currentTime + 0.2)
-      
-      setTimeout(() => audioContext.close(), 300)
-    } catch (err) {
-      console.log('Erro ao gerar beep de recepção:', err)
-    }
-  }
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
-        return
+    const carregarCanal = async () => {
+      try {
+        const { id } = await params
+        setCanalId(id)
+
+        const { data: canal } = await supabase
+          .from('comunicador_canais')
+          .select('nome')
+          .eq('id', id)
+          .single()
+
+        if (canal) {
+          setCanalNome(canal.nome)
+        }
+
+        // Buscar mensagens
+        const { data: mensagens } = await supabase
+          .from('comunicador_audios')
+          .select('*')
+          .eq('canal_id', id)
+          .order('created_at', { ascending: false })
+
+        setMessages(mensagens || [])
+
+        // Inscrever para novas mensagens
+        const audioChannel = supabase
+          .channel(`audio:${id}`)
+          .on('broadcast', { event: 'novo-audio' }, (payload: any) => {
+            console.log('Áudio recebido:', payload)
+            adicionarAudio(payload.payload)
+          })
+          .subscribe()
+
+        return () => {
+          audioChannel.unsubscribe()
+        }
+      } catch (error) {
+        console.error('Erro ao carregar canal:', error)
+        router.push('/comunicador')
+      } finally {
+        setLoading(false)
       }
-      setUser(user)
-      await carregarCanal()
-      await registrarNoCanal()
-      await carregarParticipantes()
-      setLoading(false)
     }
-    getUser()
-  }, [])
 
-  useEffect(() => {
-    if (!user || !canal) return
+    carregarCanal()
+  }, [params, router])
 
-    const audioChannel = supabase
-      .channel(`audio:${canalId}`)
-      .on('broadcast', { event: 'novo-audio' }, (payload) => {
-        console.log('Áudio recebido:', payload)
-        adicionarAudio(payload.payload)
-      })
-      .subscribe()
-
-    const participantChannel = supabase
-      .channel('participantes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'comunicador_participantes', filter: `canal_id=eq.${canalId}` },
-        () => carregarParticipantes()
-      )
-      .subscribe()
-
-    return () => {
-      audioChannel.unsubscribe()
-      participantChannel.unsubscribe()
-    }
-  }, [user, canal, canalId])
-
-  const carregarCanal = async () => {
-    // 🔥 CORRIGIDO: buscar canal com as any
-    const { data } = await (supabase
-      .from('comunicador_canais') as any)
-      .select('*')
-      .eq('id', canalId)
-      .maybeSingle()
-    if (data) setCanal(data)
+  const adicionarAudio = (audio: any) => {
+    setMessages(prev => [audio, ...prev])
   }
 
-  const registrarNoCanal = async () => {
-    if (!user) return
-    
-    // 🔥 CORRIGIDO: buscar perfil com as any
-    const { data: profile } = await (supabase
-      .from('profiles') as any)
-      .select('full_name')
-      .eq('id', user.id)
-      .maybeSingle()
-    
-    const fullName = profile?.full_name || 'Preparado'
-    
-    // 🔥 CORRIGIDO: deletar e inserir com as any
-    await (supabase
-      .from('comunicador_participantes') as any)
-      .delete()
-      .eq('canal_id', canalId)
-      .eq('usuario_id', user.id)
-    
-    await (supabase
-      .from('comunicador_participantes') as any)
-      .insert({
-        canal_id: canalId,
-        usuario_id: user.id,
-        full_name: fullName,
-        joined_at: new Date().toISOString()
-      })
-  }
-
-  const carregarParticipantes = async () => {
-    // 🔥 CORRIGIDO: buscar participantes com as any
-    const { data } = await (supabase
-      .from('comunicador_participantes') as any)
-      .select('*')
-      .eq('canal_id', canalId)
-    
-    if (data) {
-      setParticipantes(data)
-    }
-  }
-
-  const startRecording = async () => {
+  const iniciarGravacao = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      mediaRecorderRef.current = new MediaRecorder(stream)
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
 
-      mediaRecorderRef.current.ondataavailable = (event) => {
+      mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data)
         }
       }
 
-      mediaRecorderRef.current.onstop = async () => {
+      mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        const url = URL.createObjectURL(audioBlob)
+        setAudioUrl(url)
+        
+        // Enviar áudio
         await enviarAudio(audioBlob)
-        stream.getTracks().forEach(track => track.stop())
       }
 
-      mediaRecorderRef.current.start()
-      setIsRecording(true)
-      
-      setTimeout(() => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-          stopRecording()
-        }
-      }, 15000)
-    } catch (err) {
-      console.error('Erro ao acessar microfone:', err)
-      setError('Não foi possível acessar o microfone')
+      mediaRecorder.start()
+      setRecording(true)
+    } catch (error) {
+      console.error('Erro ao iniciar gravação:', error)
+      alert('Erro ao acessar o microfone. Verifique as permissões.')
     }
   }
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+  const pararGravacao = () => {
+    if (mediaRecorderRef.current && recording) {
       mediaRecorderRef.current.stop()
-      setIsRecording(false)
-      gerarRogerBeep()
+      setRecording(false)
+      
+      // Parar todas as tracks do stream
+      const stream = mediaRecorderRef.current.stream
+      stream.getTracks().forEach(track => track.stop())
     }
   }
 
   const enviarAudio = async (audioBlob: Blob) => {
-    if (!user) return
-    
-    const fileName = `${Date.now()}_${user.id}.webm`
-    const filePath = `audio/${fileName}`
-    
-    // 🔥 CORRIGIDO: upload com as any
-    const { error: uploadError } = await (supabase
-      .storage
-      .from('comunicador_audio') as any)
-      .upload(filePath, audioBlob, { contentType: 'audio/webm' })
-    
-    if (uploadError) {
-      console.error('Erro ao enviar áudio:', uploadError)
-      return
-    }
-    
-    const { data: urlData } = (supabase
-      .storage
-      .from('comunicador_audio') as any)
-      .getPublicUrl(filePath)
-    
-    // 🔥 CORRIGIDO: enviar broadcast
-    await (supabase
-      .channel(`audio:${canalId}`) as any)
-      .send({
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        alert('Usuário não autenticado')
+        return
+      }
+
+      // Upload do áudio para o storage
+      const fileName = `${Date.now()}.webm`
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('audios')
+        .upload(`comunicador/${canalId}/${fileName}`, audioBlob, {
+          contentType: 'audio/webm'
+        })
+
+      if (uploadError) throw uploadError
+
+      // Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('audios')
+        .getPublicUrl(`comunicador/${canalId}/${fileName}`)
+
+      // Salvar no banco
+      const { data: audioData, error: saveError } = await supabase
+        .from('comunicador_audios')
+        .insert({
+          canal_id: canalId,
+          user_id: user.id,
+          user_name: user.user_metadata?.full_name || 'Usuário',
+          audio_url: publicUrl
+        })
+        .select()
+        .single()
+
+      if (saveError) throw saveError
+
+      // Broadcast para outros usuários
+      await supabase.channel(`audio:${canalId}`).send({
         type: 'broadcast',
         event: 'novo-audio',
-        payload: {
-          id: fileName,
-          url: urlData.publicUrl,
-          from: user.id,
-          fromName: participantes.find(p => p.usuario_id === user.id)?.full_name || 'Preparado',
-          timestamp: Date.now()
-        }
+        payload: audioData
       })
-  }
 
-  const adicionarAudio = (payload: any) => {
-    if (payload.from === user?.id) {
-      console.log('Ignorando próprio áudio')
-      return
+      setAudioUrl(null)
+      setMessages(prev => [audioData, ...prev])
+
+    } catch (error) {
+      console.error('Erro ao enviar áudio:', error)
+      alert('Erro ao enviar áudio')
     }
-    
-    gerarBeepRecebido()
-    
-    setAudioURLs(prev => [...prev, {
-      id: payload.id,
-      url: payload.url,
-      from: payload.fromName || 'Preparado'
-    }])
-    
-    const audio = new Audio(payload.url)
-    audio.play().catch(e => console.log('Erro ao reproduzir:', e))
   }
 
-  const sairDoCanal = async () => {
-    // 🔥 CORRIGIDO: deletar com as any
-    await (supabase
-      .from('comunicador_participantes') as any)
-      .delete()
-      .eq('canal_id', canalId)
-      .eq('usuario_id', user.id)
-    router.push('/comunicador')
+  const togglePlay = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause()
+      } else {
+        audioRef.current.play()
+      }
+      setIsPlaying(!isPlaying)
+    }
   }
 
-  if (loading || !canal) {
+  const deletarAudio = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este áudio?')) return
+
+    try {
+      const { error } = await supabase
+        .from('comunicador_audios')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      setMessages(prev => prev.filter(msg => msg.id !== id))
+    } catch (error) {
+      console.error('Erro ao excluir áudio:', error)
+      alert('Erro ao excluir áudio')
+    }
+  }
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        
-        <div className="text-center mb-8">
-          <img 
-            src="/images/comunicador-icon.png" 
-            alt="Comunicador" 
-            className="w-20 h-20 mx-auto mb-4 object-contain"
-            onError={(e) => { e.currentTarget.style.display = 'none' }}
-          />
-          <h1 className="text-2xl font-bold text-black mb-2">Comunicador Via Rádio</h1>
-          <p className="text-gray-600 text-sm">Canal: Geral - Emergência</p>
-          <p className="text-gray-600 text-sm">
-            {participantes.length > 1 ? '🟢 Conectado' : '🟡 Aguardando outros participantes...'}
-          </p>
-          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 mb-8 text-center">
-          <button
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            onMouseLeave={stopRecording}
-            onTouchStart={startRecording}
-            onTouchEnd={stopRecording}
-            className="cursor-pointer focus:outline-none transition-transform active:scale-95 select-none"
-            style={{ 
-              WebkitTapHighlightColor: 'transparent',
-              userSelect: 'none',
-              WebkitUserSelect: 'none',
-              touchAction: 'manipulation'
-            }}
-            draggable={false}
-            onDragStart={(e) => e.preventDefault()}
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="flex items-center gap-4 mb-6">
+          <Link
+            href="/comunicador"
+            className="p-2 hover:bg-gray-200 rounded-lg transition"
           >
-            <img 
-              src="/images/botaoptt.png" 
-              alt="Push to Talk" 
-              className="w-48 h-48 mx-auto object-contain pointer-events-none"
-              draggable={false}
-              onDragStart={(e) => e.preventDefault()}
-            />
-          </button>
-          
-          <p className="text-sm text-gray-500 mt-6">
-            Pressione e segure para gravar (máximo 15 segundos).<br/>
-            Solte para enviar.
-          </p>
-          
-          <div className="mt-3 text-xs text-gray-400">
-            🔘 Ao soltar o botão, um "Roger Beep" indica o fim da transmissão
-          </div>
-          
-          {isRecording && (
-            <div className="mt-3 inline-flex items-center gap-2 bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm">
-              <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
-              Gravando...
-            </div>
-          )}
-        </div>
-
-        <div className="bg-gray-100 rounded-xl p-4">
-          <h3 className="font-semibold text-gray-700 mb-2">📡 Neste canal ({participantes.length} participante(s)):</h3>
-          <div className="flex flex-wrap gap-2">
-            {participantes.map((p) => (
-              <span key={p.id} className={`px-3 py-1 rounded-full text-sm ${
-                p.usuario_id === user?.id 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'bg-gray-200 text-gray-700'
-              }`}>
-                {p.usuario_id === user?.id ? '🎤 Você' : (p.full_name || 'Preparado')}
-              </span>
-            ))}
+            <ArrowLeft size={20} />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-black">{canalNome}</h1>
+            <p className="text-sm text-gray-500">Canal de comunicação</p>
           </div>
         </div>
 
-        {audioURLs.length > 0 && (
-          <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <h3 className="font-semibold text-gray-700 mb-2">📨 Últimas mensagens:</h3>
-            <div className="space-y-2">
-              {audioURLs.slice(-5).reverse().map((audio) => (
-                <div key={audio.id} className="flex items-center gap-2 text-sm">
-                  <span className="font-medium text-black">{audio.from}:</span>
-                  <audio controls src={audio.url} className="h-8 w-48" />
-                </div>
-              ))}
+        {/* Controles de Gravação */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="flex items-center justify-center gap-4">
+            {!recording ? (
+              <button
+                onClick={iniciarGravacao}
+                className="w-16 h-16 bg-[#FFB800] rounded-full flex items-center justify-center hover:bg-[#E5A600] transition"
+              >
+                <Mic size={28} className="text-black" />
+              </button>
+            ) : (
+              <button
+                onClick={pararGravacao}
+                className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition animate-pulse"
+              >
+                <div className="w-8 h-8 bg-white rounded-sm" />
+              </button>
+            )}
+            <span className="text-sm text-gray-500">
+              {recording ? 'Gravando...' : 'Toque para gravar'}
+            </span>
+          </div>
+        </div>
+
+        {/* Player do Áudio Gravado */}
+        {audioUrl && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={togglePlay}
+                className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center hover:bg-blue-600 transition"
+              >
+                {isPlaying ? (
+                  <VolumeX size={24} className="text-white" />
+                ) : (
+                  <Volume2 size={24} className="text-white" />
+                )}
+              </button>
+              <audio
+                ref={audioRef}
+                src={audioUrl}
+                onEnded={() => setIsPlaying(false)}
+                className="flex-1"
+                controls
+              />
             </div>
           </div>
         )}
 
-        <div className="mt-8 space-y-3">
-          <button
-            onClick={sairDoCanal}
-            className="w-full bg-black text-white py-3 px-4 rounded-lg font-semibold hover:bg-gray-800 transition"
-          >
-            Sair do Canal
-          </button>
-          
-          <Link
-            href="/comunicador"
-            className="block text-center bg-[#FFB800] text-black py-3 px-4 rounded-lg font-semibold hover:bg-[#E5A600] transition"
-          >
-            Voltar aos Canais
-          </Link>
+        {/* Lista de Mensagens */}
+        <div className="space-y-3">
+          {messages.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <p>Nenhum áudio enviado ainda</p>
+              <p className="text-sm">Grave o primeiro áudio para começar</p>
+            </div>
+          ) : (
+            messages.map((msg) => (
+              <div key={msg.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-black">{msg.user_name}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(msg.created_at).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <audio
+                      src={msg.audio_url}
+                      controls
+                      className="h-10 w-48"
+                    />
+                    <button
+                      onClick={() => deletarAudio(msg.id)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                      title="Excluir"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

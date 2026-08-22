@@ -19,6 +19,7 @@ interface OrderItem {
     image_url: string
     is_digital: boolean
     partner_id: string
+    free_shipping: boolean
     weight?: number
   }
 }
@@ -62,6 +63,12 @@ function CheckoutContent() {
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [copiarCodigo, setCopiarCodigo] = useState('')
 
+  // 🔥 VERIFICAR SE TODOS OS ITENS TÊM FRETE GRÁTIS
+  const allFreeShipping = order?.items?.every(item => item.product?.free_shipping === true) || false
+
+  // 🔥 CALCULAR VALOR DO FRETE (SE TIVER FRETE GRÁTIS, É ZERO)
+  const valorFrete = allFreeShipping ? 0 : frete.valor
+
   useEffect(() => {
     const carregarDados = async () => {
       try {
@@ -96,7 +103,12 @@ function CheckoutContent() {
           if (orderData) {
             setOrder(orderData)
             
-            if (profileData?.cep) {
+            // 🔥 SE TODOS OS ITENS TIVEREM FRETE GRÁTIS, NÃO CALCULAR FRETE
+            const hasFreeShipping = orderData.items?.every((item: any) => item.product?.free_shipping === true)
+            if (hasFreeShipping) {
+              setFrete({ valor: 0, prazo: 'Grátis', detalhes: [] })
+              setCepDestino('')
+            } else if (profileData?.cep) {
               setCepDestino(profileData.cep)
               setCepDigitado(profileData.cep)
               await calcularFrete(orderData.items, profileData.cep)
@@ -117,6 +129,13 @@ function CheckoutContent() {
   const calcularFrete = async (items: any[], cep: string) => {
     if (!cep || cep.length < 8) {
       setError('Digite um CEP válido')
+      return
+    }
+
+    // 🔥 SE TODOS OS ITENS TIVEREM FRETE GRÁTIS, NÃO CALCULA
+    if (items.every((item: any) => item.product?.free_shipping === true)) {
+      setFrete({ valor: 0, prazo: 'Grátis', detalhes: [] })
+      setCepDestino(cep)
       return
     }
 
@@ -225,7 +244,9 @@ function CheckoutContent() {
   }
 
   const subtotal = order.items?.reduce((acc, item) => acc + (item.price * item.quantity), 0) || 0
-  const totalComFrete = subtotal + frete.valor
+  
+  // 🔥 USAR O VALOR CORRETO DO FRETE (GRÁTIS SE FOR O CASO)
+  const totalComFrete = subtotal + valorFrete
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -269,6 +290,9 @@ function CheckoutContent() {
                       <p className="text-xs text-gray-500">
                         {item.quantity}x {formatPrice(item.price)}
                       </p>
+                      {item.product?.free_shipping && (
+                        <span className="text-xs text-green-600 font-medium">Frete Grátis</span>
+                      )}
                     </div>
                     <p className="font-bold text-[#FFB800] text-sm">
                       {formatPrice(item.price * item.quantity)}
@@ -282,13 +306,16 @@ function CheckoutContent() {
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium">{formatPrice(subtotal)}</span>
                 </div>
+                
+                {/* 🔥 FRETE - MOSTRA GRÁTIS OU VALOR CALCULADO */}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Frete</span>
-                  <span className="font-medium">
-                    {frete.valor === 0 ? 'Grátis' : formatPrice(frete.valor)}
+                  <span className={`font-medium ${allFreeShipping || valorFrete === 0 ? 'text-green-600' : ''}`}>
+                    {allFreeShipping || valorFrete === 0 ? 'Grátis 🎉' : formatPrice(valorFrete)}
                   </span>
                 </div>
-                {frete.prazo && frete.valor > 0 && (
+                
+                {frete.prazo && valorFrete > 0 && (
                   <p className="text-xs text-gray-400 text-right">Prazo: {frete.prazo}</p>
                 )}
                 <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
@@ -298,35 +325,45 @@ function CheckoutContent() {
               </div>
             </div>
 
-            {/* Calcular Frete */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-bold text-black mb-3 flex items-center gap-2">
-                <Truck size={18} className="text-[#FFB800]" />
-                Calcular Frete
-              </h3>
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={cepDigitado}
-                  onChange={(e) => setCepDigitado(e.target.value)}
-                  placeholder="Digite seu CEP"
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800]"
-                  maxLength={9}
-                />
-                <button
-                  onClick={() => calcularFrete(order.items, cepDigitado)}
-                  disabled={calculandoFrete}
-                  className="px-6 py-2 bg-[#FFB800] text-black rounded-lg font-semibold hover:bg-[#E5A600] transition disabled:opacity-50"
-                >
-                  {calculandoFrete ? <Loader2 size={18} className="animate-spin" /> : 'Calcular'}
-                </button>
+            {/* Calcular Frete - SÓ MOSTRA SE NÃO TIVER FRETE GRÁTIS */}
+            {!allFreeShipping && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 className="font-bold text-black mb-3 flex items-center gap-2">
+                  <Truck size={18} className="text-[#FFB800]" />
+                  Calcular Frete
+                </h3>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={cepDigitado}
+                    onChange={(e) => setCepDigitado(e.target.value)}
+                    placeholder="Digite seu CEP"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800]"
+                    maxLength={9}
+                  />
+                  <button
+                    onClick={() => calcularFrete(order.items, cepDigitado)}
+                    disabled={calculandoFrete}
+                    className="px-6 py-2 bg-[#FFB800] text-black rounded-lg font-semibold hover:bg-[#E5A600] transition disabled:opacity-50"
+                  >
+                    {calculandoFrete ? <Loader2 size={18} className="animate-spin" /> : 'Calcular'}
+                  </button>
+                </div>
+                {frete.valor > 0 && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    Frete: {formatPrice(frete.valor)} - Prazo: {frete.prazo}
+                  </p>
+                )}
               </div>
-              {frete.valor > 0 && (
-                <p className="text-sm text-gray-500 mt-2">
-                  Frete: {formatPrice(frete.valor)} - Prazo: {frete.prazo}
-                </p>
-              )}
-            </div>
+            )}
+
+            {/* 🔥 MOSTRA MENSAGEM DE FRETE GRÁTIS */}
+            {allFreeShipping && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
+                <span className="text-lg">🎉</span>
+                <span className="font-medium">Frete grátis aplicado a todos os produtos!</span>
+              </div>
+            )}
           </div>
 
           {/* Pagamento */}
