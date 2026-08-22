@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
-import mercadopago from 'mercadopago'
 
 export async function POST(request: Request) {
   try {
     const { orderId, amount, description } = await request.json()
     console.log('📤 Criando PIX para pedido:', orderId)
 
-    // 🔥 CONFIGURAR MERCADO PAGO
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
     if (!accessToken) {
       console.error('❌ MERCADO_PAGO_ACCESS_TOKEN não configurado')
@@ -16,10 +14,6 @@ export async function POST(request: Request) {
         { status: 500 }
       )
     }
-
-    mercadopago.configure({
-      access_token: accessToken,
-    })
 
     // Buscar o pedido
     const { data: order, error: orderError } = await supabase
@@ -38,7 +32,7 @@ export async function POST(request: Request) {
 
     console.log('✅ Pedido encontrado:', order.id)
 
-    // 🔥 CRIAR PAGAMENTO PIX
+    // 🔥 USAR FETCH DIRETO PARA O MERCADO PAGO
     const paymentData = {
       transaction_amount: amount,
       description: description || `Pedido #${orderId}`,
@@ -54,16 +48,35 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log('📤 Enviando para Mercado Pago:', JSON.stringify(paymentData, null, 2))
+    console.log('📤 Enviando para Mercado Pago...')
 
-    const response = await mercadopago.payment.create(paymentData)
-    console.log('✅ Pagamento criado:', response.body.id, 'Status:', response.body.status)
+    const response = await fetch('https://api.mercadopago.com/v1/payments', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(paymentData)
+    })
+
+    const result = await response.json()
+    console.log('📥 Resposta do Mercado Pago:', JSON.stringify(result, null, 2))
+
+    if (!response.ok) {
+      console.error('❌ Erro no Mercado Pago:', result)
+      return NextResponse.json(
+        { error: result.message || 'Erro ao criar pagamento' },
+        { status: response.status }
+      )
+    }
+
+    console.log('✅ Pagamento criado:', result.id, 'Status:', result.status)
 
     // Atualizar pedido com transaction_id
     const { error: updateError } = await supabase
       .from('orders')
       .update({
-        transaction_id: response.body.id,
+        transaction_id: result.id,
         payment_status: 'pending',
         updated_at: new Date().toISOString()
       })
@@ -74,8 +87,8 @@ export async function POST(request: Request) {
     }
 
     // Extrair QR Code
-    const qrCode = response.body.point_of_interaction?.transaction_data?.qr_code_base64 || null
-    const copiaCola = response.body.point_of_interaction?.transaction_data?.qr_code || null
+    const qrCode = result.point_of_interaction?.transaction_data?.qr_code_base64 || null
+    const copiaCola = result.point_of_interaction?.transaction_data?.qr_code || null
 
     console.log('✅ QR Code gerado:', qrCode ? 'Sim' : 'Não')
     console.log('✅ Código PIX gerado:', copiaCola ? 'Sim' : 'Não')
@@ -84,16 +97,12 @@ export async function POST(request: Request) {
       success: true,
       qrCode: qrCode,
       codigoPix: copiaCola,
-      paymentId: response.body.id,
-      status: response.body.status
+      paymentId: result.id,
+      status: result.status
     })
 
   } catch (error: any) {
     console.error('❌ Erro ao gerar PIX:', error)
-    console.error('❌ Detalhes:', error.message)
-    if (error.response) {
-      console.error('❌ Resposta MP:', error.response.data)
-    }
     return NextResponse.json(
       { error: error.message || 'Erro ao gerar PIX' },
       { status: 500 }
