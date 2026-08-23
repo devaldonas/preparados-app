@@ -134,7 +134,7 @@ export default function AdminDashboard() {
       if (!partnersData) return
 
       const partnersWithStats = await Promise.all(
-        partnersData.map(async (partner) => {
+        partnersData.map(async (partner: { id: string; company_name: string }) => {
           // Buscar produtos do parceiro
           const { data: products } = await supabase
             .from('products')
@@ -165,7 +165,7 @@ export default function AdminDashboard() {
             }
           }
 
-          const orderIds = [...new Set(orderItems.map(item => item.order_id))]
+          const orderIds = [...new Set(orderItems.map((item: any) => item.order_id))]
 
           // Buscar pedidos pagos
           const { data: orders } = await supabase
@@ -178,8 +178,8 @@ export default function AdminDashboard() {
 
           const totalOrders = paidOrderIds.length
           const totalRevenue = orderItems
-            .filter(item => paidOrderIds.includes(item.order_id))
-            .reduce((sum, item) => sum + (item.price * item.quantity), 0)
+            .filter((item: any) => paidOrderIds.includes(item.order_id))
+            .reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
 
           return {
             ...partner,
@@ -190,7 +190,7 @@ export default function AdminDashboard() {
       )
 
       // Filtrar apenas parceiros com vendas
-      setPartners(partnersWithStats.filter(p => p.total_orders > 0))
+      setPartners(partnersWithStats.filter((p: PartnerStats) => p.total_orders > 0))
 
     } catch (error) {
       console.error('Erro ao carregar parceiros com vendas:', error)
@@ -271,7 +271,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* 🔥 PARCEIROS COM VENDAS */}
+        {/* Parceiros com Vendas */}
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden mb-8">
           <div className="p-6 border-b border-gray-100">
             <div className="flex items-center justify-between">
