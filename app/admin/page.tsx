@@ -35,6 +35,12 @@ interface Product {
   id: number
 }
 
+interface OrderItem {
+  order_id: number
+  price: number
+  quantity: number
+}
+
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
@@ -169,7 +175,7 @@ export default function AdminDashboard() {
             }
           }
 
-          const orderIds = [...new Set(orderItems.map((item: any) => item.order_id))]
+          const orderIds = [...new Set((orderItems as OrderItem[]).map((item: OrderItem) => item.order_id))]
 
           // Buscar pedidos pagos
           const { data: orders } = await supabase
@@ -178,12 +184,12 @@ export default function AdminDashboard() {
             .in('id', orderIds)
             .eq('payment_status', 'paid')
 
-          const paidOrderIds = orders?.map(o => o.id) || []
+          const paidOrderIds = (orders || []).map((o: { id: number }) => o.id)
 
           const totalOrders = paidOrderIds.length
-          const totalRevenue = orderItems
-            .filter((item: any) => paidOrderIds.includes(item.order_id))
-            .reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
+          const totalRevenue = (orderItems as OrderItem[])
+            .filter((item: OrderItem) => paidOrderIds.includes(item.order_id))
+            .reduce((sum: number, item: OrderItem) => sum + (item.price * item.quantity), 0)
 
           return {
             ...partner,
