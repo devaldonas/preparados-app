@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { Bell, X, CheckCircle, AlertCircle, Info } from 'lucide-react'
+import { Bell, X, CheckCircle, AlertCircle, Info, MessageCircle, Users } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 interface Notificacao {
   id: string
@@ -16,14 +17,29 @@ interface Notificacao {
   created_at: string
 }
 
+interface MessageNotification {
+  id: number
+  user_id: string
+  sender_id: string
+  sender_name: string
+  message_id: number
+  group_id: number
+  type: 'group' | 'private'
+  content: string
+  read: boolean
+  created_at: string
+}
+
 export default function Notificacoes() {
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([])
+  const [messageNotifications, setMessageNotifications] = useState<MessageNotification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [subscribed, setSubscribed] = useState(false)
   const [channel, setChannel] = useState<any>(null)
+  const router = useRouter()
 
   useEffect(() => {
     const init = async () => {
@@ -36,6 +52,7 @@ export default function Notificacoes() {
         setUserId(user.id)
 
         await carregarNotificacoes(user.id)
+        await carregarMessageNotifications(user.id)
         await inscreverNotificacoes(user.id)
 
         console.log('📡 Status da inscrição:', subscribed ? 'SUBSCRIBED' : 'CLOSED')
@@ -73,13 +90,42 @@ export default function Notificacoes() {
       }
 
       setNotificacoes(data || [])
-      const unread = data?.filter((n: Notificacao) => !n.lida).length || 0
-      setUnreadCount(unread)
+      calcularUnread(data || [], messageNotifications)
     } catch (error) {
       console.log('ℹ️ Erro ao carregar notificações:', error)
       setNotificacoes([])
       setUnreadCount(0)
     }
+  }
+
+  const carregarMessageNotifications = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('message_notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('read', false)
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (error) {
+        console.error('Erro ao carregar notificações de mensagens:', error)
+        setMessageNotifications([])
+        return
+      }
+
+      setMessageNotifications(data || [])
+      calcularUnread(notificacoes, data || [])
+    } catch (error) {
+      console.error('Erro ao carregar notificações de mensagens:', error)
+      setMessageNotifications([])
+    }
+  }
+
+  const calcularUnread = (notifs: Notificacao[], msgNotifs: MessageNotification[]) => {
+    const unreadNotifs = notifs.filter(n => !n.lida).length
+    const unreadMsg = msgNotifs.filter(m => !m.read).length
+    setUnreadCount(unreadNotifs + unreadMsg)
   }
 
   const inscreverNotificacoes = async (userId: string) => {
@@ -91,10 +137,9 @@ export default function Notificacoes() {
     console.log('🔌 Inscrevendo no canal de notificações...')
 
     try {
-      // 🔥 PRIMEIRO: CRIAR O CANAL
+      // Canal para notificações do sistema
       const newChannel = supabase.channel(`notificacoes:${userId}`)
 
-      // 🔥 SEGUNDO: ADICIONAR OS LISTENERS
       newChannel.on(
         'postgres_changes',
         {
@@ -111,7 +156,23 @@ export default function Notificacoes() {
         }
       )
 
-      // 🔥 TERCEIRO: INSCREVER O CANAL
+      // Canal para notificações de mensagens
+      newChannel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'message_notifications',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload: any) => {
+          console.log('📬 Nova notificação de mensagem:', payload)
+          const novaMsg = payload.new as MessageNotification
+          setMessageNotifications(prev => [novaMsg, ...prev])
+          setUnreadCount(prev => prev + 1)
+        }
+      )
+
       newChannel.subscribe((status: string) => {
         console.log('📡 Status da inscrição:', status)
         if (status === 'SUBSCRIBED') {
@@ -143,20 +204,57 @@ export default function Notificacoes() {
     }
   }
 
+  const marcarMensagemComoLida = async (id: number) => {
+    try {
+      const { error } = await supabase
+        .from('message_notifications')
+        .update({ read: true })
+        .eq('id', id)
+
+      if (error) throw error
+
+      setMessageNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, read: true } : n)
+      )
+      setUnreadCount(prev => Math.max(0, prev - 1))
+    } catch (error) {
+      console.error('Erro ao marcar mensagem como lida:', error)
+    }
+  }
+
+  const irParaMensagem = (notificacao: MessageNotification) => {
+    marcarMensagemComoLida(notificacao.id)
+    if (notificacao.type === 'group') {
+      router.push(`/grupo/${notificacao.group_id}`)
+    } else {
+      router.push(`/chat/${notificacao.sender_id}`)
+    }
+    setIsOpen(false)
+  }
+
   const marcarTodasComoLidas = async () => {
     if (!userId) return
 
     try {
-      const { error } = await supabase
+      // Marcar notificações do sistema
+      await supabase
         .from('notificacoes')
         .update({ lida: true })
         .eq('usuario_id', userId)
         .eq('lida', false)
 
-      if (error) throw error
+      // Marcar notificações de mensagens
+      await supabase
+        .from('message_notifications')
+        .update({ read: true })
+        .eq('user_id', userId)
+        .eq('read', false)
 
       setNotificacoes(prev =>
         prev.map(n => ({ ...n, lida: true }))
+      )
+      setMessageNotifications(prev =>
+        prev.map(n => ({ ...n, read: true }))
       )
       setUnreadCount(0)
     } catch (error) {
@@ -177,9 +275,18 @@ export default function Notificacoes() {
     }
   }
 
+  const getMessageIcon = (type: string) => {
+    if (type === 'group') {
+      return <Users size={18} className="text-[#FFB800]" />
+    }
+    return <MessageCircle size={18} className="text-blue-500" />
+  }
+
   if (loading || !userId) {
     return null
   }
+
+  const totalUnread = unreadCount
 
   return (
     <div className="relative">
@@ -188,9 +295,9 @@ export default function Notificacoes() {
         className="relative p-2 hover:bg-gray-100 rounded-lg transition"
       >
         <Bell size={20} className="text-gray-600" />
-        {unreadCount > 0 && (
+        {totalUnread > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {totalUnread > 9 ? '9+' : totalUnread}
           </span>
         )}
       </button>
@@ -200,7 +307,7 @@ export default function Notificacoes() {
           <div className="flex items-center justify-between p-4 border-b border-gray-100">
             <h3 className="font-semibold text-black">Notificações</h3>
             <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
+              {totalUnread > 0 && (
                 <button
                   onClick={marcarTodasComoLidas}
                   className="text-xs text-[#FFB800] hover:underline"
@@ -218,63 +325,88 @@ export default function Notificacoes() {
           </div>
 
           <div className="overflow-y-auto flex-1">
-            {notificacoes.length === 0 ? (
+            {notificacoes.length === 0 && messageNotifications.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Bell size={32} className="mx-auto mb-2 opacity-30" />
                 <p className="text-sm">Nenhuma notificação</p>
               </div>
             ) : (
-              notificacoes.map((notificacao) => (
-                <div
-                  key={notificacao.id}
-                  className={`flex items-start gap-3 p-4 border-b border-gray-50 hover:bg-gray-50 transition ${
-                    !notificacao.lida ? 'bg-yellow-50/50' : ''
-                  }`}
-                >
-                  <div className="flex-shrink-0 mt-0.5">
-                    {getIcon(notificacao.tipo)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium text-sm text-gray-900">
-                          {notificacao.titulo}
-                        </p>
-                        <p className="text-sm text-gray-600 break-words">
-                          {notificacao.mensagem}
-                        </p>
-                        {notificacao.link && (
-                          <Link
-                            href={notificacao.link}
-                            className="text-xs text-[#FFB800] hover:underline mt-1 inline-block"
-                            onClick={() => {
-                              marcarComoLida(notificacao.id)
-                              setIsOpen(false)
-                            }}
-                          >
-                            Ver mais
-                          </Link>
-                        )}
-                        <p className="text-xs text-gray-400 mt-1">
-                          {new Date(notificacao.created_at).toLocaleString('pt-BR')}
-                        </p>
-                      </div>
-                      {!notificacao.lida && (
-                        <button
-                          onClick={() => marcarComoLida(notificacao.id)}
-                          className="flex-shrink-0 text-xs text-gray-400 hover:text-[#FFB800] transition"
-                        >
-                          Marcar como lida
-                        </button>
-                      )}
+              <>
+                {/* Notificações de Mensagens */}
+                {messageNotifications.filter(m => !m.read).map((msg) => (
+                  <div
+                    key={`msg-${msg.id}`}
+                    className="flex items-start gap-3 p-4 border-b border-gray-50 hover:bg-gray-50 transition cursor-pointer bg-blue-50/30"
+                    onClick={() => irParaMensagem(msg)}
+                  >
+                    <div className="flex-shrink-0 mt-0.5">
+                      {getMessageIcon(msg.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-gray-900">
+                        {msg.type === 'group' ? 'Mensagem em grupo' : `Mensagem de ${msg.sender_name}`}
+                      </p>
+                      <p className="text-sm text-gray-600 truncate">{msg.content}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {new Date(msg.created_at).toLocaleString('pt-BR')}
+                      </p>
                     </div>
                   </div>
-                </div>
-              ))
+                ))}
+
+                {/* Notificações do Sistema */}
+                {notificacoes.filter(n => !n.lida).map((notificacao) => (
+                  <div
+                    key={notificacao.id}
+                    className={`flex items-start gap-3 p-4 border-b border-gray-50 hover:bg-gray-50 transition ${
+                      !notificacao.lida ? 'bg-yellow-50/50' : ''
+                    }`}
+                  >
+                    <div className="flex-shrink-0 mt-0.5">
+                      {getIcon(notificacao.tipo)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-medium text-sm text-gray-900">
+                            {notificacao.titulo}
+                          </p>
+                          <p className="text-sm text-gray-600 break-words">
+                            {notificacao.mensagem}
+                          </p>
+                          {notificacao.link && (
+                            <Link
+                              href={notificacao.link}
+                              className="text-xs text-[#FFB800] hover:underline mt-1 inline-block"
+                              onClick={() => {
+                                marcarComoLida(notificacao.id)
+                                setIsOpen(false)
+                              }}
+                            >
+                              Ver mais
+                            </Link>
+                          )}
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(notificacao.created_at).toLocaleString('pt-BR')}
+                          </p>
+                        </div>
+                        {!notificacao.lida && (
+                          <button
+                            onClick={() => marcarComoLida(notificacao.id)}
+                            className="flex-shrink-0 text-xs text-gray-400 hover:text-[#FFB800] transition"
+                          >
+                            Marcar como lida
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
             )}
           </div>
 
-          {notificacoes.length > 0 && (
+          {messageNotifications.length > 0 || notificacoes.length > 0 ? (
             <div className="p-3 border-t border-gray-100 text-center">
               <Link
                 href="/notificacoes"
@@ -284,7 +416,7 @@ export default function Notificacoes() {
                 Ver todas as notificações
               </Link>
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </div>

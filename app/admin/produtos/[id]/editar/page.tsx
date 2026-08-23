@@ -1,14 +1,29 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AdminGuard from '@/components/AdminGuard'
 import { ArrowLeft, Save, Image, X, Upload } from 'lucide-react'
 
-function NovoProdutoContent() {
-  const [loading, setLoading] = useState(false)
+interface Product {
+  id: number
+  name: string
+  description: string
+  price: number
+  category: string
+  stock: number
+  image_url: string
+  images: string[]
+  is_active: boolean
+  free_shipping: boolean
+}
+
+function EditarProdutoContent({ params }: { params: Promise<{ id: string }> }) {
+  const [product, setProduct] = useState<Product | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -22,6 +37,44 @@ function NovoProdutoContent() {
     images: ['']
   })
   const router = useRouter()
+
+  useEffect(() => {
+    const carregarProduto = async () => {
+      try {
+        const { id } = await params
+        const productId = parseInt(id)
+
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .single()
+
+        if (error) throw error
+        
+        setProduct(data)
+        setFormData({
+          name: data.name || '',
+          description: data.description || '',
+          price: data.price?.toString() || '',
+          category: data.category || '',
+          stock: data.stock?.toString() || '',
+          image_url: data.image_url || '',
+          is_active: data.is_active !== undefined ? data.is_active : true,
+          free_shipping: data.free_shipping || false,
+          images: data.images && data.images.length > 0 ? data.images : ['']
+        })
+
+      } catch (error) {
+        console.error('Erro ao carregar produto:', error)
+        router.push('/admin/produtos')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    carregarProduto()
+  }, [params, router])
 
   // 🔥 LISTA DE CATEGORIAS - COM E-BOOKS E HIDRATAÇÃO
   const categorias = [
@@ -115,36 +168,41 @@ function NovoProdutoContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setSaving(true)
 
     try {
+      const { id } = await params
+      const productId = parseInt(id)
+
       const imagensFiltradas = formData.images.filter(img => img.trim() !== '')
+
+      const updateData = {
+        name: formData.name,
+        description: formData.description,
+        price: parseFloat(formData.price) || 0,
+        category: formData.category,
+        stock: parseInt(formData.stock) || 0,
+        image_url: formData.image_url,
+        is_active: formData.is_active,
+        free_shipping: formData.free_shipping,
+        images: imagensFiltradas,
+        updated_at: new Date().toISOString()
+      }
 
       const { error } = await supabase
         .from('products')
-        .insert({
-          name: formData.name,
-          description: formData.description,
-          price: parseFloat(formData.price) || 0,
-          category: formData.category,
-          stock: parseInt(formData.stock) || 0,
-          image_url: formData.image_url,
-          is_active: formData.is_active,
-          free_shipping: formData.free_shipping,
-          images: imagensFiltradas,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
+        .eq('id', productId)
 
       if (error) throw error
 
-      alert('Produto criado com sucesso!')
-      router.push('/admin/produtos')
+      alert('Produto atualizado com sucesso!')
+      router.push(`/admin/produtos/${productId}`)
     } catch (error) {
-      console.error('Erro ao criar produto:', error)
-      alert('Erro ao criar produto')
+      console.error('Erro ao salvar produto:', error)
+      alert('Erro ao salvar produto')
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
@@ -162,22 +220,38 @@ function NovoProdutoContent() {
     }))
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
+      </div>
+    )
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-500">Produto não encontrado</p>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
         
         <div className="mb-6">
           <Link
-            href="/admin/produtos"
+            href={`/admin/produtos/${product.id}`}
             className="inline-flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold transition"
           >
             <ArrowLeft size={18} />
-            Voltar para Produtos
+            Voltar para Detalhes
           </Link>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h1 className="text-2xl font-bold text-black mb-6">Novo Produto</h1>
+          <h1 className="text-2xl font-bold text-black mb-6">Editar Produto</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
@@ -364,14 +438,14 @@ function NovoProdutoContent() {
             <div className="flex gap-4 pt-4 border-t border-gray-200">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={saving}
                 className="bg-[#FFB800] text-black px-6 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition flex items-center gap-2 disabled:opacity-50"
               >
                 <Save size={18} />
-                {loading ? 'Criando...' : 'Criar Produto'}
+                {saving ? 'Salvando...' : 'Salvar Alterações'}
               </button>
               <Link
-                href="/admin/produtos"
+                href={`/admin/produtos/${product.id}`}
                 className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300 transition"
               >
                 Cancelar
@@ -384,10 +458,10 @@ function NovoProdutoContent() {
   )
 }
 
-export default function NovoProduto() {
+export default function EditarProduto({ params }: { params: Promise<{ id: string }> }) {
   return (
     <AdminGuard>
-      <NovoProdutoContent />
+      <EditarProdutoContent params={params} />
     </AdminGuard>
   )
 }

@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import AdminGuard from '@/components/AdminGuard'
-import { ArrowLeft, Package, DollarSign, Calendar, Edit } from 'lucide-react'
+import { ArrowLeft, Package, DollarSign, Calendar, ShoppingCart, Truck } from 'lucide-react'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
 interface Product {
@@ -29,19 +28,22 @@ interface Partner {
   company_name: string
 }
 
-function AdminProdutoDetalhesContent({ params }: { params: Promise<{ id: string }> }) {
+interface ProdutoDetalhesCompartilhadoProps {
+  productId: number
+  isAdmin?: boolean
+}
+
+export default function ProdutoDetalhesCompartilhado({ productId, isAdmin = false }: ProdutoDetalhesCompartilhadoProps) {
   const [product, setProduct] = useState<Product | null>(null)
   const [partner, setPartner] = useState<Partner | null>(null)
   const [loading, setLoading] = useState(true)
+  const [addingToCart, setAddingToCart] = useState(false)
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     const carregarDados = async () => {
       try {
-        const { id } = await params
-        const productId = parseInt(id)
-
         const { data: productData, error: productError } = await supabase
           .from('products')
           .select('*')
@@ -68,14 +70,58 @@ function AdminProdutoDetalhesContent({ params }: { params: Promise<{ id: string 
 
       } catch (error) {
         console.error('Erro ao carregar produto:', error)
-        router.push('/admin/produtos')
+        router.push(isAdmin ? '/admin/produtos' : '/loja')
       } finally {
         setLoading(false)
       }
     }
 
     carregarDados()
-  }, [params, router])
+  }, [productId, router, isAdmin])
+
+  const adicionarAoCarrinho = async () => {
+    if (!product) return
+
+    try {
+      setAddingToCart(true)
+      
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+
+      const { data: existingItem } = await supabase
+        .from('cart_items')
+        .select('id, quantity')
+        .eq('user_id', user.id)
+        .eq('product_id', product.id)
+        .maybeSingle()
+
+      if (existingItem) {
+        await supabase
+          .from('cart_items')
+          .update({ quantity: existingItem.quantity + 1 })
+          .eq('id', existingItem.id)
+      } else {
+        await supabase
+          .from('cart_items')
+          .insert({
+            user_id: user.id,
+            product_id: product.id,
+            quantity: 1
+          })
+      }
+
+      alert('Produto adicionado ao carrinho!')
+      router.push('/loja/carrinho')
+    } catch (error) {
+      console.error('Erro ao adicionar ao carrinho:', error)
+      alert('Erro ao adicionar produto ao carrinho')
+    } finally {
+      setAddingToCart(false)
+    }
+  }
 
   const formatarMoeda = (valor: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -88,16 +134,16 @@ function AdminProdutoDetalhesContent({ params }: { params: Promise<{ id: string 
     return new Date(data).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      year: 'numeric'
     })
   }
 
   const todasImagens: string[] = []
+  
   if (product?.image_url && product.image_url.trim() !== '') {
     todasImagens.push(product.image_url)
   }
+  
   if (product?.images && product.images.length > 0) {
     product.images.forEach((img: string) => {
       if (img && img.trim() !== '' && !todasImagens.includes(img)) {
@@ -130,32 +176,42 @@ function AdminProdutoDetalhesContent({ params }: { params: Promise<{ id: string 
     )
   }
 
+  const voltarLink = isAdmin ? '/admin/produtos' : '/loja'
+  const voltarTexto = isAdmin ? 'Voltar para Produtos' : 'Voltar para Loja'
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
         
         <div className="mb-6">
           <Link
-            href="/admin/produtos"
+            href={voltarLink}
             className="inline-flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold transition"
           >
             <ArrowLeft size={18} />
-            Voltar para Produtos
+            {voltarTexto}
           </Link>
         </div>
 
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
           <div>
             <h1 className="text-2xl font-bold text-black">{product.name}</h1>
             <p className="text-sm text-gray-500">Detalhes do produto</p>
           </div>
-          <Link
-            href={`/admin/produtos/${product.id}/editar`}
-            className="bg-[#FFB800] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition flex items-center gap-2"
-          >
-            <Edit size={18} />
-            Editar
-          </Link>
+          {!isAdmin && (
+            <button
+              onClick={adicionarAoCarrinho}
+              disabled={addingToCart || product.stock <= 0}
+              className={`px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2 ${
+                product.stock > 0
+                  ? 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <ShoppingCart size={18} />
+              {product.stock > 0 ? `Comprar - ${formatarMoeda(product.price)}` : 'Esgotado'}
+            </button>
+          )}
         </div>
 
         <div className="mb-6">
@@ -217,7 +273,7 @@ function AdminProdutoDetalhesContent({ params }: { params: Promise<{ id: string 
               </div>
               {partner && (
                 <div>
-                  <p className="text-sm text-gray-500">Parceiro</p>
+                  <p className="text-sm text-gray-500">Vendido por</p>
                   <p className="font-medium">{partner.company_name}</p>
                 </div>
               )}
@@ -237,20 +293,19 @@ function AdminProdutoDetalhesContent({ params }: { params: Promise<{ id: string 
               <div>
                 <p className="text-sm text-gray-500">Estoque</p>
                 <p className={`font-medium ${product.stock > 10 ? 'text-green-600' : product.stock > 0 ? 'text-yellow-600' : 'text-red-600'}`}>
-                  {product.stock > 0 ? `${product.stock} unidades` : 'Esgotado'}
+                  {product.stock > 0 ? `${product.stock} unidades disponíveis` : 'Esgotado'}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Frete Grátis</p>
-                <p className="font-medium">{product.free_shipping ? '✅ Sim' : '❌ Não'}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Status</p>
+                <p className="text-sm text-gray-500">Frete</p>
                 <p className="font-medium">
-                  {product.is_active ? (
-                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">Ativo</span>
+                  {product.free_shipping ? (
+                    <span className="text-green-600 flex items-center gap-1">
+                      <Truck size={16} />
+                      Grátis
+                    </span>
                   ) : (
-                    <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">Inativo</span>
+                    <span className="text-gray-500">Calculado no checkout</span>
                   )}
                 </p>
               </div>
@@ -264,7 +319,7 @@ function AdminProdutoDetalhesContent({ params }: { params: Promise<{ id: string 
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-500">Criado em</p>
+                <p className="text-sm text-gray-500">Adicionado em</p>
                 <p className="font-medium">{formatarData(product.created_at)}</p>
               </div>
               <div>
@@ -281,13 +336,5 @@ function AdminProdutoDetalhesContent({ params }: { params: Promise<{ id: string 
 
       </div>
     </div>
-  )
-}
-
-export default function AdminProdutoDetalhes({ params }: { params: Promise<{ id: string }> }) {
-  return (
-    <AdminGuard>
-      <AdminProdutoDetalhesContent params={params} />
-    </AdminGuard>
   )
 }

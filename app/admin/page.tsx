@@ -24,6 +24,13 @@ interface Order {
   total_amount: number
 }
 
+interface PartnerStats {
+  id: string
+  company_name: string
+  total_orders: number
+  total_revenue: number
+}
+
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
@@ -34,6 +41,7 @@ export default function AdminDashboard() {
     revenue: 0,
     pendingPartners: 0
   })
+  const [partners, setPartners] = useState<PartnerStats[]>([])
   const router = useRouter()
 
   useEffect(() => {
@@ -51,7 +59,7 @@ export default function AdminDashboard() {
           .eq('id', user.id)
           .single()
 
-        if ((profile as any)?.role !== 'admin') {
+        if (profile?.role !== 'admin') {
           router.push('/dashboard')
           return
         }
@@ -69,13 +77,13 @@ export default function AdminDashboard() {
   const carregarDados = async () => {
     try {
       // Produtos
-      const { count: productCount } = await (supabase
-        .from('products') as any)
+      const { count: productCount } = await supabase
+        .from('products')
         .select('*', { count: 'exact', head: true })
 
       // Pedidos
-      const { data: orders, count: orderCount } = await (supabase
-        .from('orders') as any)
+      const { data: orders, count: orderCount } = await supabase
+        .from('orders')
         .select('*', { count: 'exact' })
 
       const ordersData = (orders as Order[]) || []
@@ -86,13 +94,13 @@ export default function AdminDashboard() {
         .reduce((sum, o) => sum + (o.total_amount || 0), 0)
 
       // Usuários
-      const { count: userCount } = await (supabase
-        .from('profiles') as any)
+      const { count: userCount } = await supabase
+        .from('profiles')
         .select('*', { count: 'exact', head: true })
 
       // Parceiros pendentes
-      const { count: pendingPartners } = await (supabase
-        .from('partners') as any)
+      const { count: pendingPartners } = await supabase
+        .from('partners')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending')
 
@@ -104,10 +112,88 @@ export default function AdminDashboard() {
         revenue: revenue,
         pendingPartners: pendingPartners || 0
       })
+
+      // 🔥 BUSCAR PARCEIROS COM VENDAS
+      await carregarParceirosComVendas()
+
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const carregarParceirosComVendas = async () => {
+    try {
+      // Buscar todos os parceiros aprovados
+      const { data: partnersData } = await supabase
+        .from('partners')
+        .select('id, company_name')
+        .eq('status', 'approved')
+
+      if (!partnersData) return
+
+      const partnersWithStats = await Promise.all(
+        partnersData.map(async (partner) => {
+          // Buscar produtos do parceiro
+          const { data: products } = await supabase
+            .from('products')
+            .select('id')
+            .eq('partner_id', partner.id)
+
+          const productIds = products?.map(p => p.id) || []
+
+          if (productIds.length === 0) {
+            return {
+              ...partner,
+              total_orders: 0,
+              total_revenue: 0
+            }
+          }
+
+          // Buscar itens de pedidos
+          const { data: orderItems } = await supabase
+            .from('order_items')
+            .select('order_id, price, quantity')
+            .in('product_id', productIds)
+
+          if (!orderItems || orderItems.length === 0) {
+            return {
+              ...partner,
+              total_orders: 0,
+              total_revenue: 0
+            }
+          }
+
+          const orderIds = [...new Set(orderItems.map(item => item.order_id))]
+
+          // Buscar pedidos pagos
+          const { data: orders } = await supabase
+            .from('orders')
+            .select('id')
+            .in('id', orderIds)
+            .eq('payment_status', 'paid')
+
+          const paidOrderIds = orders?.map(o => o.id) || []
+
+          const totalOrders = paidOrderIds.length
+          const totalRevenue = orderItems
+            .filter(item => paidOrderIds.includes(item.order_id))
+            .reduce((sum, item) => sum + (item.price * item.quantity), 0)
+
+          return {
+            ...partner,
+            total_orders: totalOrders,
+            total_revenue: totalRevenue
+          }
+        })
+      )
+
+      // Filtrar apenas parceiros com vendas
+      setPartners(partnersWithStats.filter(p => p.total_orders > 0))
+
+    } catch (error) {
+      console.error('Erro ao carregar parceiros com vendas:', error)
     }
   }
 
@@ -183,6 +269,70 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* 🔥 PARCEIROS COM VENDAS */}
+        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden mb-8">
+          <div className="p-6 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900">Parceiros com Vendas</h2>
+              <Link
+                href="/admin/parceiros"
+                className="text-sm text-[#FFB800] hover:underline"
+              >
+                Ver todos
+              </Link>
+            </div>
+          </div>
+
+          {partners.length === 0 ? (
+            <div className="p-12 text-center">
+              <Store size={48} className="mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500">Nenhum parceiro com vendas ainda</p>
+              <p className="text-sm text-gray-400">Os parceiros aparecerão aqui quando tiverem vendas</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="text-left p-4 text-sm font-semibold text-gray-600">Parceiro</th>
+                    <th className="text-left p-4 text-sm font-semibold text-gray-600">Pedidos</th>
+                    <th className="text-left p-4 text-sm font-semibold text-gray-600">Faturamento</th>
+                    <th className="text-left p-4 text-sm font-semibold text-gray-600">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {partners.map((partner) => (
+                    <tr key={partner.id} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-[#FFB800]/10 rounded-full flex items-center justify-center">
+                            <Store size={18} className="text-[#FFB800]" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-black">{partner.company_name}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4 text-sm text-gray-600">{partner.total_orders}</td>
+                      <td className="p-4 text-sm font-medium text-gray-900">
+                        {formatPrice(partner.total_revenue)}
+                      </td>
+                      <td className="p-4">
+                        <Link
+                          href={`/admin/parceiros/${partner.id}`}
+                          className="text-sm text-[#FFB800] hover:underline"
+                        >
+                          Ver detalhes
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Cards de Acesso Rápido */}

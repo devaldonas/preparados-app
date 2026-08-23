@@ -34,6 +34,8 @@ interface Order {
   shipping_address: any
   created_at: string
   items: OrderItem[]
+  customer_name: string
+  email: string
 }
 
 interface FreteInfo {
@@ -63,7 +65,6 @@ function CheckoutContent() {
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [copiarCodigo, setCopiarCodigo] = useState('')
 
-  // Verificar se todos os itens têm frete grátis
   const allFreeShipping = order?.items?.every(item => item.product?.free_shipping === true) || false
   const valorFrete = allFreeShipping ? 0 : frete.valor
 
@@ -77,8 +78,9 @@ function CheckoutContent() {
         }
         setUser(user)
 
-        const { data: profileData } = await (supabase
-          .from('profiles') as any)
+        // Buscar perfil do usuário
+        const { data: profileData } = await supabase
+          .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single()
@@ -86,8 +88,8 @@ function CheckoutContent() {
         setProfile(profileData)
         
         if (orderId) {
-          const { data: orderData } = await (supabase
-            .from('orders') as any)
+          const { data: orderData } = await supabase
+            .from('orders')
             .select(`
               *,
               items:order_items(
@@ -173,14 +175,18 @@ function CheckoutContent() {
       console.log('📤 Gerando PIX para pedido:', orderId)
       console.log('📤 Valor:', order?.total_amount)
 
-      // 🔥 USAR A ROTA CORRETA: /api/mercadopago/pix
+      // 🔥 DADOS DO CLIENTE
+      const customerName = profile?.full_name || user?.user_metadata?.full_name || 'Cliente'
+      const customerEmail = user?.email || 'cliente@email.com'
+
       const response = await fetch('/api/mercadopago/pix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           total: order?.total_amount || 0,
           orderId: parseInt(orderId as string),
-          userEmail: user?.email || 'cliente@email.com',
+          userEmail: customerEmail,
+          customerName: customerName,
           items: order?.items || []
         })
       })
@@ -192,8 +198,25 @@ function CheckoutContent() {
         throw new Error(data.error || 'Erro ao gerar PIX')
       }
 
-      console.log('✅ QR Code recebido:', data.qrCode ? 'Sim' : 'Não')
-      console.log('✅ Código PIX recebido:', data.codigoPix ? 'Sim' : 'Não')
+      // 🔥 ATUALIZAR PEDIDO COM NOME E EMAIL DO CLIENTE
+      if (orderId) {
+        await supabase
+          .from('orders')
+          .update({
+            customer_name: customerName,
+            email: customerEmail,
+            shipping_address: profile?.address ? {
+              street: profile.street,
+              number: profile.number,
+              complement: profile.complement,
+              neighborhood: profile.neighborhood,
+              city: profile.city,
+              state: profile.state,
+              zip: profile.cep
+            } : null
+          })
+          .eq('id', parseInt(orderId as string))
+      }
 
       if (data.qrCode) {
         setQrCode(data.qrCode)
@@ -266,7 +289,6 @@ function CheckoutContent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
-            {/* Resumo do Pedido */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <h2 className="font-bold text-black mb-4">Resumo do Pedido</h2>
               
@@ -320,7 +342,6 @@ function CheckoutContent() {
               </div>
             </div>
 
-            {/* Calcular Frete - só mostra se não tiver frete grátis */}
             {!allFreeShipping && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <h3 className="font-bold text-black mb-3 flex items-center gap-2">
@@ -360,7 +381,6 @@ function CheckoutContent() {
             )}
           </div>
 
-          {/* Pagamento */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-24">
               <h3 className="font-bold text-black mb-4">Forma de Pagamento</h3>
@@ -435,7 +455,6 @@ function CheckoutContent() {
                 </div>
               )}
 
-              {/* QR Code PIX */}
               {qrCode && (
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg text-center">
                   <img 

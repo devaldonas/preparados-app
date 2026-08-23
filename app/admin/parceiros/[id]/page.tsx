@@ -16,8 +16,7 @@ import {
   TrendingUp,
   Calendar,
   Eye,
-  User,
-  Phone
+  User
 } from 'lucide-react'
 
 interface Partner {
@@ -122,67 +121,88 @@ function PartnerDetalhesContent({ params }: { params: Promise<{ id: string }> })
         if (!productsError) {
           setProducts(productsData || [])
           
-          // Calcular estatísticas de produtos
           const total = productsData?.length || 0
           const active = productsData?.filter((p: Product) => p.is_active === true).length || 0
           setStats(prev => ({ ...prev, totalProducts: total, activeProducts: active }))
         }
 
-        // BUSCAR VENDAS (pedidos) DO PARCEIRO
+        // 🔥 BUSCAR VENDAS - APENAS PEDIDOS PAGOS
         const productIds = productsData?.map((p: Product) => p.id) || []
 
         if (productIds.length > 0) {
+          console.log('🔍 Buscando vendas para produtos:', productIds)
+          
+          // 🔥 1. BUSCAR TODOS OS ITENS DE PEDIDOS
           const { data: orderItems, error: orderItemsError } = await supabase
             .from('order_items')
-            .select(`
-              order_id,
-              price,
-              quantity,
-              product_id
-            `)
+            .select('order_id, price, quantity, product_id')
             .in('product_id', productIds)
 
-          if (!orderItemsError && orderItems && orderItems.length > 0) {
-            const orderIds = [...new Set(orderItems.map((item: any) => item.order_id))]
-            
-            if (orderIds.length > 0) {
-              const { data: ordersData, error: ordersError } = await supabase
-                .from('orders')
-                .select(`
-                  *,
-                  profiles:user_id (
-                    full_name,
-                    email
-                  )
-                `)
-                .in('id', orderIds)
-                .order('created_at', { ascending: false })
+          console.log('📦 Order Items encontrados:', orderItems?.length || 0)
 
-              if (!ordersError && ordersData) {
-                const ordersWithTotal = ordersData.map((order: any) => {
-                  const items = orderItems.filter((item: any) => item.order_id === order.id)
+          if (!orderItemsError && orderItems && orderItems.length > 0) {
+            // 🔥 2. PEGAR OS IDs DOS PEDIDOS
+            const orderIds = [...new Set(orderItems.map((item: any) => item.order_id))]
+            console.log('📋 Order IDs encontrados:', orderIds.length)
+
+            if (orderIds.length > 0) {
+              // 🔥 3. BUSCAR OS PEDIDOS - FILTRANDO APENAS PAGOS
+              const ordersList: Order[] = []
+
+              for (const orderId of orderIds) {
+                const { data: order, error: orderError } = await supabase
+                  .from('orders')
+                  .select(`
+                    id,
+                    user_id,
+                    total_amount,
+                    status,
+                    payment_status,
+                    payment_method,
+                    created_at
+                  `)
+                  .eq('id', orderId)
+                  .single()
+
+                // 🔥 FILTRAR APENAS PEDIDOS COM payment_status = 'paid'
+                if (!orderError && order && order.payment_status === 'paid') {
+                  // Buscar perfil do usuário
+                  const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('full_name, email')
+                    .eq('id', order.user_id)
+                    .maybeSingle()
+
+                  // Calcular total dos itens do parceiro neste pedido
+                  const items = orderItems.filter((item: any) => item.order_id === orderId)
                   const total = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
-                  
-                  const profile = order.profiles as any
-                  
-                  return {
+
+                  ordersList.push({
                     ...order,
                     total_amount: total,
-                    customer_name: profile?.full_name || 'Cliente',
-                    customer_email: profile?.email || '-'
-                  }
-                })
-
-                setOrders(ordersWithTotal)
-
-                const totalRevenue = ordersWithTotal.reduce((sum: number, order: any) => sum + order.total_amount, 0)
-                setStats(prev => ({ 
-                  ...prev, 
-                  totalOrders: ordersWithTotal.length,
-                  totalRevenue: totalRevenue
-                }))
+                    customer_name: profileData?.full_name || 'Cliente',
+                    customer_email: profileData?.email || '-'
+                  })
+                }
               }
+
+              console.log('📦 Pedidos pagos encontrados:', ordersList.length)
+              setOrders(ordersList)
+
+              // 🔥 CALCULAR ESTATÍSTICAS (APENAS PEDIDOS PAGOS)
+              const totalOrders = ordersList.length
+              const totalRevenue = ordersList.reduce((sum: number, order: any) => sum + order.total_amount, 0)
+              
+              console.log('📊 Estatísticas:', { totalOrders, totalRevenue })
+              
+              setStats(prev => ({ 
+                ...prev, 
+                totalOrders: totalOrders,
+                totalRevenue: totalRevenue
+              }))
             }
+          } else {
+            console.log('❌ Nenhum item de pedido encontrado')
           }
         }
 
@@ -224,16 +244,19 @@ function PartnerDetalhesContent({ params }: { params: Promise<{ id: string }> })
 
   const getOrderStatusBadge = (status: string) => {
     switch (status) {
+      case 'paid':
+      case 'processing':
+        return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">Pago</span>
       case 'delivered':
-        return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">Entregue</span>
+        return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-semibold">Entregue</span>
       case 'shipped':
         return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-semibold">Enviado</span>
-      case 'processing':
-        return <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-semibold">Processando</span>
+      case 'pending':
+        return <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-semibold">Pendente</span>
       case 'cancelled':
         return <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs font-semibold">Cancelado</span>
       default:
-        return <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">Pendente</span>
+        return <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold">{status}</span>
     }
   }
 
@@ -608,7 +631,6 @@ function PartnerDetalhesContent({ params }: { params: Promise<{ id: string }> })
             </div>
           </div>
 
-          {/* Descrição */}
           {partner.description && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:col-span-2">
               <h2 className="font-semibold text-gray-900 mb-4">Descrição</h2>
