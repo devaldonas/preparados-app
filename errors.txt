@@ -1,0 +1,3 @@
+yarn run v1.22.22
+$ /home/devaldo/AutoDev/preparado-app/node_modules/.bin/tsc --noEmit
+Done in 41.77s.
