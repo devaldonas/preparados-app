@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AdminGuard from '@/components/AdminGuard'
-import { Check, X, Eye, Store, Users, DollarSign, ShoppingBag } from 'lucide-react'
+import { Check, X, Eye, Store, Users } from 'lucide-react'
 
 interface Partner {
   id: string
@@ -17,15 +17,22 @@ interface Partner {
   status: string
   created_at: string
   updated_at: string
+  total_orders?: number
+  total_revenue?: number
 }
 
-interface PartnerWithStats extends Partner {
-  total_orders: number
-  total_revenue: number
+interface Product {
+  id: number
+}
+
+interface OrderItem {
+  order_id: number
+  price: number
+  quantity: number
 }
 
 function AdminParceirosContent() {
-  const [partners, setPartners] = useState<PartnerWithStats[]>([])
+  const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading] = useState(true)
   const [profilesMap, setProfilesMap] = useState<Record<string, any>>({})
   const router = useRouter()
@@ -38,7 +45,7 @@ function AdminParceirosContent() {
     try {
       setLoading(true)
       
-      // 🔥 BUSCAR TODOS OS PARCEIROS
+      // Buscar todos os parceiros
       const { data: partnersData, error: partnersError } = await supabase
         .from('partners')
         .select('*')
@@ -48,7 +55,7 @@ function AdminParceirosContent() {
 
       const partnersList = (partnersData as Partner[]) || []
       
-      // 🔥 BUSCAR PERFIS DOS USUÁRIOS
+      // Buscar perfis
       const userIds = partnersList.map(p => p.user_id).filter(id => id)
       if (userIds.length > 0) {
         const { data: profiles, error: profilesError } = await supabase
@@ -65,23 +72,19 @@ function AdminParceirosContent() {
         }
       }
 
-      // 🔥 CALCULAR VENDAS DE CADA PARCEIRO
+      // Calcular vendas de cada parceiro
       const partnersWithStats = await Promise.all(
-        partnersList.map(async (partner) => {
+        partnersList.map(async (partner: Partner) => {
           // Buscar produtos do parceiro
           const { data: products } = await supabase
             .from('products')
             .select('id')
             .eq('partner_id', partner.id)
 
-          const productIds = products?.map(p => p.id) || []
+          const productIds = (products || []).map((p: Product) => p.id)
 
           if (productIds.length === 0) {
-            return {
-              ...partner,
-              total_orders: 0,
-              total_revenue: 0
-            }
+            return { ...partner, total_orders: 0, total_revenue: 0 }
           }
 
           // Buscar itens de pedidos
@@ -91,14 +94,10 @@ function AdminParceirosContent() {
             .in('product_id', productIds)
 
           if (!orderItems || orderItems.length === 0) {
-            return {
-              ...partner,
-              total_orders: 0,
-              total_revenue: 0
-            }
+            return { ...partner, total_orders: 0, total_revenue: 0 }
           }
 
-          const orderIds = [...new Set(orderItems.map(item => item.order_id))]
+          const orderIds = [...new Set((orderItems as OrderItem[]).map((item: OrderItem) => item.order_id))]
 
           // Buscar pedidos pagos
           const { data: orders } = await supabase
@@ -107,18 +106,14 @@ function AdminParceirosContent() {
             .in('id', orderIds)
             .eq('payment_status', 'paid')
 
-          const paidOrderIds = orders?.map(o => o.id) || []
+          const paidOrderIds = (orders || []).map((o: { id: number }) => o.id)
 
           const totalOrders = paidOrderIds.length
-          const totalRevenue = orderItems
-            .filter(item => paidOrderIds.includes(item.order_id))
-            .reduce((sum, item) => sum + (item.price * item.quantity), 0)
+          const totalRevenue = (orderItems as OrderItem[])
+            .filter((item: OrderItem) => paidOrderIds.includes(item.order_id))
+            .reduce((sum: number, item: OrderItem) => sum + (item.price * item.quantity), 0)
 
-          return {
-            ...partner,
-            total_orders: totalOrders,
-            total_revenue: totalRevenue
-          }
+          return { ...partner, total_orders: totalOrders, total_revenue: totalRevenue }
         })
       )
 
@@ -155,31 +150,6 @@ function AdminParceirosContent() {
     }
   }
 
-  const excluirParceiro = async (partnerId: string) => {
-    if (!confirm('Tem certeza que deseja EXCLUIR este parceiro permanentemente? Esta ação não pode ser desfeita!')) {
-      return
-    }
-
-    try {
-      const { error } = await supabase
-        .from('partners')
-        .delete()
-        .eq('id', partnerId)
-
-      if (error) throw error
-
-      await carregarParceiros()
-      alert('Parceiro excluído com sucesso!')
-    } catch (error) {
-      console.error('Erro ao excluir parceiro:', error)
-      alert('Erro ao excluir parceiro')
-    }
-  }
-
-  const verParceiro = (partnerId: string) => {
-    router.push(`/admin/parceiros/${partnerId}`)
-  }
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
@@ -202,7 +172,7 @@ function AdminParceirosContent() {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(valor)
+    }).format(valor || 0)
   }
 
   if (loading) {
@@ -221,10 +191,7 @@ function AdminParceirosContent() {
             <h1 className="text-2xl font-bold text-black">Parceiros</h1>
             <p className="text-gray-500 text-sm">Gerencie os parceiros vendedores</p>
           </div>
-          <Link
-            href="/admin"
-            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition"
-          >
+          <Link href="/admin" className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition">
             ← Voltar
           </Link>
         </div>
@@ -267,46 +234,24 @@ function AdminParceirosContent() {
                             </div>
                           </div>
                         </td>
-                        <td className="p-4 text-sm text-gray-600">
-                          {formatarCNPJ(partner.cnpj)}
-                        </td>
-                        <td className="p-4">
-                          {getStatusBadge(partner.status)}
-                        </td>
-                        <td className="p-4 text-sm font-medium text-gray-900">
-                          {partner.total_orders || 0}
-                        </td>
-                        <td className="p-4 text-sm font-medium text-gray-900">
-                          {formatarMoeda(partner.total_revenue || 0)}
-                        </td>
-                        <td className="p-4 text-sm text-gray-500">
-                          {new Date(partner.created_at).toLocaleDateString('pt-BR')}
-                        </td>
+                        <td className="p-4 text-sm text-gray-600">{formatarCNPJ(partner.cnpj)}</td>
+                        <td className="p-4">{getStatusBadge(partner.status)}</td>
+                        <td className="p-4 text-sm font-medium text-gray-900">{partner.total_orders || 0}</td>
+                        <td className="p-4 text-sm font-medium text-gray-900">{formatarMoeda(partner.total_revenue || 0)}</td>
+                        <td className="p-4 text-sm text-gray-500">{new Date(partner.created_at).toLocaleDateString('pt-BR')}</td>
                         <td className="p-4">
                           <div className="flex items-center gap-2">
                             {partner.status === 'pending' && (
-                              <button
-                                onClick={() => atualizarStatus(partner.id, 'approved')}
-                                className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition"
-                                title="Aprovar"
-                              >
-                                <Check size={18} />
-                              </button>
+                              <>
+                                <button onClick={() => atualizarStatus(partner.id, 'approved')} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition" title="Aprovar">
+                                  <Check size={18} />
+                                </button>
+                                <button onClick={() => atualizarStatus(partner.id, 'rejected')} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition" title="Rejeitar">
+                                  <X size={18} />
+                                </button>
+                              </>
                             )}
-                            {partner.status === 'pending' && (
-                              <button
-                                onClick={() => atualizarStatus(partner.id, 'rejected')}
-                                className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition"
-                                title="Rejeitar"
-                              >
-                                <X size={18} />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => verParceiro(partner.id)}
-                              className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
-                              title="Ver detalhes"
-                            >
+                            <button onClick={() => router.push(`/admin/parceiros/${partner.id}`)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition" title="Ver detalhes">
                               <Eye size={18} />
                             </button>
                           </div>

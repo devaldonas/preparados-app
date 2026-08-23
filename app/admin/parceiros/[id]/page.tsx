@@ -61,6 +61,12 @@ interface Order {
   customer_email: string
 }
 
+interface OrderItem {
+  order_id: number
+  price: number
+  quantity: number
+}
+
 export default function PartnerDetalhes({ params }: { params: Promise<{ id: string }> }) {
   return (
     <AdminGuard>
@@ -126,83 +132,86 @@ function PartnerDetalhesContent({ params }: { params: Promise<{ id: string }> })
           setStats(prev => ({ ...prev, totalProducts: total, activeProducts: active }))
         }
 
-        // 🔥 BUSCAR VENDAS - APENAS PEDIDOS PAGOS
-        const productIds = productsData?.map((p: Product) => p.id) || []
+        // BUSCAR VENDAS DO PARCEIRO
+        const productIds = (productsData || []).map((p: Product) => p.id)
 
         if (productIds.length > 0) {
-          console.log('🔍 Buscando vendas para produtos:', productIds)
+          console.log('🔍 Buscando itens de pedidos para produtos:', productIds)
           
-          // 🔥 1. BUSCAR TODOS OS ITENS DE PEDIDOS
+          // Buscar todos os itens de pedidos
           const { data: orderItems, error: orderItemsError } = await supabase
             .from('order_items')
-            .select('order_id, price, quantity, product_id')
+            .select(`
+              order_id,
+              price,
+              quantity,
+              product_id
+            `)
             .in('product_id', productIds)
 
-          console.log('📦 Order Items encontrados:', orderItems?.length || 0)
-
           if (!orderItemsError && orderItems && orderItems.length > 0) {
-            // 🔥 2. PEGAR OS IDs DOS PEDIDOS
-            const orderIds = [...new Set(orderItems.map((item: any) => item.order_id))]
-            console.log('📋 Order IDs encontrados:', orderIds.length)
-
+            console.log('📦 Itens encontrados:', orderItems.length)
+            
+            const orderIds = [...new Set((orderItems as OrderItem[]).map((item: OrderItem) => item.order_id))]
+            console.log('📋 Order IDs:', orderIds)
+            
             if (orderIds.length > 0) {
-              // 🔥 3. BUSCAR OS PEDIDOS - FILTRANDO APENAS PAGOS
-              const ordersList: Order[] = []
+              // Buscar os pedidos completos
+              const { data: ordersData, error: ordersError } = await supabase
+                .from('orders')
+                .select(`
+                  id,
+                  user_id,
+                  total_amount,
+                  status,
+                  payment_status,
+                  payment_method,
+                  created_at,
+                  profiles:user_id (
+                    full_name,
+                    email
+                  )
+                `)
+                .in('id', orderIds)
+                .order('created_at', { ascending: false })
 
-              for (const orderId of orderIds) {
-                const { data: order, error: orderError } = await supabase
-                  .from('orders')
-                  .select(`
-                    id,
-                    user_id,
-                    total_amount,
-                    status,
-                    payment_status,
-                    payment_method,
-                    created_at
-                  `)
-                  .eq('id', orderId)
-                  .single()
-
-                // 🔥 FILTRAR APENAS PEDIDOS COM payment_status = 'paid'
-                if (!orderError && order && order.payment_status === 'paid') {
-                  // Buscar perfil do usuário
-                  const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('full_name, email')
-                    .eq('id', order.user_id)
-                    .maybeSingle()
-
-                  // Calcular total dos itens do parceiro neste pedido
-                  const items = orderItems.filter((item: any) => item.order_id === orderId)
-                  const total = items.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
-
-                  ordersList.push({
-                    ...order,
-                    total_amount: total,
-                    customer_name: profileData?.full_name || 'Cliente',
-                    customer_email: profileData?.email || '-'
-                  })
-                }
+              if (ordersError) {
+                console.error('❌ Erro ao buscar pedidos:', ordersError)
               }
 
-              console.log('📦 Pedidos pagos encontrados:', ordersList.length)
-              setOrders(ordersList)
+              if (!ordersError && ordersData) {
+                console.log('📦 Pedidos encontrados:', ordersData.length)
+                
+                // Calcular o total por pedido
+                const ordersWithTotal = ordersData.map((order: any) => {
+                  const items = (orderItems as OrderItem[]).filter((item: OrderItem) => item.order_id === order.id)
+                  const total = items.reduce((sum: number, item: OrderItem) => sum + (item.price * item.quantity), 0)
+                  
+                  const profile = order.profiles as any
+                  
+                  return {
+                    ...order,
+                    total_amount: total,
+                    customer_name: profile?.full_name || 'Cliente',
+                    customer_email: profile?.email || '-'
+                  }
+                })
 
-              // 🔥 CALCULAR ESTATÍSTICAS (APENAS PEDIDOS PAGOS)
-              const totalOrders = ordersList.length
-              const totalRevenue = ordersList.reduce((sum: number, order: any) => sum + order.total_amount, 0)
-              
-              console.log('📊 Estatísticas:', { totalOrders, totalRevenue })
-              
-              setStats(prev => ({ 
-                ...prev, 
-                totalOrders: totalOrders,
-                totalRevenue: totalRevenue
-              }))
+                setOrders(ordersWithTotal)
+
+                // Calcular estatísticas
+                const totalOrders = ordersWithTotal.length
+                const totalRevenue = ordersWithTotal.reduce((sum: number, order: any) => sum + order.total_amount, 0)
+                
+                console.log('📊 Estatísticas:', { totalOrders, totalRevenue })
+                
+                setStats(prev => ({ 
+                  ...prev, 
+                  totalOrders: totalOrders,
+                  totalRevenue: totalRevenue
+                }))
+              }
             }
-          } else {
-            console.log('❌ Nenhum item de pedido encontrado')
           }
         }
 
@@ -397,7 +406,6 @@ function PartnerDetalhesContent({ params }: { params: Promise<{ id: string }> })
           </div>
 
           <div className="p-6">
-            {/* TAB PRODUTOS */}
             {activeTab === 'produtos' && (
               <>
                 {products.length === 0 ? (
@@ -467,7 +475,6 @@ function PartnerDetalhesContent({ params }: { params: Promise<{ id: string }> })
               </>
             )}
 
-            {/* TAB VENDAS */}
             {activeTab === 'vendas' && (
               <>
                 {orders.length === 0 ? (
