@@ -8,16 +8,15 @@ import { ArrowLeft, Send, User } from 'lucide-react'
 
 interface Message {
   id: number
-  group_id: number
-  user_id: string
-  user_name: string
+  sender_id: string
+  receiver_id: string
   content: string
   created_at: string
 }
 
-export default function GrupoPage({ params }: { params: Promise<{ id: string }> }) {
-  const [grupoId, setGrupoId] = useState<number | null>(null)
-  const [grupoNome, setGrupoNome] = useState('')
+export default function ChatPage({ params }: { params: Promise<{ id: string }> }) {
+  const [receiverId, setReceiverId] = useState<string>('')
+  const [receiverName, setReceiverName] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const [newMessage, setNewMessage] = useState('')
@@ -27,11 +26,10 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const carregarGrupo = async () => {
+    const carregarChat = async () => {
       try {
         const { id } = await params
-        const idNum = parseInt(id)
-        setGrupoId(idNum)
+        setReceiverId(id)
 
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
@@ -40,55 +38,52 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
         }
         setUser(user)
 
-        const { data: grupo, error: grupoError } = await supabase
-          .from('groups')
-          .select('name, city_name')
-          .eq('id', idNum)
+        // Buscar nome do destinatário
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', id)
           .single()
 
-        if (grupoError) {
-          console.error('Erro ao buscar grupo:', grupoError)
-          setGrupoNome('Grupo')
-        } else if (grupo) {
-          if (grupo.city_name && grupo.city_name.trim() !== '') {
-            setGrupoNome(grupo.city_name)
-          } else {
-            setGrupoNome(grupo.name || 'Grupo')
-          }
-        }
+        setReceiverName(profile?.full_name || 'Usuário')
 
-        await carregarMensagens(idNum)
+        // Carregar mensagens
+        await carregarMensagens(user.id, id)
 
+        // 🔥 RECARREGAR A CADA 3 SEGUNDOS (POLLING - SEM REAL-TIME)
         const interval = setInterval(() => {
-          carregarMensagens(idNum)
-        }, 5000)
+          carregarMensagens(user.id, id)
+        }, 3000)
 
         return () => {
           clearInterval(interval)
         }
       } catch (error) {
-        console.error('Erro ao carregar grupo:', error)
+        console.error('Erro ao carregar chat:', error)
         router.push('/pessoas')
       } finally {
         setLoading(false)
       }
     }
 
-    carregarGrupo()
+    carregarChat()
   }, [params, router])
 
-  const carregarMensagens = async (idNum: number) => {
+  const carregarMensagens = async (userId: string, receiverId: string) => {
     try {
-      const { data: mensagens } = await supabase
-        .from('group_messages')
+      const { data, error } = await supabase
+        .from('messages')
         .select('*')
-        .eq('group_id', idNum)
+        .or(`and(sender_id.eq.${userId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${userId})`)
         .order('created_at', { ascending: true })
 
-      if (mensagens) {
-        setMessages(mensagens)
-        scrollToBottom()
+      if (error) {
+        console.error('Erro ao carregar mensagens:', error)
+        return
       }
+      
+      setMessages(data || [])
+      scrollToBottom()
     } catch (error) {
       console.error('Erro ao carregar mensagens:', error)
     }
@@ -101,16 +96,15 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
   }
 
   const enviarMensagem = async () => {
-    if (!newMessage.trim() || !grupoId || !user) return
+    if (!newMessage.trim() || !receiverId || !user) return
 
     setSending(true)
     try {
       const { data, error } = await supabase
-        .from('group_messages')
+        .from('messages')
         .insert({
-          group_id: grupoId,
-          user_id: user.id,
-          user_name: user.user_metadata?.full_name || 'Usuário',
+          sender_id: user.id,
+          receiver_id: receiverId,
           content: newMessage.trim()
         })
         .select()
@@ -118,8 +112,10 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
 
       if (error) throw error
 
+      setMessages(prev => [...prev, data])
       setNewMessage('')
-      await carregarMensagens(grupoId)
+      await carregarMensagens(user.id, receiverId)
+      scrollToBottom()
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error)
       alert('Erro ao enviar mensagem')
@@ -141,14 +137,14 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center gap-4 mb-6">
           <Link
-            href="/pessoas"
+            href="/pessoas/usuarios"
             className="p-2 hover:bg-gray-200 rounded-lg transition"
           >
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-black">{grupoNome || 'Grupo'}</h1>
-            <p className="text-sm text-gray-500">Grupo de conversa</p>
+            <h1 className="text-2xl font-bold text-black">Chat</h1>
+            <p className="text-sm text-gray-500">Conversando com {receiverName}</p>
           </div>
         </div>
 
@@ -156,11 +152,11 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
           {messages.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <p>Nenhuma mensagem ainda</p>
-              <p className="text-sm">Seja o primeiro a enviar uma mensagem</p>
+              <p className="text-sm">Envie uma mensagem para iniciar a conversa</p>
             </div>
           ) : (
             messages.map((msg) => {
-              const isOwn = msg.user_id === user?.id
+              const isOwn = msg.sender_id === user?.id
               return (
                 <div
                   key={msg.id}
@@ -173,7 +169,7 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
                   </div>
                   <div className={`max-w-[70%] ${isOwn ? 'text-right' : ''}`}>
                     <p className={`text-xs ${isOwn ? 'text-[#FFB800]' : 'text-gray-500'}`}>
-                      {isOwn ? 'Você' : msg.user_name}
+                      {isOwn ? 'Você' : receiverName}
                     </p>
                     <div className={`p-3 rounded-lg mt-1 ${
                       isOwn ? 'bg-[#FFB800] text-black' : 'bg-gray-100 text-gray-900'

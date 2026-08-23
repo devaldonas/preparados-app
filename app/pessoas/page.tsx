@@ -5,8 +5,10 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { Users, MapPin } from 'lucide-react'
+import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
-// 🔥 CARREGAR O MAPA DINAMICAMENTE
+// CARREGAR O MAPA DINAMICAMENTE
 const MapaComClusters = dynamic(
   () => import('@/components/MapaComClusters'),
   { 
@@ -18,8 +20,6 @@ const MapaComClusters = dynamic(
     )
   }
 )
-
-import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
 interface UserLocation {
   userId: string
@@ -37,9 +37,8 @@ export default function PessoasProximas() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [userLocations, setUserLocations] = useState<UserLocation[]>([])
-  const [totalPreparados, setTotalPreparados] = useState(0)
+  const [groupsCount, setGroupsCount] = useState(0)
   const [userCep, setUserCep] = useState('')
-  const [showGroupsList, setShowGroupsList] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -53,7 +52,7 @@ export default function PessoasProximas() {
         setUser(user)
         await loadUserData(user.id)
         await loadUserLocations()
-        await loadTotalPreparados()
+        await loadGroupsCount()
       } catch (error) {
         console.error('Erro ao carregar dados:', error)
       } finally {
@@ -63,11 +62,10 @@ export default function PessoasProximas() {
     getUser()
   }, [])
 
-  // 🔥 CORRIGIDO: loadUserData com as any
   const loadUserData = async (userId: string) => {
     try {
-      const { data } = await (supabase
-        .from('profiles') as any)
+      const { data } = await supabase
+        .from('profiles')
         .select('full_name, cep, latitude, longitude, mochila_tipo, city, state')
         .eq('id', userId)
         .maybeSingle()
@@ -80,11 +78,10 @@ export default function PessoasProximas() {
     }
   }
 
-  // 🔥 CORRIGIDO: loadUserLocations com as any
   const loadUserLocations = async () => {
     try {
-      const { data, error } = await (supabase
-        .from('profiles') as any)
+      const { data, error } = await supabase
+        .from('profiles')
         .select('id, full_name, cep, latitude, longitude, mochila_tipo, group_id, city, state')
         .not('latitude', 'is', null)
         .not('longitude', 'is', null)
@@ -116,61 +113,72 @@ export default function PessoasProximas() {
     }
   }
 
-  // 🔥 CORRIGIDO: loadTotalPreparados com as any
-  const loadTotalPreparados = async () => {
+  const loadGroupsCount = async () => {
     try {
-      const { count, error } = await (supabase
-        .from('profiles') as any)
+      const { count, error } = await supabase
+        .from('groups')
         .select('*', { count: 'exact', head: true })
       
       if (error) {
-        console.error('Erro ao contar preparados:', error)
-        setTotalPreparados(0)
+        console.error('Erro ao contar grupos:', error)
+        setGroupsCount(0)
         return
       }
       
       if (count !== null) {
-        setTotalPreparados(count)
+        setGroupsCount(count)
       }
     } catch (error) {
-      console.error('Erro ao carregar total:', error)
-      setTotalPreparados(0)
+      console.error('Erro ao carregar grupos:', error)
+      setGroupsCount(0)
     }
   }
 
-  // 🔥 CORRIGIDO: atualizarCep com as any
-  const atualizarCep = async () => {
-    const novoCep = prompt('Digite seu CEP para encontrar pessoas próximas:', userCep)
-    if (novoCep && novoCep.length >= 8) {
-      try {
-        const response = await fetch(`https://viacep.com.br/ws/${novoCep.replace(/\D/g, '')}/json/`)
-        const data = await response.json()
-        
-        if (!data.erro) {
-          await (supabase
-            .from('profiles') as any)
-            .update({ 
-              cep: novoCep,
-              city: data.localidade,
-              state: data.uf
+  const compartilharLocalizacao = async () => {
+    if (!user) return
+
+    try {
+      if (!navigator.geolocation) {
+        alert('Seu navegador não suporta geolocalização')
+        return
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords
+
+          const { error } = await supabase
+            .from('profiles')
+            .update({
+              latitude,
+              longitude,
+              last_location_update: new Date().toISOString()
             })
             .eq('id', user.id)
-          setUserCep(novoCep)
-          await loadUserLocations()
-        } else {
-          alert('CEP não encontrado')
+
+          if (error) {
+            console.error('Erro ao salvar localização:', error)
+            alert('Erro ao salvar localização')
+          } else {
+            alert('Localização compartilhada com sucesso!')
+            window.location.reload()
+          }
+        },
+        (error) => {
+          console.error('Erro ao obter localização:', error)
+          alert('Erro ao obter localização. Verifique as permissões do navegador.')
         }
-      } catch (error) {
-        alert('Erro ao buscar CEP')
-      }
+      )
+    } catch (error) {
+      console.error('Erro ao compartilhar localização:', error)
+      alert('Erro ao compartilhar localização')
     }
   }
 
-  // 🔥 CORRIGIDO: abrirChatDoGrupo com as any
   const abrirChatDoGrupo = async (userId: string) => {
     try {
-      const { data: profile, error } = await (supabase
-        .from('profiles') as any)
+      const { data: profile, error } = await supabase
+        .from('profiles')
         .select('group_id')
         .eq('id', userId)
         .maybeSingle()
@@ -184,7 +192,7 @@ export default function PessoasProximas() {
       if (profile?.group_id) {
         router.push(`/grupo/${profile.group_id}`)
       } else {
-        router.push('/grupo')
+        router.push('/pessoas/grupos')
       }
     } catch (error) {
       console.error('Erro ao abrir chat:', error)
@@ -203,45 +211,72 @@ export default function PessoasProximas() {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="text-center mb-8">
-          <img 
-            src="/images/pessoas1-icon.png" 
-            alt="Pessoas Próximas" 
-            className="w-16 h-16 mx-auto mb-4 object-contain"
-          />
-          <h1 className="text-3xl font-bold text-black mb-2">PESSOAS PRÓXIMAS</h1>
-          <p className="text-gray-600">
-            Conecte-se com pessoas que também estão se preparando
-          </p>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
-            <div className="text-3xl font-bold text-[#FFB800]">{userLocations.length}</div>
-            <p className="text-sm text-gray-600">Preparados no mapa</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 text-center">
-            <div className="text-3xl font-bold text-[#FFB800]">{totalPreparados}</div>
-            <p className="text-sm text-gray-600">Total de Preparados</p>
+        
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-black">Pessoas Próximas</h1>
+            <p className="text-sm text-gray-500">Conecte-se com pessoas da sua região</p>
           </div>
           <button
-            onClick={() => setShowGroupsList(!showGroupsList)}
-            className="bg-[#FFB800] rounded-xl shadow-sm border border-gray-100 p-4 text-center hover:shadow-md transition flex flex-col items-center justify-center"
+            onClick={compartilharLocalizacao}
+            className="bg-[#FFB800] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition flex items-center gap-2"
           >
-            <p className="text-sm text-black font-medium">
-              {showGroupsList ? 'Ocultar Grupos' : 'Ver Grupos'}
-            </p>
+            <MapPin size={18} />
+            Compartilhar localização
           </button>
         </div>
 
-        <div className="mb-6">
-          <MapaComClusters 
-            userLocations={userLocations}
-            showGroupsList={showGroupsList}
-            onUserSelect={abrirChatDoGrupo}
-          />
+        {/* 🔥 CARDS - APENAS 2 */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          
+          {/* Card: Preparados no Mapa */}
+          <Link
+            href="/pessoas/usuarios"
+            className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#FFB800]/10 rounded-lg flex items-center justify-center">
+                <Users size={20} className="text-[#FFB800]" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Preparados no Mapa</p>
+                <p className="text-xl font-bold text-black">{userLocations.length}</p>
+              </div>
+            </div>
+          </Link>
+
+          {/* Card: Ver Grupos */}
+          <Link
+            href="/pessoas/grupos"
+            className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                <MapPin size={20} className="text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Grupos</p>
+                <p className="text-xl font-bold text-black">{groupsCount}</p>
+              </div>
+            </div>
+          </Link>
+
         </div>
 
+        {/* Mapa */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+          <div className="p-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900">Mapa de Pessoas Próximas</h2>
+          </div>
+          <div className="h-[400px]">
+            <MapaComClusters 
+              userLocations={userLocations}
+              onUserSelect={abrirChatDoGrupo}
+            />
+          </div>
+        </div>
+
+        {/* CEP */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
@@ -249,7 +284,33 @@ export default function PessoasProximas() {
               <p className="font-semibold text-black">{userCep || 'Não informado'}</p>
             </div>
             <button
-              onClick={atualizarCep}
+              onClick={async () => {
+                const novoCep = prompt('Digite seu CEP para encontrar pessoas próximas:', userCep)
+                if (novoCep && novoCep.length >= 8) {
+                  try {
+                    const response = await fetch(`https://viacep.com.br/ws/${novoCep.replace(/\D/g, '')}/json/`)
+                    const data = await response.json()
+                    
+                    if (!data.erro) {
+                      await supabase
+                        .from('profiles')
+                        .update({ 
+                          cep: novoCep,
+                          city: data.localidade,
+                          state: data.uf
+                        })
+                        .eq('id', user.id)
+                      setUserCep(novoCep)
+                      await loadUserLocations()
+                      alert('CEP atualizado com sucesso!')
+                    } else {
+                      alert('CEP não encontrado')
+                    }
+                  } catch (error) {
+                    alert('Erro ao buscar CEP')
+                  }
+                }
+              }}
               className="bg-[#FFB800] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition"
             >
               Informar meu CEP
@@ -257,18 +318,21 @@ export default function PessoasProximas() {
           </div>
         </div>
 
-        <div className="mt-8 space-y-4">
+        {/* Botão Indique um Amigo */}
+        <div>
+          <BotaoIndicarAmigo />
+        </div>
+
+        {/* Voltar ao Início */}
+        <div className="mt-4">
           <Link
             href="/dashboard"
-            className="text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition h-9 flex items-center justify-center"
+            className="block text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition"
           >
             Voltar ao Início
           </Link>
-
-          <div className="mb-6">
-            <BotaoIndicarAmigo />
-          </div>
         </div>
+
       </div>
     </div>
   )

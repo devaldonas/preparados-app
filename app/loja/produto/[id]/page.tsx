@@ -1,233 +1,330 @@
-// app/loja/produto/[id]/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ArrowLeft, Package, DollarSign, Calendar, ShoppingCart, Truck } from 'lucide-react'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
-import GaleriaProduto from '@/components/GaleriaProduto'
-import { useCart } from '@/lib/store/cart'
 
 interface Product {
-  id: string
+  id: number
   name: string
   description: string
   price: number
   category: string
+  stock: number
   image_url: string
   images: string[]
-  stock: number
-  mochila_tipo: string[]
-  is_digital?: boolean
-  free_shipping?: boolean
+  is_active: boolean
+  free_shipping: boolean
+  partner_id: string
+  created_at: string
+  updated_at: string
 }
 
-export default function DetalheProduto() {
+interface Partner {
+  id: string
+  company_name: string
+}
+
+export default function ProdutoDetalhes({ params }: { params: Promise<{ id: string }> }) {
   const [product, setProduct] = useState<Product | null>(null)
+  const [partner, setPartner] = useState<Partner | null>(null)
   const [loading, setLoading] = useState(true)
-  const [quantity, setQuantity] = useState(1)
-  const [adding, setAdding] = useState(false)
+  const [addingToCart, setAddingToCart] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const router = useRouter()
-  const params = useParams()
-  const productId = params.id as string
-  
-  const { addItem, getTotalItems } = useCart()
-  const cartCount = getTotalItems()
 
   useEffect(() => {
-    carregarProduto()
-  }, [productId])
+    const carregarDados = async () => {
+      try {
+        const { id } = await params
+        const productId = parseInt(id)
 
-  // 🔥 CORRIGIDO: carregarProduto com as any
-  const carregarProduto = async () => {
-    try {
-      const { data, error } = await (supabase
-        .from('products') as any)
-        .select('*')
-        .eq('id', productId)
-        .maybeSingle()
+        const { data: productData, error: productError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .single()
 
-      if (error) {
+        if (productError) throw productError
+        setProduct(productData)
+        
+        if (productData?.image_url) {
+          setSelectedImage(productData.image_url)
+        } else if (productData?.images && productData.images.length > 0) {
+          setSelectedImage(productData.images[0])
+        }
+
+        if (productData?.partner_id) {
+          const { data: partnerData } = await supabase
+            .from('partners')
+            .select('id, company_name')
+            .eq('id', productData.partner_id)
+            .maybeSingle()
+          setPartner(partnerData)
+        }
+
+      } catch (error) {
         console.error('Erro ao carregar produto:', error)
         router.push('/loja')
-      } else if (data) {
-        setProduct({ ...data, id: String(data.id) })
-      } else {
-        router.push('/loja')
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('Erro:', error)
-    } finally {
-      setLoading(false)
     }
-  }
 
-  const adicionarAoCarrinho = () => {
+    carregarDados()
+  }, [params, router])
+
+  const adicionarAoCarrinho = async () => {
     if (!product) return
 
-    setAdding(true)
+    try {
+      setAddingToCart(true)
+      
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
 
-    addItem({
-      product_id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image_url || product.images?.[0] || '/images/placeholder.jpg',
-      max_stock: product.stock,
-      is_digital: product.is_digital || false,
-      free_shipping: product.free_shipping || false,
-    }, quantity)
+      const { data: existingItem } = await supabase
+        .from('cart_items')
+        .select('id, quantity')
+        .eq('user_id', user.id)
+        .eq('product_id', product.id)
+        .maybeSingle()
 
-    setAdding(false)
-    
-    const btn = document.getElementById('btn-add-cart')
-    if (btn) {
-      const originalText = btn.textContent
-      btn.textContent = '✓ Adicionado!'
-      btn.className = 'w-full bg-green-500 text-white py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2'
-      setTimeout(() => {
-        btn.textContent = originalText
-        btn.className = 'w-full bg-[#FFB800] text-black py-3 rounded-lg font-semibold hover:bg-[#E5A600] transition disabled:opacity-50 flex items-center justify-center gap-2'
-      }, 2000)
+      if (existingItem) {
+        await supabase
+          .from('cart_items')
+          .update({ quantity: existingItem.quantity + 1 })
+          .eq('id', existingItem.id)
+      } else {
+        await supabase
+          .from('cart_items')
+          .insert({
+            user_id: user.id,
+            product_id: product.id,
+            quantity: 1
+          })
+      }
+
+      alert('Produto adicionado ao carrinho!')
+      router.push('/loja/carrinho')
+    } catch (error) {
+      console.error('Erro ao adicionar ao carrinho:', error)
+      alert('Erro ao adicionar produto ao carrinho')
+    } finally {
+      setAddingToCart(false)
     }
   }
 
-  const formatPrice = (price: number) => {
+  const formatarMoeda = (valor: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(price)
+    }).format(valor)
+  }
+
+  const formatarData = (data: string) => {
+    return new Date(data).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+
+  const todasImagens: string[] = []
+  if (product?.image_url && product.image_url.trim() !== '') {
+    todasImagens.push(product.image_url)
+  }
+  if (product?.images && product.images.length > 0) {
+    product.images.forEach((img: string) => {
+      if (img && img.trim() !== '' && !todasImagens.includes(img)) {
+        todasImagens.push(img)
+      }
+    })
+  }
+
+  if (todasImagens.length === 0) {
+    todasImagens.push('/images/placeholder.jpg')
+  }
+
+  if (!selectedImage || !todasImagens.includes(selectedImage)) {
+    setSelectedImage(todasImagens[0])
   }
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
       </div>
     )
   }
 
-  if (!product) return null
-
-  const imagesList = product.images || (product.image_url ? [product.image_url] : [])
+  if (!product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-500">Produto não encontrado</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="flex-1">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          
-          <div className="flex justify-between items-center mb-4">
-            <Link
-              href="/loja"
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
-            >
-              <span>←</span> Voltar para Loja
-            </Link>
-            
-            <Link
-              href="/loja/carrinho"
-              className="relative bg-white p-2 rounded-full shadow-sm border border-gray-100 hover:shadow-md transition"
-            >
-              <span className="text-xl">🛒</span>
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#FFB800] text-black text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
-          </div>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        
+        <div className="mb-6">
+          <Link
+            href="/loja"
+            className="inline-flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold transition"
+          >
+            <ArrowLeft size={18} />
+            Voltar para Loja
+          </Link>
+        </div>
 
-          <div className="mb-6">
-            <BotaoIndicarAmigo />
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-black">{product.name}</h1>
+            <p className="text-sm text-gray-500">Detalhes do produto</p>
           </div>
+          <button
+            onClick={adicionarAoCarrinho}
+            disabled={addingToCart || product.stock <= 0}
+            className={`px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2 ${
+              product.stock > 0
+                ? 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            <ShoppingCart size={18} />
+            {product.stock > 0 ? `Comprar - ${formatarMoeda(product.price)}` : 'Esgotado'}
+          </button>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <GaleriaProduto 
-              images={imagesList}
-              productName={product.name}
+        <div className="mb-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-3">
+            <img
+              src={selectedImage || todasImagens[0]}
+              alt={product.name}
+              className="w-full max-w-md mx-auto h-64 object-contain rounded-lg"
+              onError={(e) => { 
+                e.currentTarget.src = '/images/placeholder.jpg'
+              }}
             />
+          </div>
+          
+          {todasImagens.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 justify-center">
+              {todasImagens.map((img, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedImage(img)}
+                  className={`flex-shrink-0 w-16 h-16 rounded-lg border-2 overflow-hidden transition ${
+                    selectedImage === img 
+                      ? 'border-[#FFB800]' 
+                      : 'border-gray-200 hover:border-gray-400'
+                  }`}
+                >
+                  <img
+                    src={img}
+                    alt={`${product.name} - ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { 
+                      e.currentTarget.src = '/images/placeholder.jpg'
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-            <div className="space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Package size={20} className="text-[#FFB800]" />
+              Informações do Produto
+            </h2>
+            <div className="space-y-3">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
-                <p className="text-gray-500 text-sm">{product.category}</p>
+                <p className="text-sm text-gray-500">Nome</p>
+                <p className="font-medium">{product.name}</p>
               </div>
-
-              <div className="border-t border-gray-100 pt-4">
-                <p className="text-gray-700 leading-relaxed">{product.description}</p>
+              <div>
+                <p className="text-sm text-gray-500">Descrição</p>
+                <p className="font-medium">{product.description || '-'}</p>
               </div>
-
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Preço</span>
-                  <span className="text-2xl font-bold text-[#FFB800]">{formatPrice(product.price)}</span>
-                </div>
-                
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-gray-600">Estoque</span>
-                  <span className={`font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {product.stock > 0 ? `${product.stock} unidades` : 'Esgotado'}
-                  </span>
-                </div>
-
-                {product.stock > 0 && (
-                  <>
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="text-gray-600">Quantidade</span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          className="w-8 h-8 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
-                        >
-                          -
-                        </button>
-                        <span className="w-12 text-center font-medium">{quantity}</span>
-                        <button
-                          onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                          className="w-8 h-8 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    <button
-                      id="btn-add-cart"
-                      onClick={adicionarAoCarrinho}
-                      disabled={adding}
-                      className="w-full bg-[#FFB800] text-black py-3 rounded-lg font-semibold hover:bg-[#E5A600] transition disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      <span>🛒</span>
-                      {adding ? 'Adicionando...' : 'Adicionar ao Carrinho'}
-                    </button>
-                  </>
-                )}
-
-                {product.stock === 0 && (
-                  <button
-                    disabled
-                    className="w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed"
-                  >
-                    Produto Esgotado
-                  </button>
-                )}
+              <div>
+                <p className="text-sm text-gray-500">Categoria</p>
+                <p className="font-medium">{product.category}</p>
               </div>
-
-              {product.mochila_tipo && product.mochila_tipo.length > 0 && (
-                <div className="border-t border-gray-100 pt-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">Compatível com:</h3>
-                  <div className="flex gap-2">
-                    {product.mochila_tipo.map((tipo) => (
-                      <span key={tipo} className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">
-                        {tipo === 'EDC' ? 'EDC - Dia a dia' : tipo === 'BOB' ? 'BOB - 72h' : 'BOLT - Longo prazo'}
-                      </span>
-                    ))}
-                  </div>
+              {partner && (
+                <div>
+                  <p className="text-sm text-gray-500">Vendido por</p>
+                  <p className="font-medium">{partner.company_name}</p>
                 </div>
               )}
             </div>
           </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <DollarSign size={20} className="text-[#FFB800]" />
+              Preço e Estoque
+            </h2>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-gray-500">Preço</p>
+                <p className="font-medium text-[#FFB800]">{formatarMoeda(product.price)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Estoque</p>
+                <p className={`font-medium ${product.stock > 10 ? 'text-green-600' : product.stock > 0 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {product.stock > 0 ? `${product.stock} unidades disponíveis` : 'Esgotado'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Frete</p>
+                <p className="font-medium">
+                  {product.free_shipping ? (
+                    <span className="text-green-600 flex items-center gap-1">
+                      <Truck size={16} />
+                      Grátis
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">Calculado no checkout</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:col-span-2">
+            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Calendar size={20} className="text-[#FFB800]" />
+              Datas
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-500">Adicionado em</p>
+                <p className="font-medium">{formatarData(product.created_at)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Última atualização</p>
+                <p className="font-medium">{formatarData(product.updated_at)}</p>
+              </div>
+            </div>
+          </div>
         </div>
+
+        <div className="mt-8 border-t border-gray-200 pt-8">
+          <BotaoIndicarAmigo />
+        </div>
+
       </div>
     </div>
   )
