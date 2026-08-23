@@ -31,6 +31,10 @@ interface PartnerStats {
   total_revenue: number
 }
 
+interface Product {
+  id: number
+}
+
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
@@ -141,7 +145,7 @@ export default function AdminDashboard() {
             .select('id')
             .eq('partner_id', partner.id)
 
-          const productIds = products?.map(p => p.id) || []
+          const productIds = (products || []).map((p: Product) => p.id)
 
           if (productIds.length === 0) {
             return {
