@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { Users, MapPin } from 'lucide-react'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
 // CARREGAR O MAPA DINAMICAMENTE
@@ -221,12 +220,17 @@ export default function PessoasProximas() {
             onClick={compartilharLocalizacao}
             className="bg-[#FFB800] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition flex items-center gap-2"
           >
-            <MapPin size={18} />
+            <img 
+              src="/images/localizacao-icon.jpeg" 
+              alt="Localização" 
+              className="w-5 h-5 object-contain"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
             Compartilhar localização
           </button>
         </div>
 
-        {/* 🔥 CARDS - APENAS 2 */}
+        {/* 🔥 CARDS - APENAS 2 COM ÍCONES */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           
           {/* Card: Preparados no Mapa */}
@@ -236,7 +240,12 @@ export default function PessoasProximas() {
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#FFB800]/10 rounded-lg flex items-center justify-center">
-                <Users size={20} className="text-[#FFB800]" />
+                <img 
+                  src="/images/markmap.png" 
+                  alt="Preparados no Mapa" 
+                  className="w-6 h-6 object-contain"
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Preparados no Mapa</p>
@@ -252,7 +261,12 @@ export default function PessoasProximas() {
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
-                <MapPin size={20} className="text-green-600" />
+                <img 
+                  src="/images/localizacao-icon.jpeg" 
+                  alt="Grupos" 
+                  className="w-6 h-6 object-contain"
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Grupos</p>

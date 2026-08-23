@@ -34,7 +34,6 @@ export default function ListaUsuarios() {
         return
       }
 
-      // Buscar todos os usuários com seus grupos
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select(`
@@ -74,7 +73,6 @@ export default function ListaUsuarios() {
   }
 
   const iniciarChat = (userId: string, userName: string) => {
-    // 🔥 CHAT INDIVIDUAL - Vai para /chat/[id]
     router.push(`/chat/${userId}`)
   }
 
@@ -119,13 +117,23 @@ export default function ListaUsuarios() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-[#FFB800]/10 rounded-full flex items-center justify-center">
-                        <Users size={18} className="text-[#FFB800]" />
+                        <img 
+                          src="/images/markmap.png" 
+                          alt="Preparado" 
+                          className="w-6 h-6 object-contain"
+                          onError={(e) => { e.currentTarget.style.display = 'none' }}
+                        />
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{user.full_name}</p>
                         <div className="flex items-center gap-3 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
-                            <MapPin size={12} />
+                            <img 
+                              src="/images/localizacao-icon.jpeg" 
+                              alt="Localização" 
+                              className="w-3 h-3 object-contain"
+                              onError={(e) => { e.currentTarget.style.display = 'none' }}
+                            />
                             {user.city}{user.state ? `, ${user.state}` : ''}
                           </span>
                           <span>•</span>
