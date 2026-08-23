@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Send, User } from 'lucide-react'
+import { ArrowLeft, Send } from 'lucide-react'
 
 interface Message {
   id: number
@@ -38,7 +38,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         }
         setUser(user)
 
-        // Buscar nome do destinatário
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name')
@@ -47,10 +46,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
         setReceiverName(profile?.full_name || 'Usuário')
 
-        // Carregar mensagens
         await carregarMensagens(user.id, id)
 
-        // 🔥 RECARREGAR A CADA 3 SEGUNDOS (POLLING - SEM REAL-TIME)
         const interval = setInterval(() => {
           carregarMensagens(user.id, id)
         }, 3000)
@@ -165,7 +162,12 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
                   <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                     isOwn ? 'bg-[#FFB800]' : 'bg-gray-200'
                   }`}>
-                    <User size={16} className={isOwn ? 'text-black' : 'text-gray-600'} />
+                    <img 
+                      src="/images/markmap.png" 
+                      alt="Usuário" 
+                      className="w-5 h-5 object-contain"
+                      onError={(e) => { e.currentTarget.style.display = 'none' }}
+                    />
                   </div>
                   <div className={`max-w-[70%] ${isOwn ? 'text-right' : ''}`}>
                     <p className={`text-xs ${isOwn ? 'text-[#FFB800]' : 'text-gray-500'}`}>

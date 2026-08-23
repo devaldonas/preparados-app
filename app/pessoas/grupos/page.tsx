@@ -30,7 +30,6 @@ export default function ListaGrupos() {
         return
       }
 
-      // Buscar todos os grupos com contagem de membros
       const { data: groupsData, error } = await supabase
         .from('groups')
         .select(`
@@ -43,14 +42,11 @@ export default function ListaGrupos() {
 
       if (error) throw error
 
-      // 🔥 FILTRAR GRUPOS INVÁLIDOS E VAZIOS
       const gruposValidos = (groupsData || []).filter((g: any) => {
-        // Remover grupos com nome inválido
         if (g.name === 'Localização do Usuário') return false
         if (g.name === 'Localizacao do Usuario') return false
         if (g.name === 'Sem grupo') return false
         if (g.name === 'Sem cidade definida') return false
-        // Remover grupos vazios (0 membros)
         if (g.member_count === 0) return false
         return true
       })
@@ -115,14 +111,24 @@ export default function ListaGrupos() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-[#FFB800]/10 rounded-full flex items-center justify-center">
-                      <Users size={18} className="text-[#FFB800]" />
+                      <img 
+                        src="/images/localizacao-icon.jpeg" 
+                        alt="Grupo" 
+                        className="w-6 h-6 object-contain"
+                        onError={(e) => { e.currentTarget.style.display = 'none' }}
+                      />
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{getNomeExibicao(group)}</p>
                       <div className="flex items-center gap-3 text-xs text-gray-500">
                         {group.city_name && (
                           <span className="flex items-center gap-1">
-                            <MapPin size={12} />
+                            <img 
+                              src="/images/localizacao-icon.jpeg" 
+                              alt="Localização" 
+                              className="w-3 h-3 object-contain"
+                              onError={(e) => { e.currentTarget.style.display = 'none' }}
+                            />
                             {group.city_name}
                           </span>
                         )}
