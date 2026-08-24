@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
   User, 
@@ -19,11 +19,13 @@ import {
   Home,
   Building2,
   Map,
-  Hash
+  Hash,
+  Gift
 } from 'lucide-react'
 
 export default function Cadastro() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -35,6 +37,7 @@ export default function Cadastro() {
   const [estado, setEstado] = useState('')
   const [numero, setNumero] = useState('')
   const [complemento, setComplemento] = useState('')
+  const [codigoIndicacao, setCodigoIndicacao] = useState('')
   const [buscandoCep, setBuscandoCep] = useState(false)
   
   const [loading, setLoading] = useState(false)
@@ -49,6 +52,14 @@ export default function Cadastro() {
     cep: { valid: false, message: '' },
     numero: { valid: false, message: '' }
   })
+
+  // Pegar código de indicação da URL
+  useEffect(() => {
+    const codigo = searchParams.get('ref')
+    if (codigo) {
+      setCodigoIndicacao(codigo)
+    }
+  }, [searchParams])
 
   const buscarEnderecoPorCep = async (cepValue: string) => {
     const cleanCep = cepValue.replace(/\D/g, '')
@@ -241,16 +252,16 @@ export default function Cadastro() {
       if (signUpError) throw signUpError
 
       if (authData.user) {
+        // Buscar coordenadas
         const { latitude, longitude } = await getCoordinatesFromCEP(cep)
         
         let groupId = null
 
-        // 🔥 CRIAR GRUPO CORRETAMENTE
+        // Criar grupo
         if (latitude && longitude) {
           try {
             const cidadeNome = cidade || 'Localização do Usuário'
             
-            // Verificar se já existe um grupo para esta cidade
             const { data: existingGroup } = await (supabase
               .from('groups') as any)
               .select('id')
@@ -260,7 +271,6 @@ export default function Cadastro() {
             if (existingGroup) {
               groupId = existingGroup.id
             } else {
-              // 🔥 CRIAR NOVO GRUPO COM TODOS OS CAMPOS
               const { data: newGroup, error: groupError } = await (supabase
                 .from('groups') as any)
                 .insert([{
@@ -279,11 +289,28 @@ export default function Cadastro() {
                 console.error('❌ Erro ao criar grupo:', groupError)
               } else if (newGroup) {
                 groupId = newGroup.id
-                console.log('✅ Grupo criado com sucesso:', groupId)
               }
             }
           } catch (groupErr) {
             console.error('❌ Erro ao processar grupo:', groupErr)
+          }
+        }
+
+        // Buscar o ID do indicador pelo código
+        let indicadorId = null
+        if (codigoIndicacao) {
+          try {
+            const { data: indicador } = await (supabase
+              .from('profiles') as any)
+              .select('id')
+              .ilike('id::text', `${codigoIndicacao}%`)
+              .maybeSingle()
+            
+            if (indicador) {
+              indicadorId = indicador.id
+            }
+          } catch (err) {
+            console.error('Erro ao buscar indicador:', err)
           }
         }
 
@@ -303,6 +330,7 @@ export default function Cadastro() {
             latitude: latitude || null,
             longitude: longitude || null,
             group_id: groupId,
+            indicado_por: indicadorId,
             trial_start_date: new Date().toISOString(),
             trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
             created_at: new Date().toISOString()
@@ -311,6 +339,31 @@ export default function Cadastro() {
         if (profileError) {
           console.error('❌ Erro ao criar perfil:', profileError)
           throw new Error('Erro ao criar perfil')
+        }
+
+        // Se foi indicado, dar bônus
+        if (indicadorId) {
+          try {
+            // Bônus para quem indicou (R$ 5,00)
+            await supabase.rpc('adicionar_saldo', {
+              p_usuario_id: indicadorId,
+              p_valor: 1.00,
+              p_tipo: 'indicacao',
+              p_descricao: 'Indicação de novo usuário'
+            })
+            
+            // Bônus para o novo usuário (R$ 5,00)
+            await supabase.rpc('adicionar_saldo', {
+              p_usuario_id: authData.user.id,
+              p_valor: 1.00,
+              p_tipo: 'bonus',
+              p_descricao: 'Bônus de boas-vindas por indicação'
+            })
+            
+            console.log('✅ Bônus de indicação aplicado!')
+          } catch (bonusErr) {
+            console.error('❌ Erro ao aplicar bônus:', bonusErr)
+          }
         }
 
         router.push('/planos')
@@ -359,6 +412,16 @@ export default function Cadastro() {
                 {step === 3 && 'Finalizar'}
               </h2>
             </div>
+
+            {/* Banner de indicação */}
+            {codigoIndicacao && (
+              <div className="bg-[#FFB800]/10 border border-[#FFB800]/30 rounded-lg p-3 mb-4 flex items-center gap-2">
+                <Gift size={18} className="text-[#FFB800]" />
+                <p className="text-sm text-gray-700">
+                  🎉 Você foi convidado! Ganhe <strong>R$ 5,00</strong> de bônus ao se cadastrar!
+                </p>
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 flex items-center gap-2 text-sm">
@@ -644,6 +707,12 @@ export default function Cadastro() {
                         CEP: {cep}
                       </span>
                     </div>
+                    {codigoIndicacao && (
+                      <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
+                        <span className="text-gray-500">Código de indicação</span>
+                        <span className="text-[#FFB800] font-medium">{codigoIndicacao}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-4">
