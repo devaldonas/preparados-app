@@ -16,6 +16,16 @@ interface Notificacao {
   metadata: any;
 }
 
+// Tipo para o payload do Realtime
+interface RealtimePayload {
+  new: Notificacao;
+  old: Notificacao;
+  eventType: string;
+}
+
+// Tipo para o status do Realtime
+type RealtimeStatus = 'SUBSCRIBED' | 'TIMED_OUT' | 'CLOSED' | 'CHANNEL_ERROR';
+
 export default function Notificacoes() {
   const router = useRouter();
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
@@ -32,7 +42,6 @@ export default function Notificacoes() {
       if (user) {
         await fetchNotificacoes(user.id);
         
-        // CORRIGIDO: Criar channel com os listeners ANTES do subscribe
         const newChannel = supabase
           .channel('notificacoes-realtime')
           .on('postgres_changes', 
@@ -42,13 +51,13 @@ export default function Notificacoes() {
               table: 'notificacoes',
               filter: `usuario_id=eq.${user.id}`
             }, 
-            (payload) => {
+            (payload: RealtimePayload) => {
               const novaNotificacao = payload.new as Notificacao;
               setNotificacoes(prev => [novaNotificacao, ...prev]);
               setNotificacoesNaoLidas(prev => prev + 1);
             }
           )
-          .subscribe((status) => {
+          .subscribe((status: RealtimeStatus) => {
             console.log('📡 Notificações status:', status);
           });
         
@@ -64,7 +73,6 @@ export default function Notificacoes() {
     
     getUser();
 
-    // Cleanup ao desmontar
     return () => {
       if (channel) {
         channel.unsubscribe();
