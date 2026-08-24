@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Bell, Check, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -22,6 +22,9 @@ export default function Notificacoes() {
   const [notificacoesNaoLidas, setNotificacoesNaoLidas] = useState(0);
   const [mostrarNotificacoes, setMostrarNotificacoes] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -31,6 +34,7 @@ export default function Notificacoes() {
       if (user) {
         await fetchNotificacoes(user.id);
         
+        // CORRIGIDO: Criar channel e .on() ANTES do .subscribe()
         const channel = supabase
           .channel('notificacoes-realtime')
           .on('postgres_changes', 
@@ -46,20 +50,31 @@ export default function Notificacoes() {
               setNotificacoesNaoLidas(prev => prev + 1);
             }
           )
-          .subscribe();
+          .subscribe((status: string) => {
+            console.log('📡 Notificações status:', status);
+          });
+        
+        channelRef.current = channel;
         
         return () => {
-          channel.unsubscribe();
+          if (channelRef.current) {
+            channelRef.current.unsubscribe();
+          }
         };
       }
     };
     
     getUser();
+
+    return () => {
+      if (channelRef.current) {
+        channelRef.current.unsubscribe();
+      }
+    };
   }, []);
 
   const fetchNotificacoes = async (userId: string) => {
     try {
-      // Buscar apenas as últimas 50 notificações (para não ficar enorme)
       const { data, error } = await supabase
         .from('notificacoes')
         .select('*')
@@ -76,6 +91,30 @@ export default function Notificacoes() {
       console.error('Erro ao buscar notificações:', error);
     }
   };
+
+  // Calcular posição do dropdown
+  useEffect(() => {
+    if (mostrarNotificacoes && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const windowWidth = window.innerWidth;
+      const dropdownWidth = 360;
+      
+      let left = rect.right - dropdownWidth;
+      
+      if (left < 10) {
+        left = 10;
+      }
+      
+      if (left + dropdownWidth > windowWidth - 10) {
+        left = windowWidth - dropdownWidth - 10;
+      }
+      
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: left
+      });
+    }
+  }, [mostrarNotificacoes]);
 
   const marcarComoLida = async (id: string) => {
     try {
@@ -111,7 +150,6 @@ export default function Notificacoes() {
     }
   };
 
-  // NOVA FUNÇÃO: Remover notificações lidas
   const removerLidas = async () => {
     if (!user) return;
     const idsLidas = notificacoes.filter((n: Notificacao) => n.lida).map((n: Notificacao) => n.id);
@@ -153,8 +191,9 @@ export default function Notificacoes() {
   if (!user) return null;
 
   return (
-    <div className="relative">
+    <div className="relative inline-block">
       <button
+        ref={buttonRef}
         onClick={() => setMostrarNotificacoes(!mostrarNotificacoes)}
         className="relative p-2 hover:bg-gray-100 rounded-lg transition"
       >
@@ -173,14 +212,21 @@ export default function Notificacoes() {
             onClick={() => setMostrarNotificacoes(false)}
           />
           
-          {/* CORRIGIDO: Dropdown alinhado à direita e com largura fixa */}
-          <div className="absolute right-0 mt-2 w-[340px] max-w-[90vw] bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
-            {/* Cabeçalho com ações */}
-            <div className="p-3 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-sm font-semibold text-gray-900">
-                Notificações
+          <div 
+            className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              width: '360px',
+              maxWidth: 'calc(100vw - 20px)',
+              maxHeight: 'calc(100vh - 100px)'
+            }}
+          >
+            <div className="p-3 border-b border-gray-200 flex justify-between items-center bg-white sticky top-0">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <span>Notificações</span>
                 {notificacoes.length > 0 && (
-                  <span className="ml-2 text-[0.6rem] text-gray-400 font-normal">
+                  <span className="text-[0.6rem] text-gray-400 font-normal">
                     ({notificacoesNaoLidas} não lidas)
                   </span>
                 )}
@@ -207,8 +253,7 @@ export default function Notificacoes() {
               </div>
             </div>
             
-            {/* Lista de notificações */}
-            <div className="max-h-[400px] overflow-y-auto">
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(60vh - 80px)' }}>
               {notificacoes.length === 0 ? (
                 <div className="p-4 text-center text-gray-400 text-sm">
                   Nenhuma notificação
@@ -243,8 +288,7 @@ export default function Notificacoes() {
               )}
             </div>
 
-            {/* Rodapé com contagem */}
-            <div className="p-2 border-t border-gray-100 bg-gray-50 text-center">
+            <div className="p-2 border-t border-gray-100 bg-gray-50 text-center sticky bottom-0">
               <p className="text-[0.5rem] text-gray-400">
                 {notificacoes.filter((n: Notificacao) => !n.lida).length} não lidas • 
                 {notificacoes.filter((n: Notificacao) => n.lida).length} lidas
