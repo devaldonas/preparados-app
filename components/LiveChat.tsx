@@ -18,16 +18,6 @@ interface LiveChatProps {
   isLive: boolean;
 }
 
-// Tipo para o payload do Realtime
-interface RealtimePayload {
-  new: Mensagem;
-  old: Mensagem;
-  eventType: string;
-}
-
-// Tipo para o status do Realtime
-type RealtimeStatus = 'SUBSCRIBED' | 'TIMED_OUT' | 'CLOSED' | 'CHANNEL_ERROR';
-
 export default function LiveChat({ liveId, isLive }: LiveChatProps) {
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [novaMensagem, setNovaMensagem] = useState('');
@@ -35,9 +25,10 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const channelRef = useRef<any>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -53,7 +44,6 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
         setProfile(profile);
       }
     };
-    
     getUser();
   }, []);
 
@@ -71,8 +61,10 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
 
         if (error) throw error;
         setMensagens(data || []);
+        setError(null);
       } catch (error) {
         console.error('Erro ao buscar mensagens:', error);
+        setError('Erro ao carregar mensagens');
       } finally {
         setLoading(false);
       }
@@ -80,45 +72,19 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
 
     fetchMensagens();
 
-    if (channelRef.current) {
-      channelRef.current.unsubscribe();
-    }
+    // Polling a cada 5 segundos
+    const interval = setInterval(fetchMensagens, 5000);
 
-    const channel = supabase
-      .channel(`live-chat-${liveId}`)
-      .on('postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'live_chat_messages',
-          filter: `live_id=eq.${liveId}`
-        }, 
-        (payload: RealtimePayload) => {
-          const novaMensagem = payload.new as Mensagem;
-          console.log('📨 Nova mensagem recebida (real-time):', novaMensagem);
-          setMensagens(prev => [...prev, novaMensagem]);
-        }
-      )
-      .subscribe((status: RealtimeStatus) => {
-        console.log('📡 Chat status:', status);
-      });
-
-    channelRef.current = channel;
-
-    const intervalId = setInterval(() => {
-      fetchMensagens();
-    }, 3000);
-
-    return () => {
-      if (channelRef.current) {
-        channelRef.current.unsubscribe();
-      }
-      clearInterval(intervalId);
-    };
+    return () => clearInterval(interval);
   }, [liveId]);
 
+  // CORRIGIDO: Scroll APENAS dentro do container do chat
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current && chatContainerRef.current) {
+      // Scroll apenas dentro do container do chat
+      const container = chatContainerRef.current;
+      container.scrollTop = container.scrollHeight;
+    }
   }, [mensagens]);
 
   const enviarMensagem = async (e: React.FormEvent) => {
@@ -152,10 +118,21 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
       setNovaMensagem('');
       inputRef.current?.focus();
     } catch (error) {
-      console.error('❌ Erro ao enviar mensagem:', error);
-      alert('Erro ao enviar mensagem. Tente novamente.');
+      console.error('Erro ao enviar mensagem:', error);
+      setError('Erro ao enviar mensagem');
     } finally {
       setEnviando(false);
+    }
+  };
+
+  const formatarHora = (data: string) => {
+    try {
+      return new Date(data).toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } catch {
+      return '';
     }
   };
 
@@ -167,16 +144,43 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
     );
   }
 
+  if (error) {
+    return (
+      <div className="bg-red-50 rounded-lg p-6 text-center border border-red-200">
+        <p className="text-red-600 text-sm">⚠️ {error}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg overflow-hidden flex flex-col h-[400px] border border-gray-200">
-      <div className="bg-[#FFB800] px-4 py-3 border-b border-gray-200">
-        <h3 className="text-black font-semibold text-sm flex items-center gap-2">
-          <span className="text-lg">💬</span> Chat ao Vivo
-        </h3>
-        <p className="text-black/70 text-xs">{mensagens.length} mensagens</p>
+      <div className="bg-[#FFB800] px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+        <div>
+          <h3 className="text-black font-semibold text-sm flex items-center gap-2">
+            <span className="text-lg">💬</span> Chat ao Vivo
+          </h3>
+          <p className="text-black/70 text-xs">
+            {mensagens.length} mensagens
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-500" />
+          <span className="text-[0.5rem] text-black/50">Ao vivo</span>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white">
+      {/* Container do chat com scroll APENAS AQUI */}
+      <div 
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto p-4 space-y-3 bg-white"
+        style={{ overflowY: 'auto' }}
+      >
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#FFB800]"></div>
@@ -187,7 +191,6 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
           </div>
         ) : (
           mensagens.map((msg) => {
-            const isMensagemLocal = msg.id.startsWith('local-');
             const isOwnMessage = msg.usuario_id === user?.id;
             
             return (
@@ -202,7 +205,7 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
                     ? 'bg-[#FFB800] text-black' 
                     : 'bg-gray-700 text-white'
                 }`}>
-                  {msg.usuario_nome.charAt(0).toUpperCase()}
+                  {msg.usuario_nome?.charAt(0)?.toUpperCase() || '?'}
                 </div>
                 <div className={`flex flex-col max-w-[70%] ${
                   isOwnMessage ? 'items-end' : 'items-start'
@@ -211,20 +214,18 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
                     isOwnMessage 
                       ? 'bg-[#FFB800] text-black rounded-br-none' 
                       : 'bg-gray-100 text-gray-800 rounded-bl-none'
-                  } ${isMensagemLocal ? 'opacity-70' : ''}`}>
+                  }`}>
                     <p className="text-sm break-words">{msg.mensagem}</p>
                   </div>
-                  <span className="text-[0.6rem] text-gray-400 mt-1 flex items-center gap-1">
-                    {msg.usuario_nome} • {new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                    {isMensagemLocal && (
-                      <span className="text-[0.5rem] text-gray-400 italic">(enviando...)</span>
-                    )}
+                  <span className="text-[0.6rem] text-gray-400 mt-1">
+                    {msg.usuario_nome} • {formatarHora(msg.created_at)}
                   </span>
                 </div>
               </div>
             );
           })
         )}
+        {/* Ref para scroll dentro do container */}
         <div ref={messagesEndRef} />
       </div>
 
