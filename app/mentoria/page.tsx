@@ -59,18 +59,18 @@ export default function MentoriaPage() {
       if (error) throw error;
 
       const agora = new Date();
-      const livesData = data || [];
+      const livesData: Live[] = data || [];
 
-      const aoVivo = livesData.find(live => live.is_live);
+      const aoVivo = livesData.find((live: Live) => live.is_live);
       setLiveAtiva(aoVivo || null);
 
-      const passadas = livesData.filter(live => {
+      const passadas = livesData.filter((live: Live) => {
         const dataLive = new Date(live.data_hora);
         return dataLive < agora && !live.is_live && live.disponivel_apos_live !== false;
       });
       setLivesPassadas(passadas);
 
-      const futuras = livesData.filter(live => {
+      const futuras = livesData.filter((live: Live) => {
         const dataLive = new Date(live.data_hora);
         return dataLive >= agora && !live.is_live;
       });
@@ -85,7 +85,6 @@ export default function MentoriaPage() {
 
   const handleAssistir = (live: Live) => {
     setVideoSelecionado(live);
-    // Scroll para o topo da página
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -105,7 +104,6 @@ export default function MentoriaPage() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Mentoria</h1>
       
-      {/* Player em destaque para vídeo selecionado */}
       {videoSelecionado && (
         <div className="mb-12">
           <div className="flex justify-between items-center mb-4">
@@ -141,7 +139,6 @@ export default function MentoriaPage() {
         </div>
       )}
       
-      {/* Live Ativa */}
       {liveAtiva && !videoSelecionado && (
         <div className="mb-12">
           <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
@@ -167,14 +164,13 @@ export default function MentoriaPage() {
         </div>
       )}
 
-      {/* Próximas Lives */}
       {livesFuturas.length > 0 && (
         <div className="mb-12">
           <h2 className="text-2xl font-semibold mb-6">
             Próximas Lives
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {livesFuturas.map((live) => (
+            {livesFuturas.map((live: Live) => (
               <div key={live.id} className="bg-gray-800 rounded-lg overflow-hidden hover:shadow-xl transition-shadow">
                 <div className="aspect-video bg-gray-700 relative">
                   {live.poster_url ? (
@@ -211,14 +207,13 @@ export default function MentoriaPage() {
         </div>
       )}
 
-      {/* Lives Passadas */}
       {livesPassadas.length > 0 && (
         <div>
           <h2 className="text-2xl font-semibold mb-6">
             Lives Passadas
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {livesPassadas.map((live) => (
+            {livesPassadas.map((live: Live) => (
               <div key={live.id} className="bg-gray-800 rounded-lg overflow-hidden hover:shadow-xl transition-shadow">
                 <div className="aspect-video bg-gray-700 relative">
                   {live.poster_url ? (
@@ -261,7 +256,6 @@ export default function MentoriaPage() {
         </div>
       )}
 
-      {/* Mensagem quando não há nada */}
       {!liveAtiva && livesFuturas.length === 0 && livesPassadas.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           Nenhuma live disponível no momento.
