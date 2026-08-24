@@ -17,7 +17,8 @@ import {
   Store, 
   ChevronDown,
   Crown,
-  Shield
+  Shield,
+  Wallet
 } from 'lucide-react'
 
 interface NavBarProps {
@@ -269,6 +270,16 @@ export default function NavBar({
                   <div className="border-t border-gray-100 my-1" />
                 </>
               )}
+
+              {/* ⭐ LINK DA CARTEIRA - ADICIONADO */}
+              <Link
+                href="/carteira"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+              >
+                <Wallet size={18} />
+                Minha Carteira
+              </Link>
 
               <Link
                 href="/loja/pedidos"
