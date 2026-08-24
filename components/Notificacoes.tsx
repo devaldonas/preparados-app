@@ -91,8 +91,9 @@ export default function Notificacoes() {
       
       if (error) throw error;
       
-      setNotificacoes(data || []);
-      const naoLidas = data?.filter(n => !n.lida).length || 0;
+      const notificacoesData: Notificacao[] = data || [];
+      setNotificacoes(notificacoesData);
+      const naoLidas = notificacoesData.filter((n: Notificacao) => !n.lida).length || 0;
       setNotificacoesNaoLidas(naoLidas);
     } catch (error) {
       console.error('Erro ao buscar notificações:', error);
@@ -107,7 +108,7 @@ export default function Notificacoes() {
         .eq('id', id);
       
       setNotificacoes(prev => 
-        prev.map(n => n.id === id ? { ...n, lida: true } : n)
+        prev.map((n: Notificacao) => n.id === id ? { ...n, lida: true } : n)
       );
       setNotificacoesNaoLidas(prev => Math.max(0, prev - 1));
     } catch (error) {
@@ -125,7 +126,7 @@ export default function Notificacoes() {
         .eq('lida', false);
       
       setNotificacoes(prev => 
-        prev.map(n => ({ ...n, lida: true }))
+        prev.map((n: Notificacao) => ({ ...n, lida: true }))
       );
       setNotificacoesNaoLidas(0);
     } catch (error) {
@@ -194,7 +195,7 @@ export default function Notificacoes() {
                   Nenhuma notificação
                 </div>
               ) : (
-                notificacoes.map((notificacao) => (
+                notificacoes.map((notificacao: Notificacao) => (
                   <button
                     key={notificacao.id}
                     onClick={() => handleNotificacaoClick(notificacao)}
