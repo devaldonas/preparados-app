@@ -152,6 +152,7 @@ export default function NavBar({
               </div>
             )}
 
+            {/* NOTIFICAÇÕES - COMPONENTE SEPARADO */}
             <div className="flex items-center gap-2">
               <Notificacoes />
             </div>
