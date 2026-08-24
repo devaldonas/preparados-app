@@ -93,6 +93,12 @@ export default function AdminLayout({
                 >
                   Produtos
                 </Link>
+                <Link 
+                  href="/admin/mentoria" 
+                  className={`text-sm ${pathname.startsWith('/admin/mentoria') ? 'text-[#FFB800] font-semibold' : 'text-gray-600 hover:text-[#FFB800]'}`}
+                >
+                  Mentoria
+                </Link>
               </div>
             </div>
           </div>
