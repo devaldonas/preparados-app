@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import StreamPlayer from '@/components/StreamPlayer';
 import LiveChat from '@/components/LiveChat';
@@ -26,6 +26,8 @@ export default function MentoriaPage() {
   const [livesFuturas, setLivesFuturas] = useState<Live[]>([]);
   const [loading, setLoading] = useState(true);
   const [videoSelecionado, setVideoSelecionado] = useState<Live | null>(null);
+  const [scrollBloqueado, setScrollBloqueado] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchLives();
@@ -48,6 +50,43 @@ export default function MentoriaPage() {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Bloquear scroll automático
+  useEffect(() => {
+    if (!loading && liveAtiva) {
+      // Bloquear scroll por 2 segundos
+      setScrollBloqueado(true);
+      
+      // Forçar a página a ficar no topo
+      window.scrollTo(0, 0);
+      
+      const timer = setTimeout(() => {
+        setScrollBloqueado(false);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loading, liveAtiva]);
+
+  // Interceptar eventos de scroll
+  useEffect(() => {
+    const preventScroll = (e: Event) => {
+      if (scrollBloqueado) {
+        e.preventDefault();
+        window.scrollTo(0, 0);
+      }
+    };
+
+    window.addEventListener('scroll', preventScroll);
+    window.addEventListener('wheel', preventScroll, { passive: false });
+    window.addEventListener('touchmove', preventScroll, { passive: false });
+
+    return () => {
+      window.removeEventListener('scroll', preventScroll);
+      window.removeEventListener('wheel', preventScroll);
+      window.removeEventListener('touchmove', preventScroll);
+    };
+  }, [scrollBloqueado]);
 
   const fetchLives = async () => {
     try {
@@ -96,24 +135,24 @@ export default function MentoriaPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FFB800]"></div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Mentoria</h1>
+    <div ref={containerRef} className="max-w-7xl mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8 text-gray-800">Mentoria</h1>
       
       {videoSelecionado && (
         <div className="mb-12">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold">
+            <h2 className="text-2xl font-semibold text-gray-800">
               {videoSelecionado.titulo}
             </h2>
             <button
               onClick={fecharPlayer}
-              className="text-gray-400 hover:text-white transition"
+              className="text-gray-400 hover:text-gray-600 transition"
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="18" y1="6" x2="6" y2="18" />
@@ -140,15 +179,13 @@ export default function MentoriaPage() {
         </div>
       )}
       
-      {/* Live Ativa COM CHAT */}
       {liveAtiva && !videoSelecionado && (
         <div className="mb-12">
-          <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+          <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2 text-gray-800">
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
             Ao Vivo Agora
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Player - 2 colunas */}
             <div className="lg:col-span-2 bg-gray-900 rounded-xl overflow-hidden">
               <StreamPlayer
                 youtubeId={liveAtiva.youtube_id}
@@ -166,7 +203,6 @@ export default function MentoriaPage() {
               </div>
             </div>
             
-            {/* Chat - 1 coluna */}
             <div className="lg:col-span-1">
               <LiveChat liveId={liveAtiva.id} isLive={liveAtiva.is_live} />
             </div>
@@ -176,13 +212,13 @@ export default function MentoriaPage() {
 
       {livesFuturas.length > 0 && (
         <div className="mb-12">
-          <h2 className="text-2xl font-semibold mb-6">
+          <h2 className="text-2xl font-semibold mb-6 text-gray-800">
             Próximas Lives
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {livesFuturas.map((live: Live) => (
-              <div key={live.id} className="bg-gray-800 rounded-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="aspect-video bg-gray-700 relative">
+              <div key={live.id} className="bg-white rounded-lg overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="aspect-video bg-gray-200 relative">
                   {live.poster_url ? (
                     <img 
                       src={live.poster_url} 
@@ -190,7 +226,7 @@ export default function MentoriaPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-500">
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
                       Sem imagem
                     </div>
                   )}
@@ -204,8 +240,8 @@ export default function MentoriaPage() {
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="font-semibold text-lg">{live.titulo}</h3>
-                  <p className="text-sm text-gray-400 mt-1 line-clamp-2">{live.descricao}</p>
+                  <h3 className="font-semibold text-gray-800 text-lg">{live.titulo}</h3>
+                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">{live.descricao}</p>
                   <div className="flex items-center justify-between mt-3 text-sm text-gray-500">
                     <span>{new Date(live.data_hora).toLocaleDateString('pt-BR')}</span>
                     <span>{live.duracao} min</span>
@@ -219,13 +255,13 @@ export default function MentoriaPage() {
 
       {livesPassadas.length > 0 && (
         <div>
-          <h2 className="text-2xl font-semibold mb-6">
+          <h2 className="text-2xl font-semibold mb-6 text-gray-800">
             Lives Passadas
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {livesPassadas.map((live: Live) => (
-              <div key={live.id} className="bg-gray-800 rounded-lg overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="aspect-video bg-gray-700 relative">
+              <div key={live.id} className="bg-white rounded-lg overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="aspect-video bg-gray-200 relative">
                   {live.poster_url ? (
                     <img 
                       src={live.poster_url} 
@@ -233,7 +269,7 @@ export default function MentoriaPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-500">
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
                       Sem imagem
                     </div>
                   )}
@@ -247,15 +283,15 @@ export default function MentoriaPage() {
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="font-semibold text-lg">{live.titulo}</h3>
-                  <p className="text-sm text-gray-400 mt-1 line-clamp-2">{live.descricao}</p>
+                  <h3 className="font-semibold text-gray-800 text-lg">{live.titulo}</h3>
+                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">{live.descricao}</p>
                   <div className="flex items-center justify-between mt-3 text-sm text-gray-500">
                     <span>{new Date(live.data_hora).toLocaleDateString('pt-BR')}</span>
                     <span>{live.duracao} min</span>
                   </div>
                   <button
                     onClick={() => handleAssistir(live)}
-                    className="mt-4 w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition text-sm"
+                    className="mt-4 w-full bg-[#FFB800] text-black px-4 py-2 rounded-lg hover:bg-[#E6A600] transition text-sm font-semibold"
                   >
                     Assistir
                   </button>
