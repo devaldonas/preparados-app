@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -23,7 +23,8 @@ import {
   Gift
 } from 'lucide-react'
 
-export default function Cadastro() {
+// Componente interno que usa useSearchParams
+function CadastroForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -252,12 +253,10 @@ export default function Cadastro() {
       if (signUpError) throw signUpError
 
       if (authData.user) {
-        // Buscar coordenadas
         const { latitude, longitude } = await getCoordinatesFromCEP(cep)
         
         let groupId = null
 
-        // Criar grupo
         if (latitude && longitude) {
           try {
             const cidadeNome = cidade || 'Localização do Usuário'
@@ -296,7 +295,6 @@ export default function Cadastro() {
           }
         }
 
-        // Buscar o ID do indicador pelo código
         let indicadorId = null
         if (codigoIndicacao) {
           try {
@@ -314,7 +312,6 @@ export default function Cadastro() {
           }
         }
 
-        // Criar perfil do usuário
         const { error: profileError } = await (supabase
           .from('profiles') as any)
           .insert([{
@@ -341,10 +338,8 @@ export default function Cadastro() {
           throw new Error('Erro ao criar perfil')
         }
 
-        // Se foi indicado, dar bônus
         if (indicadorId) {
           try {
-            // Bônus para quem indicou (R$ 5,00)
             await supabase.rpc('adicionar_saldo', {
               p_usuario_id: indicadorId,
               p_valor: 1.00,
@@ -352,7 +347,6 @@ export default function Cadastro() {
               p_descricao: 'Indicação de novo usuário'
             })
             
-            // Bônus para o novo usuário (R$ 5,00)
             await supabase.rpc('adicionar_saldo', {
               p_usuario_id: authData.user.id,
               p_valor: 1.00,
@@ -413,12 +407,11 @@ export default function Cadastro() {
               </h2>
             </div>
 
-            {/* Banner de indicação */}
             {codigoIndicacao && (
               <div className="bg-[#FFB800]/10 border border-[#FFB800]/30 rounded-lg p-3 mb-4 flex items-center gap-2">
                 <Gift size={18} className="text-[#FFB800]" />
                 <p className="text-sm text-gray-700">
-                  🎉 Você foi convidado! Ganhe <strong>R$ 5,00</strong> de bônus ao se cadastrar!
+                  🎉 Você foi convidado! Ganhe <strong>R$ 1,00</strong> de bônus ao se cadastrar!
                 </p>
               </div>
             )}
@@ -783,5 +776,18 @@ export default function Cadastro() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Componente principal com Suspense
+export default function CadastroPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FFB800]"></div>
+      </div>
+    }>
+      <CadastroForm />
+    </Suspense>
   )
 }
