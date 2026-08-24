@@ -37,8 +37,15 @@ const MentoriaCard: React.FC<MentoriaCardProps> = ({
         Mentoria
       </h3>
       
-      <p className="text-[0.55rem] text-gray-400 mt-1">
-        {isLive ? '🔴 Ao vivo agora!' : `Próxima: ${nextEvent}`}
+      <p className="text-[0.55rem] text-gray-400 mt-1 flex items-center gap-1">
+        {isLive ? (
+          <span className="text-red-500 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+            Ao vivo agora!
+          </span>
+        ) : (
+          `Próxima: ${nextEvent}`
+        )}
       </p>
     </Link>
   );

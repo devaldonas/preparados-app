@@ -1,0 +1,7 @@
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:10
+#EXT-X-MEDIA-SEQUENCE:0
+#EXTINF:10.0,
+https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4
+#EXT-X-ENDLIST
