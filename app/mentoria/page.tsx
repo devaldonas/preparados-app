@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import StreamPlayer from '@/components/StreamPlayer';
+import LiveChat from '@/components/LiveChat';
 
 interface Live {
-  id: string;
+  id: number;
   youtube_id: string;
   titulo: string;
   descricao: string;
@@ -139,26 +140,35 @@ export default function MentoriaPage() {
         </div>
       )}
       
+      {/* Live Ativa COM CHAT */}
       {liveAtiva && !videoSelecionado && (
         <div className="mb-12">
           <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
             Ao Vivo Agora
           </h2>
-          <div className="bg-gray-900 rounded-xl overflow-hidden">
-            <StreamPlayer
-              youtubeId={liveAtiva.youtube_id}
-              title={liveAtiva.titulo}
-              isLive={true}
-              posterUrl={liveAtiva.poster_url}
-            />
-            <div className="p-6">
-              <h3 className="text-xl font-bold text-white">{liveAtiva.titulo}</h3>
-              <p className="text-gray-400 mt-2">{liveAtiva.descricao}</p>
-              <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
-                <span>{new Date(liveAtiva.data_hora).toLocaleDateString('pt-BR')}</span>
-                <span>{liveAtiva.duracao} minutos</span>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Player - 2 colunas */}
+            <div className="lg:col-span-2 bg-gray-900 rounded-xl overflow-hidden">
+              <StreamPlayer
+                youtubeId={liveAtiva.youtube_id}
+                title={liveAtiva.titulo}
+                isLive={true}
+                posterUrl={liveAtiva.poster_url}
+              />
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-white">{liveAtiva.titulo}</h3>
+                <p className="text-gray-400 mt-2">{liveAtiva.descricao}</p>
+                <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
+                  <span>{new Date(liveAtiva.data_hora).toLocaleDateString('pt-BR')}</span>
+                  <span>{liveAtiva.duracao} minutos</span>
+                </div>
               </div>
+            </div>
+            
+            {/* Chat - 1 coluna */}
+            <div className="lg:col-span-1">
+              <LiveChat liveId={liveAtiva.id} isLive={liveAtiva.is_live} />
             </div>
           </div>
         </div>
