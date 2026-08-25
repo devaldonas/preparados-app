@@ -27,6 +27,7 @@ export default function Notificacoes() {
   const channelRef = useRef<any>(null);
   const [realtimeStatus, setRealtimeStatus] = useState('desconectado');
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const fetchNotificacoes = async (userId: string) => {
     try {
@@ -47,6 +48,19 @@ export default function Notificacoes() {
     }
   };
 
+  const tocarSomNotificacao = () => {
+    try {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {
+          console.log('Áudio não pode ser reproduzido automaticamente');
+        });
+      }
+    } catch (error) {
+      console.log('Erro ao reproduzir áudio:', error);
+    }
+  };
+
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -55,11 +69,16 @@ export default function Notificacoes() {
       if (user) {
         await fetchNotificacoes(user.id);
         
-        // Configurar Realtime
+        // Carregar áudio
+        audioRef.current = new Audio('/sounds/notificacao.mp3');
+        audioRef.current.load();
+        
+        // Limpar canal anterior
         if (channelRef.current) {
           channelRef.current.unsubscribe();
         }
         
+        // CORRIGIDO: Criar channel com .on() ANTES do .subscribe()
         const channel = supabase
           .channel('notificacoes-realtime')
           .on('postgres_changes', 
@@ -74,6 +93,7 @@ export default function Notificacoes() {
               console.log('🔔 Nova notificação (Realtime):', novaNotificacao);
               setNotificacoes(prev => [novaNotificacao, ...prev]);
               setNotificacoesNaoLidas(prev => prev + 1);
+              tocarSomNotificacao();
             }
           )
           .subscribe((status: string) => {
@@ -83,7 +103,7 @@ export default function Notificacoes() {
         
         channelRef.current = channel;
         
-        // POLLING: Buscar a cada 10 segundos (fallback)
+        // POLLING: Buscar a cada 5 segundos
         if (pollingIntervalRef.current) {
           clearInterval(pollingIntervalRef.current);
         }
@@ -91,7 +111,7 @@ export default function Notificacoes() {
           if (user) {
             fetchNotificacoes(user.id);
           }
-        }, 10000);
+        }, 5000);
         
         return () => {
           if (channelRef.current) {
@@ -99,6 +119,9 @@ export default function Notificacoes() {
           }
           if (pollingIntervalRef.current) {
             clearInterval(pollingIntervalRef.current);
+          }
+          if (audioRef.current) {
+            audioRef.current = null;
           }
         };
       }
