@@ -231,27 +231,22 @@ export default function MinhasMochilas() {
               <div className="bg-gray-50 rounded-lg p-3 text-center">
                 <img src="/images/defesa.jpeg" alt="Defesa" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 <p className="font-bold text-gray-900 text-xs">Defesa</p>
-                <p className="text-[0.6rem] text-gray-500">Atitude mental</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-3 text-center">
                 <img src="/images/agua.jpeg" alt="Água" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 <p className="font-bold text-gray-900 text-xs">Água</p>
-                <p className="text-[0.6rem] text-gray-500">Hidratação</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-3 text-center">
                 <img src="/images/abrigo.jpeg" alt="Abrigo" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 <p className="font-bold text-gray-900 text-xs">Abrigo</p>
-                <p className="text-[0.6rem] text-gray-500">Proteção</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-3 text-center">
                 <img src="/images/alimento.jpeg" alt="Alimento" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 <p className="font-bold text-gray-900 text-xs">Alimento</p>
-                <p className="text-[0.6rem] text-gray-500">Energia</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-3 text-center">
                 <img src="/images/fogo.jpeg" alt="Fogo" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 <p className="font-bold text-gray-900 text-xs">Fogo</p>
-                <p className="text-[0.6rem] text-gray-500">Calor e preparo</p>
               </div>
             </div>
             <p className="text-[0.6rem] text-center text-gray-400 mt-2">
