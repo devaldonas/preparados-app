@@ -9,26 +9,33 @@ export interface CartItem {
   image: string;
   quantity: number;
   max_stock: number;
-  is_digital?: boolean  // 🔥 ADICIONAR
-  free_shipping?: boolean  // 🔥 ADICIONAR (opcional)
+  is_digital?: boolean;
+  free_shipping?: boolean;
 }
 
 interface CartStore {
   items: CartItem[];
+  usarCreditos: boolean;
+  valorCreditos: number;
   addItem: (product: Omit<CartItem, 'quantity'>, quantity?: number) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
-  setItems: (items: CartItem[]) => void; // Novo método para sincronização
+  setItems: (items: CartItem[]) => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
   getSubtotal: () => number;
+  toggleUsarCreditos: () => void;
+  setValorCreditos: (valor: number) => void;
+  getTotalComCreditos: () => number;
 }
 
 export const useCart = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      usarCreditos: false,
+      valorCreditos: 0,
 
       setItems: (items) => {
         set({ items });
@@ -41,7 +48,6 @@ export const useCart = create<CartStore>()(
           );
 
           if (existingItem) {
-            // Se já existe, atualiza a quantidade
             const newQuantity = Math.min(
               existingItem.quantity + quantity,
               existingItem.max_stock || 999
@@ -56,7 +62,6 @@ export const useCart = create<CartStore>()(
             };
           }
 
-          // Se não existe, adiciona novo
           return {
             items: [
               ...state.items,
@@ -89,7 +94,7 @@ export const useCart = create<CartStore>()(
       },
 
       clearCart: () => {
-        set({ items: [] });
+        set({ items: [], usarCreditos: false, valorCreditos: 0 });
       },
 
       getTotalItems: () => {
@@ -102,6 +107,21 @@ export const useCart = create<CartStore>()(
 
       getSubtotal: () => {
         return get().getTotalPrice();
+      },
+
+      // NOVAS FUNÇÕES PARA CRÉDITOS
+      toggleUsarCreditos: () => {
+        set((state) => ({ usarCreditos: !state.usarCreditos }));
+      },
+
+      setValorCreditos: (valor: number) => {
+        set({ valorCreditos: valor });
+      },
+
+      getTotalComCreditos: () => {
+        const total = get().getTotalPrice();
+        const creditos = get().usarCreditos ? get().valorCreditos : 0;
+        return Math.max(0, total - creditos);
       },
     }),
     {

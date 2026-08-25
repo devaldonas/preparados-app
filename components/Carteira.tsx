@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Wallet, TrendingUp, TrendingDown, Gift } from 'lucide-react';
 import BotaoIndicarAmigo from './BotaoIndicarAmigo';
 
 interface Transacao {
@@ -72,16 +71,20 @@ export default function Carteira() {
 
   const carregarEstatisticas = async (userId: string) => {
     try {
-      const { data: indicados, error } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('indicado_por', userId);
+      const { data: transacoesIndicacao, error } = await supabase
+        .from('transacoes')
+        .select('valor')
+        .eq('usuario_id', userId)
+        .eq('tipo', 'indicacao');
 
       if (error) throw error;
       
-      const total = indicados?.length || 0;
+      const total = transacoesIndicacao?.length || 0;
       setTotalIndicados(total);
-      setBonusTotal(total * 1);
+      
+      // CORRIGIDO: Tipagem explícita no reduce
+      const totalBonus = transacoesIndicacao?.reduce((sum: number, t: Transacao) => sum + parseFloat(t.valor as any), 0) || 0;
+      setBonusTotal(totalBonus);
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
     }
@@ -96,17 +99,6 @@ export default function Carteira() {
       indicacao: 'Indicação'
     };
     return labels[tipo] || tipo;
-  };
-
-  const getTipoIcon = (tipo: string): React.ReactNode => {
-    const icons: Record<string, React.ReactNode> = {
-      credito: <TrendingUp size={16} className="text-green-500" />,
-      debito: <TrendingDown size={16} className="text-red-500" />,
-      bonus: <TrendingUp size={16} className="text-yellow-500" />,
-      saque: <TrendingDown size={16} className="text-red-500" />,
-      indicacao: <TrendingUp size={16} className="text-blue-500" />
-    };
-    return icons[tipo] || null;
   };
 
   const getTipoCor = (tipo: string) => {
@@ -149,10 +141,7 @@ export default function Carteira() {
     <div className="max-w-3xl mx-auto p-4">
       {/* Card de Saldo */}
       <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <Wallet size={24} className="text-[#FFB800]" />
-          <h2 className="text-lg font-semibold text-gray-800">Minha Carteira</h2>
-        </div>
+        <h2 className="text-lg font-semibold text-gray-800 mb-2">Minha Carteira</h2>
         <div className="mt-2">
           <p className="text-3xl font-bold text-gray-900">{formatarMoeda(saldo)}</p>
           <p className="text-sm text-gray-500">Saldo disponível</p>
@@ -161,16 +150,12 @@ export default function Carteira() {
 
       {/* Seção de Indicação */}
       <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Gift size={24} className="text-[#FFB800]" />
-          <h3 className="text-lg font-semibold text-gray-800">Indique um Amigo</h3>
-        </div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Indique um Amigo</h3>
 
         <p className="text-sm text-gray-600 mb-4">
           Convide seus amigos para o PREPARADOS. Cada indicação gera bônus!
         </p>
 
-        {/* Substituído pelo BotaoIndicarAmigo */}
         <BotaoIndicarAmigo />
 
         <div className="mt-4 grid grid-cols-2 gap-3">
@@ -180,7 +165,7 @@ export default function Carteira() {
           </div>
           <div className="bg-gray-50 rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-[#FFB800]">
-              R$ {bonusTotal.toFixed(2)}
+              {formatarMoeda(bonusTotal)}
             </p>
             <p className="text-xs text-gray-500">Total em bônus</p>
           </div>
@@ -202,8 +187,8 @@ export default function Carteira() {
                 className="bg-white rounded-lg border border-gray-200 p-4 flex items-center justify-between"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                    {getTipoIcon(transacao.tipo)}
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-600">
+                    {getTipoLabel(transacao.tipo).charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-800">
