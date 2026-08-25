@@ -20,7 +20,8 @@ import {
   Building2,
   Map,
   Hash,
-  Gift
+  Gift,
+  Users
 } from 'lucide-react'
 
 // Componente interno que usa useSearchParams
@@ -39,6 +40,7 @@ function CadastroForm() {
   const [numero, setNumero] = useState('')
   const [complemento, setComplemento] = useState('')
   const [codigoIndicacao, setCodigoIndicacao] = useState('')
+  const [codigoIndicacaoInput, setCodigoIndicacaoInput] = useState('')
   const [buscandoCep, setBuscandoCep] = useState(false)
   
   const [loading, setLoading] = useState(false)
@@ -54,11 +56,12 @@ function CadastroForm() {
     numero: { valid: false, message: '' }
   })
 
-  // Pegar código de indicação da URL
+  // Pegar código de indicação da URL e preencher o input
   useEffect(() => {
     const codigo = searchParams.get('ref')
     if (codigo) {
       setCodigoIndicacao(codigo)
+      setCodigoIndicacaoInput(codigo)
     }
   }, [searchParams])
 
@@ -243,6 +246,9 @@ function CadastroForm() {
       return
     }
 
+    // Usar o código do input se não tiver da URL
+    const codigoFinal = codigoIndicacaoInput || codigoIndicacao
+
     try {
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -296,12 +302,12 @@ function CadastroForm() {
         }
 
         let indicadorId = null
-        if (codigoIndicacao) {
+        if (codigoFinal) {
           try {
             const { data: indicador } = await (supabase
               .from('profiles') as any)
               .select('id')
-              .ilike('id::text', `${codigoIndicacao}%`)
+              .ilike('id::text', `${codigoFinal}%`)
               .maybeSingle()
             
             if (indicador) {
@@ -407,7 +413,7 @@ function CadastroForm() {
               </h2>
             </div>
 
-            {codigoIndicacao && (
+            {(codigoIndicacao || codigoIndicacaoInput) && (
               <div className="bg-[#FFB800]/10 border border-[#FFB800]/30 rounded-lg p-3 mb-4 flex items-center gap-2">
                 <Gift size={18} className="text-[#FFB800]" />
                 <p className="text-sm text-gray-700">
@@ -518,6 +524,31 @@ function CadastroForm() {
                     {password && validations.password.valid && (
                       <p className="text-xs text-green-500 mt-1">Senha válida</p>
                     )}
+                  </div>
+
+                  {/* CAMPO DE CÓDIGO DE INDICAÇÃO - NOVO */}
+                  <div className="pt-2 border-t border-gray-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Users size={16} className="text-gray-400" />
+                      <label className="text-sm font-medium text-gray-600">
+                        Código de indicação (opcional)
+                      </label>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Gift size={18} />
+                      </div>
+                      <input
+                        type="text"
+                        value={codigoIndicacaoInput}
+                        onChange={(e) => setCodigoIndicacaoInput(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition bg-gray-50"
+                        placeholder="Digite o código de quem te indicou"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Se você foi convidado por alguém, insira o código aqui.
+                    </p>
                   </div>
                 </div>
               )}
@@ -700,10 +731,10 @@ function CadastroForm() {
                         CEP: {cep}
                       </span>
                     </div>
-                    {codigoIndicacao && (
+                    {(codigoIndicacaoInput || codigoIndicacao) && (
                       <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
                         <span className="text-gray-500">Código de indicação</span>
-                        <span className="text-[#FFB800] font-medium">{codigoIndicacao}</span>
+                        <span className="text-[#FFB800] font-medium">{codigoIndicacaoInput || codigoIndicacao}</span>
                       </div>
                     )}
                   </div>

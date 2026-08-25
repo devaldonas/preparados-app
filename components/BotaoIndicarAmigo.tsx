@@ -9,7 +9,6 @@ export default function BotaoIndicarAmigo() {
   const [codigoIndicacao, setCodigoIndicacao] = useState('')
   const [loading, setLoading] = useState(true)
 
-  // Buscar o código de indicação do usuário
   useEffect(() => {
     const getCodigo = async () => {
       try {
@@ -26,7 +25,9 @@ export default function BotaoIndicarAmigo() {
     getCodigo()
   }, [])
 
-  // Mensagem completa com código de indicação (bônus R$ 1,00)
+  // Link com código de indicação
+  const linkComIndicacao = `https://preparado.vercel.app/auth/cadastro?ref=${codigoIndicacao || ''}`
+
   const mensagemCompleta = 
     `QUERO TE FAZER UM CONVITE\n\n` +
     `Sabe aquela coisa que a gente sempre fala: "é melhor estar preparado antes de precisar"?\n\n` +
@@ -44,11 +45,8 @@ export default function BotaoIndicarAmigo() {
     `Use este código de indicação: ${codigoIndicacao || 'XXXXXXXX'}\n` +
     `Ao se cadastrar com este código, você ganha bônus!\n\n` +
     `Acesse e conheça:\n` +
-    `https://preparado.vercel.app/\n\n` +
+    `${linkComIndicacao}\n\n` +
     `PREPARADO. Porque cuidar de quem a gente gosta também é ajudar a estar preparado.`
-
-  // Link com código de indicação
-  const linkComIndicacao = `https://preparado.vercel.app/auth/cadastro?ref=${codigoIndicacao || ''}`
 
   const handleCompartilharWhatsApp = () => {
     const mensagemEncoded = encodeURIComponent(mensagemCompleta)

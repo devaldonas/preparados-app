@@ -10,20 +10,36 @@ import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft } from 'lucide-react'
 
 export default function Carrinho() {
   const router = useRouter()
-  const { items, removeItem, updateQuantity, clearCart, getTotalPrice, getTotalItems } = useCart()
+  const { 
+    items, 
+    removeItem, 
+    updateQuantity, 
+    clearCart, 
+    getTotalPrice, 
+    getTotalItems,
+    usarCreditos,
+    toggleUsarCreditos,
+    setValorCreditos,
+    getTotalComCreditos
+  } = useCart()
   
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [saldoCarteira, setSaldoCarteira] = useState(0)
 
   const subtotal = getTotalPrice()
   const totalItems = getTotalItems()
+  const totalComCreditos = getTotalComCreditos()
   
   const todosDigitais = items.every(item => item.is_digital === true)
   const todosComFreteGratis = items.every(item => item.free_shipping === true)
   const shipping = (todosDigitais || todosComFreteGratis) ? 0 : 15.90
-  const total = subtotal + shipping
+  
+  // Usar créditos para abater no total
+  const descontoCreditos = usarCreditos ? Math.min(saldoCarteira, subtotal + shipping) : 0
+  const totalFinal = subtotal + shipping - descontoCreditos
 
   useEffect(() => {
     carregarUsuario()
@@ -37,6 +53,18 @@ export default function Carrinho() {
         return
       }
       setUser(user)
+      
+      // Buscar saldo da carteira
+      const { data: carteira } = await supabase
+        .from('carteira')
+        .select('saldo')
+        .eq('usuario_id', user.id)
+        .single()
+      
+      const saldo = carteira?.saldo || 0
+      setSaldoCarteira(saldo)
+      setValorCreditos(saldo)
+      
     } catch (error) {
       console.error('Erro ao carregar usuário:', error)
       router.push('/auth/login')
@@ -63,7 +91,7 @@ export default function Carrinho() {
         return
       }
 
-      // 🔥 Buscar perfil com o nome completo
+      // Buscar perfil
       const { data: profile, error: profileError } = await (supabase
         .from('profiles') as any)
         .select('cep, full_name, street, number, complement, neighborhood, city, state')
@@ -79,7 +107,7 @@ export default function Carrinho() {
 
       console.log('📦 Perfil encontrado:', profile)
 
-      // 🔥 Construir endereço com o nome correto do usuário
+      // Construir endereço
       const shippingAddress = {
         name: profile?.full_name || user?.user_metadata?.full_name || 'Cliente',
         zip: profile?.cep || '',
@@ -99,11 +127,27 @@ export default function Carrinho() {
         return
       }
 
+      // Debitar créditos se estiver usando
+      if (usarCreditos && descontoCreditos > 0) {
+        const { error: debitoError } = await supabase.rpc('debitar_saldo', {
+          p_usuario_id: user.id,
+          p_valor: descontoCreditos,
+          p_descricao: 'Uso de créditos na compra'
+        })
+        
+        if (debitoError) {
+          console.error('❌ Erro ao debitar créditos:', debitoError)
+          setError('Erro ao usar créditos. Tente novamente.')
+          setProcessing(false)
+          return
+        }
+      }
+
       const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
 
       const orderData = {
         user_id: user.id,
-        total_amount: total,
+        total_amount: totalFinal,
         payment_method: 'pix',
         payment_status: 'pending',
         status: 'pending',
@@ -301,16 +345,43 @@ export default function Carrinho() {
                       )}
                     </span>
                   </div>
+                  
+                  {/* CRÉDITOS - Checkbox */}
+                  {saldoCarteira > 0 && (
+                    <div className="flex justify-between items-center py-2 border-t border-gray-100">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={usarCreditos}
+                          onChange={toggleUsarCreditos}
+                          className="w-4 h-4 accent-[#FFB800]"
+                        />
+                        <span className="text-sm text-gray-600">Usar créditos da carteira</span>
+                      </label>
+                      <span className="text-sm font-semibold text-[#FFB800]">
+                        {formatPrice(saldoCarteira)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {usarCreditos && descontoCreditos > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Desconto (créditos)</span>
+                      <span>- {formatPrice(descontoCreditos)}</span>
+                    </div>
+                  )}
+                  
                   {(todosDigitais || todosComFreteGratis) && items.length > 0 && (
                     <p className="text-[0.6rem] text-green-600 text-right">
                       🎉 Frete grátis aplicado!
                     </p>
                   )}
+                  
                   <div className="border-t border-gray-200 pt-2">
                     <div className="flex justify-between items-center">
                       <span className="font-display font-bold text-gray-900">Total</span>
                       <span className="font-display font-bold text-2xl text-[#FFB800]">
-                        {formatPrice(total)}
+                        {formatPrice(totalFinal)}
                       </span>
                     </div>
                   </div>
@@ -327,7 +398,7 @@ export default function Carrinho() {
                       Processando...
                     </>
                   ) : (
-                    `Finalizar Compra - ${formatPrice(total)}`
+                    `Finalizar Compra - ${formatPrice(totalFinal)}`
                   )}
                 </button>
               </div>
