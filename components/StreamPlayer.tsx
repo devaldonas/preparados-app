@@ -17,7 +17,7 @@ interface StreamPlayerProps {
   posterUrl?: string;
 }
 
-// Icone personalizado do YouTube
+// Ícone personalizado do YouTube
 const YoutubeIcon = () => (
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
@@ -153,7 +153,8 @@ export default function StreamPlayer({
           cc_lang_pref: 'pt',
           hl: 'pt',
           enablejsapi: 1,
-          widget_referrer: window.location.origin
+          widget_referrer: window.location.origin,
+          playsinline: 1 // 🔥 IMPORTANTE PARA IPHONE
         },
         events: {
           onReady: (event: any) => {
@@ -216,6 +217,7 @@ export default function StreamPlayer({
     };
   }, [apiLoaded, cleanYoutubeId, isLive, playerId]);
 
+  // Funções de controle
   const togglePlay = () => {
     if (!playerRef.current || !playerReady) return;
     try {
@@ -224,7 +226,17 @@ export default function StreamPlayer({
       } else {
         playerRef.current.playVideo();
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('Erro no play:', e);
+      // Fallback para iPhone
+      try {
+        if (isPlaying) {
+          playerRef.current.pauseVideo();
+        } else {
+          playerRef.current.playVideo();
+        }
+      } catch (e2) {}
+    }
   };
 
   const toggleMute = () => {
@@ -236,25 +248,77 @@ export default function StreamPlayer({
         playerRef.current.mute();
       }
       setIsMuted(!isMuted);
-    } catch (e) {}
+    } catch (e) {
+      console.error('Erro no mute:', e);
+    }
   };
 
+  // 🔥 CORRIGIDO: Tela cheia para iPhone
   const toggleFullscreen = () => {
     const element = playerWrapperRef.current;
     if (!element) return;
+    
     try {
-      if (!document.fullscreenElement) {
-        element.requestFullscreen?.() || 
-        (element as any).webkitRequestFullscreen?.();
-        setIsFullscreen(true);
-      } else {
-        document.exitFullscreen?.() || 
-        (document as any).webkitExitFullscreen?.();
+      // Verificar se já está em tela cheia
+      if (document.fullscreenElement || 
+          (document as any).webkitFullscreenElement || 
+          (document as any).mozFullScreenElement) {
+        // Sair da tela cheia
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        } else if ((document as any).mozCancelFullScreen) {
+          (document as any).mozCancelFullScreen();
+        }
         setIsFullscreen(false);
+      } else {
+        // Entrar em tela cheia
+        if (element.requestFullscreen) {
+          element.requestFullscreen();
+        } else if ((element as any).webkitRequestFullscreen) {
+          (element as any).webkitRequestFullscreen();
+        } else if ((element as any).mozRequestFullScreen) {
+          (element as any).mozRequestFullScreen();
+        }
+        setIsFullscreen(true);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('Erro no fullscreen:', e);
+      // Fallback: tentar com o elemento pai
+      try {
+        const parent = element.parentElement;
+        if (parent) {
+          if ((parent as any).webkitRequestFullscreen) {
+            (parent as any).webkitRequestFullscreen();
+            setIsFullscreen(true);
+          }
+        }
+      } catch (e2) {}
+    }
   };
 
+  // 🔥 CORRIGIDO: Detectar mudanças de fullscreen
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFull = !!(document.fullscreenElement || 
+        (document as any).webkitFullscreenElement || 
+        (document as any).mozFullScreenElement);
+      setIsFullscreen(isFull);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Monitorar mute
   useEffect(() => {
     if (!playerRef.current || !playerReady) return;
     const checkMute = setInterval(() => {
@@ -270,25 +334,12 @@ export default function StreamPlayer({
     return () => clearInterval(checkMute);
   }, [playerReady]);
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-    };
-  }, []);
-
   if (cleanYoutubeId) {
     return (
       <div 
         ref={playerWrapperRef}
         className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group"
       >
-        {/* CSS para esconder TUDO do YouTube */}
         <style>{`
           /* Esconde todos os controles do YouTube */
           .ytp-chrome-top,
@@ -311,7 +362,6 @@ export default function StreamPlayer({
           button[aria-label*="subtitles" i],
           button[aria-label*="Subtitles" i],
           .ytp-subtitles-button,
-          /* Esconde a legenda em si */
           .caption-window,
           .ytp-caption-window-container,
           .ytp-caption-window,
@@ -323,13 +373,11 @@ export default function StreamPlayer({
             pointer-events: none !important;
           }
           
-          /* Força o player a ocupar todo o espaço */
           #${playerId} {
             width: 100% !important;
             height: 100% !important;
           }
           
-          /* Remove qualquer padding/margem do iframe */
           #${playerId} iframe {
             width: 100% !important;
             height: 100% !important;
@@ -339,7 +387,7 @@ export default function StreamPlayer({
         
         <div ref={containerRef} className="w-full h-full" />
         
-        {/* OVERLAY BLOQUEADOR - impede cliques no YouTube */}
+        {/* OVERLAY BLOQUEADOR */}
         <div className="absolute inset-0 z-20" />
         
         {isLive && (
@@ -381,7 +429,7 @@ export default function StreamPlayer({
           <div className="flex items-center justify-center gap-6 text-white pointer-events-auto">
             <button
               onClick={togglePlay}
-              className="p-3 hover:bg-white/20 rounded-full transition"
+              className="p-3 hover:bg-white/20 rounded-full transition touch-manipulation"
               disabled={!playerReady}
             >
               {isPlaying ? (
@@ -398,7 +446,7 @@ export default function StreamPlayer({
 
             <button
               onClick={toggleMute}
-              className="p-2 hover:bg-white/20 rounded-full transition"
+              className="p-2 hover:bg-white/20 rounded-full transition touch-manipulation"
               disabled={!playerReady}
             >
               {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
@@ -406,7 +454,7 @@ export default function StreamPlayer({
 
             <button
               onClick={toggleFullscreen}
-              className="p-2 hover:bg-white/20 rounded-full transition"
+              className="p-2 hover:bg-white/20 rounded-full transition touch-manipulation"
             >
               {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
             </button>
@@ -443,6 +491,8 @@ export default function StreamPlayer({
           src={src}
           poster={posterUrl}
           className="w-full h-full object-contain"
+          playsInline // 🔥 IMPORTANTE PARA IPHONE
+          webkit-playsinline="true" // 🔥 IMPORTANTE PARA IPHONE
           onTimeUpdate={(e) => {
             setCurrentTime(e.currentTarget.currentTime);
           }}
@@ -560,7 +610,7 @@ export default function StreamPlayer({
     <div className="relative w-full aspect-video bg-gray-800 rounded-lg flex items-center justify-center">
       <div className="text-center text-gray-400">
         <PlayCircle size={48} className="mx-auto mb-2 opacity-50" />
-        <p className="text-sm">Nenhum video disponivel</p>
+        <p className="text-sm">Nenhum vídeo disponível</p>
         {youtubeId && (
           <p className="text-xs text-gray-500 mt-2">ID: {youtubeId}</p>
         )}
