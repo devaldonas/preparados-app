@@ -82,26 +82,41 @@ export default function AdminMentoria() {
         disponivel_apos_live: formData.disponivel_apos_live
       };
 
+      console.log('📤 Payload enviado:', JSON.stringify(payload, null, 2));
+
       let result;
       if (editing) {
         result = await supabase
           .from('mentoria_lives')
           .update(payload)
-          .eq('id', editing.id);
+          .eq('id', editing.id)
+          .select();
       } else {
         result = await supabase
           .from('mentoria_lives')
-          .insert([payload]);
+          .insert([payload])
+          .select();
       }
 
-      if (result.error) throw result.error;
+      console.log('📥 Resposta completa:', result);
+
+      if (result.error) {
+        console.error('❌ Erro detalhado:', {
+          message: result.error.message,
+          code: result.error.code,
+          details: result.error.details,
+          hint: result.error.hint
+        });
+        alert(`Erro: ${result.error.message}`);
+        return;
+      }
       
       await fetchLives();
       resetForm();
       alert(editing ? 'Live atualizada com sucesso!' : 'Live criada com sucesso!');
     } catch (error: any) {
-      console.error('❌ Erro ao salvar:', error);
-      alert(`Erro: ${error?.message || 'Verifique o console'}`);
+      console.error('❌ Erro capturado:', error);
+      alert(`Erro inesperado: ${error?.message || 'Verifique o console'}`);
     }
   };
 
