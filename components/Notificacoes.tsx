@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Bell, Check, X } from 'lucide-react';
+import { Bell, Check, X, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface Notificacao {
@@ -34,7 +34,10 @@ export default function Notificacoes() {
       if (user) {
         await fetchNotificacoes(user.id);
         
-        // CORRIGIDO: Criar channel e .on() ANTES do .subscribe()
+        if (channelRef.current) {
+          channelRef.current.unsubscribe();
+        }
+        
         const channel = supabase
           .channel('notificacoes-realtime')
           .on('postgres_changes', 
@@ -46,8 +49,11 @@ export default function Notificacoes() {
             }, 
             (payload: any) => {
               const novaNotificacao = payload.new as Notificacao;
-              setNotificacoes(prev => [novaNotificacao, ...prev]);
-              setNotificacoesNaoLidas(prev => prev + 1);
+              // Só adiciona se for crítica
+              if (novaNotificacao.tipo === 'critico') {
+                setNotificacoes(prev => [novaNotificacao, ...prev]);
+                setNotificacoesNaoLidas(prev => prev + 1);
+              }
             }
           )
           .subscribe((status: string) => {
@@ -65,20 +71,16 @@ export default function Notificacoes() {
     };
     
     getUser();
-
-    return () => {
-      if (channelRef.current) {
-        channelRef.current.unsubscribe();
-      }
-    };
   }, []);
 
   const fetchNotificacoes = async (userId: string) => {
     try {
+      // Buscar apenas notificações CRÍTICAS
       const { data, error } = await supabase
         .from('notificacoes')
         .select('*')
         .eq('usuario_id', userId)
+        .eq('tipo', 'critico')
         .order('created_at', { ascending: false })
         .limit(50);
       
@@ -91,30 +93,6 @@ export default function Notificacoes() {
       console.error('Erro ao buscar notificações:', error);
     }
   };
-
-  // Calcular posição do dropdown
-  useEffect(() => {
-    if (mostrarNotificacoes && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      const windowWidth = window.innerWidth;
-      const dropdownWidth = 360;
-      
-      let left = rect.right - dropdownWidth;
-      
-      if (left < 10) {
-        left = 10;
-      }
-      
-      if (left + dropdownWidth > windowWidth - 10) {
-        left = windowWidth - dropdownWidth - 10;
-      }
-      
-      setDropdownPosition({
-        top: rect.bottom + 8,
-        left: left
-      });
-    }
-  }, [mostrarNotificacoes]);
 
   const marcarComoLida = async (id: string) => {
     try {
@@ -139,7 +117,8 @@ export default function Notificacoes() {
         .from('notificacoes')
         .update({ lida: true })
         .eq('usuario_id', user.id)
-        .eq('lida', false);
+        .eq('lida', false)
+        .eq('tipo', 'critico');
       
       setNotificacoes(prev => 
         prev.map((n: Notificacao) => ({ ...n, lida: true }))
@@ -161,6 +140,7 @@ export default function Notificacoes() {
         .from('notificacoes')
         .delete()
         .eq('usuario_id', user.id)
+        .eq('tipo', 'critico')
         .in('id', idsLidas);
       
       setNotificacoes(prev => prev.filter((n: Notificacao) => !n.lida));
@@ -187,6 +167,30 @@ export default function Notificacoes() {
     if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
     return date.toLocaleDateString('pt-BR');
   };
+
+  // Calcular posição do dropdown
+  useEffect(() => {
+    if (mostrarNotificacoes && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const windowWidth = window.innerWidth;
+      const dropdownWidth = 360;
+      
+      let left = rect.right - dropdownWidth;
+      
+      if (left < 10) {
+        left = 10;
+      }
+      
+      if (left + dropdownWidth > windowWidth - 10) {
+        left = windowWidth - dropdownWidth - 10;
+      }
+      
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: left
+      });
+    }
+  }, [mostrarNotificacoes]);
 
   if (!user) return null;
 
@@ -224,10 +228,11 @@ export default function Notificacoes() {
           >
             <div className="p-3 border-b border-gray-200 flex justify-between items-center bg-white sticky top-0">
               <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <span>Notificações</span>
+                <AlertTriangle size={16} className="text-red-500" />
+                <span>Alertas Críticos</span>
                 {notificacoes.length > 0 && (
                   <span className="text-[0.6rem] text-gray-400 font-normal">
-                    ({notificacoesNaoLidas} não lidas)
+                    ({notificacoesNaoLidas} não lidos)
                   </span>
                 )}
               </h3>
@@ -256,7 +261,7 @@ export default function Notificacoes() {
             <div className="overflow-y-auto" style={{ maxHeight: 'calc(60vh - 80px)' }}>
               {notificacoes.length === 0 ? (
                 <div className="p-4 text-center text-gray-400 text-sm">
-                  Nenhuma notificação
+                  Nenhum alerta crítico
                 </div>
               ) : (
                 notificacoes.map((notificacao: Notificacao) => (
@@ -264,7 +269,7 @@ export default function Notificacoes() {
                     key={notificacao.id}
                     onClick={() => handleNotificacaoClick(notificacao)}
                     className={`w-full text-left p-3 hover:bg-gray-50 transition border-b border-gray-100 last:border-0 ${
-                      !notificacao.lida ? 'bg-blue-50/50' : 'opacity-70'
+                      !notificacao.lida ? 'bg-red-50/50 border-l-4 border-l-red-500' : 'opacity-70'
                     }`}
                   >
                     <div className="flex items-start gap-2">
@@ -280,7 +285,7 @@ export default function Notificacoes() {
                         </p>
                       </div>
                       {!notificacao.lida && (
-                        <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1.5" />
+                        <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0 mt-1.5 animate-pulse" />
                       )}
                     </div>
                   </button>
@@ -290,8 +295,8 @@ export default function Notificacoes() {
 
             <div className="p-2 border-t border-gray-100 bg-gray-50 text-center sticky bottom-0">
               <p className="text-[0.5rem] text-gray-400">
-                {notificacoes.filter((n: Notificacao) => !n.lida).length} não lidas • 
-                {notificacoes.filter((n: Notificacao) => n.lida).length} lidas
+                {notificacoes.filter((n: Notificacao) => !n.lida).length} não lidos • 
+                {notificacoes.filter((n: Notificacao) => n.lida).length} lidos
               </p>
             </div>
           </div>

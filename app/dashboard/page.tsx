@@ -290,16 +290,16 @@ export default function Dashboard() {
             href="/pessoas"
             className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
           >
-            <div className="w-20 h-20 flex items-center justify-center">
-              <img
-                src="/images/pessoas1-icon.png"
-                alt="Pessoas Proximas"
-                className="w-16 h-16 object-contain"
-                onError={(e) => { e.currentTarget.style.display = "none" }}
-              />
-            </div>
+            <div className="w-20 h-20 flex items-center justify-center bg-gray-50 rounded-xl">
+  <img
+    src="/images/pessoas1-icon.png"
+    alt="Pessoas Próximas"
+    className="w-16 h-16 object-contain"
+    onError={(e) => { e.currentTarget.style.display = "none" }}
+  />
+</div>
             <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
-              Pessoas Proximas
+              Pessoas Próximas
             </h3>
           </Link>
 
@@ -307,14 +307,14 @@ export default function Dashboard() {
             href="/mochilas"
             className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col items-center justify-between text-center min-h-[170px]"
           >
-            <div className="w-20 h-20 flex items-center justify-center">
-              <img
-                src="/images/mochila-icon.png"
-                alt="Mochila"
-                className="w-16 h-16 object-contain"
-                onError={(e) => { e.currentTarget.style.display = "none" }}
-              />
-            </div>
+            <div className="w-20 h-20 flex items-center justify-center bg-gray-50 rounded-xl">
+  <img
+    src="/images/mochila-icon.png"
+    alt="Mochila"
+    className="w-16 h-16 object-contain"
+    onError={(e) => { e.currentTarget.style.display = "none" }}
+  />
+</div>
             <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
               Mochila
             </h3>
@@ -337,7 +337,7 @@ export default function Dashboard() {
             </h3>
           </Link>
 
-          <MentoriaCard isLive={false} nextEvent="Domingo 19h" />
+          <MentoriaCard isLive={false} />
 
           <Link
             href="/loja"

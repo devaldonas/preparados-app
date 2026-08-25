@@ -248,13 +248,13 @@ export default function DashboardApp() {
             <div className="w-20 h-20 flex items-center justify-center">
               <img
                 src="/images/pessoas1-icon.png"
-                alt="Pessoas Proximas"
+                alt="Comunidade"
                 className="w-16 h-16 object-contain"
                 onError={(e) => { e.currentTarget.style.display = "none" }}
               />
             </div>
             <h3 className="font-bold text-gray-900 text-base min-h-[48px] flex items-center justify-center">
-              Pessoas Proximas
+              Comunidade
             </h3>
           </Link>
 
