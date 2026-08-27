@@ -61,14 +61,14 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 overflow-x-auto">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center h-16">
             <div className="flex items-center gap-8">
-              <Link href="/admin" className="font-bold text-black text-lg">
+              <Link href="/admin" className="font-bold text-black text-lg whitespace-nowrap">
                 Admin
               </Link>
-              <div className="flex gap-4">
+              <div className="flex gap-3 whitespace-nowrap">
                 <Link 
                   href="/admin" 
                   className={`text-sm ${pathname === '/admin' ? 'text-[#FFB800] font-semibold' : 'text-gray-600 hover:text-[#FFB800]'}`}
@@ -98,6 +98,31 @@ export default function AdminLayout({
                   className={`text-sm ${pathname.startsWith('/admin/mentoria') ? 'text-[#FFB800] font-semibold' : 'text-gray-600 hover:text-[#FFB800]'}`}
                 >
                   Mentoria
+                </Link>
+                {/* 🔥 NOVOS LINKS */}
+                <Link 
+                  href="/admin/cupons" 
+                  className={`text-sm ${pathname.startsWith('/admin/cupons') ? 'text-[#FFB800] font-semibold' : 'text-gray-600 hover:text-[#FFB800]'}`}
+                >
+                  Cupons
+                </Link>
+                <Link 
+                  href="/admin/usuarios" 
+                  className={`text-sm ${pathname.startsWith('/admin/usuarios') ? 'text-[#FFB800] font-semibold' : 'text-gray-600 hover:text-[#FFB800]'}`}
+                >
+                  Usuários
+                </Link>
+                <Link 
+                  href="/admin/expedicao" 
+                  className={`text-sm ${pathname.startsWith('/admin/expedicao') ? 'text-[#FFB800] font-semibold' : 'text-gray-600 hover:text-[#FFB800]'}`}
+                >
+                  Expedição
+                </Link>
+                <Link 
+                  href="/admin/relatorios" 
+                  className={`text-sm ${pathname.startsWith('/admin/relatorios') ? 'text-[#FFB800] font-semibold' : 'text-gray-600 hover:text-[#FFB800]'}`}
+                >
+                  Relatórios
                 </Link>
               </div>
             </div>

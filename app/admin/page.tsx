@@ -15,7 +15,8 @@ import {
   BarChart3,
   ClipboardList,
   Store,
-  Home
+  Home,
+  Gift
 } from 'lucide-react'
 
 interface Order {
@@ -123,7 +124,6 @@ export default function AdminDashboard() {
         pendingPartners: pendingPartners || 0
       })
 
-      // 🔥 BUSCAR PARCEIROS COM VENDAS
       await carregarParceirosComVendas()
 
     } catch (error) {
@@ -135,7 +135,6 @@ export default function AdminDashboard() {
 
   const carregarParceirosComVendas = async () => {
     try {
-      // Buscar todos os parceiros aprovados
       const { data: partnersData } = await supabase
         .from('partners')
         .select('id, company_name')
@@ -145,7 +144,6 @@ export default function AdminDashboard() {
 
       const partnersWithStats = await Promise.all(
         partnersData.map(async (partner: { id: string; company_name: string }) => {
-          // Buscar produtos do parceiro
           const { data: products } = await supabase
             .from('products')
             .select('id')
@@ -161,7 +159,6 @@ export default function AdminDashboard() {
             }
           }
 
-          // Buscar itens de pedidos
           const { data: orderItems } = await supabase
             .from('order_items')
             .select('order_id, price, quantity')
@@ -177,7 +174,6 @@ export default function AdminDashboard() {
 
           const orderIds = [...new Set((orderItems as OrderItem[]).map((item: OrderItem) => item.order_id))]
 
-          // Buscar pedidos pagos
           const { data: orders } = await supabase
             .from('orders')
             .select('id')
@@ -199,7 +195,6 @@ export default function AdminDashboard() {
         })
       )
 
-      // Filtrar apenas parceiros com vendas
       setPartners(partnersWithStats.filter((p: PartnerStats) => p.total_orders > 0))
 
     } catch (error) {
@@ -384,6 +379,17 @@ export default function AdminDashboard() {
                   {stats.pendingPartners} pendentes
                 </span>
               )}
+            </div>
+          </Link>
+
+          {/* 🔥 CARD DE CUPONS - ADICIONADO */}
+          <Link href="/admin/cupons">
+            <div className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition cursor-pointer hover:border-[#FFB800]">
+              <div className="w-12 h-12 bg-yellow-50 rounded-lg flex items-center justify-center mb-3">
+                <Gift size={24} className="text-yellow-600" />
+              </div>
+              <h3 className="font-display font-bold text-gray-900">Cupons</h3>
+              <p className="text-sm text-gray-500">Gerenciar cupons promocionais</p>
             </div>
           </Link>
 

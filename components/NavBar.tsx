@@ -18,7 +18,8 @@ import {
   ChevronDown,
   Crown,
   Shield,
-  Wallet
+  Wallet,
+  Gift
 } from 'lucide-react'
 
 interface NavBarProps {
@@ -249,6 +250,18 @@ export default function NavBar({
                       BETA
                     </span>
                   </Link>
+                  {/* 🔥 Link para Cupons */}
+                  <Link
+                    href="/admin/cupons"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
+                  >
+                    <Gift size={18} />
+                    Cupons
+                    <span className="ml-auto text-[0.5rem] bg-[#FFB800] text-black px-1.5 py-0.5 rounded-full font-bold">
+                      NOVO
+                    </span>
+                  </Link>
                   <div className="border-t border-gray-100 my-1" />
                 </>
               )}
@@ -271,7 +284,7 @@ export default function NavBar({
                 </>
               )}
 
-              {/* ⭐ LINK DA CARTEIRA - ADICIONADO */}
+              {/* ⭐ LINK DA CARTEIRA */}
               <Link
                 href="/carteira"
                 onClick={() => setIsMenuOpen(false)}

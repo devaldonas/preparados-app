@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Users, Search, Check, X, AlertCircle, Shield } from 'lucide-react'
+import { Search, Check, X, AlertCircle, Eye } from 'lucide-react'
 
 export default function AdminUsuarios() {
   const [users, setUsers] = useState<any[]>([])
@@ -47,13 +47,14 @@ export default function AdminUsuarios() {
 
   const carregarUsuarios = async () => {
     try {
-      const { data, error } = await (supabase
+      const { data: profiles, error: profilesError } = await (supabase
         .from('profiles') as any)
-        .select('*')
+        .select('id, full_name, role, created_at, subscription_status')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
-      setUsers(data || [])
+      if (profilesError) throw profilesError
+
+      setUsers(profiles || [])
     } catch (error) {
       console.error('Erro ao carregar usuários:', error)
       setUsers([])
@@ -95,13 +96,16 @@ export default function AdminUsuarios() {
     }
   }
 
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('pt-BR')
+  }
+
   const filtrarUsuarios = () => {
     let filtered = users
 
     if (searchTerm) {
       filtered = filtered.filter((u: any) => 
-        u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+        u.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
@@ -160,7 +164,7 @@ export default function AdminUsuarios() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="text"
-                  placeholder="Buscar usuários por nome ou email..."
+                  placeholder="Buscar usuários por nome..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:border-[#FFB800] outline-none"
@@ -188,15 +192,16 @@ export default function AdminUsuarios() {
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
                   <th className="text-left p-3 text-sm font-semibold text-gray-600">Usuário</th>
-                  <th className="text-left p-3 text-sm font-semibold text-gray-600">Email</th>
                   <th className="text-left p-3 text-sm font-semibold text-gray-600">Role</th>
+                  <th className="text-left p-3 text-sm font-semibold text-gray-600">Cadastro</th>
+                  <th className="text-left p-3 text-sm font-semibold text-gray-600">Status</th>
                   <th className="text-left p-3 text-sm font-semibold text-gray-600">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {usuariosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-gray-500">
+                    <td colSpan={5} className="text-center py-8 text-gray-500">
                       Nenhum usuário encontrado
                     </td>
                   </tr>
@@ -207,31 +212,48 @@ export default function AdminUsuarios() {
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-[#FFB800]/10 rounded-full flex items-center justify-center">
                             <span className="text-[#FFB800] font-bold">
-                              {user.full_name?.charAt(0) || 'U'}
+                              {user.full_name?.charAt(0)?.toUpperCase() || 'U'}
                             </span>
                           </div>
                           <div>
                             <p className="font-medium text-black">{user.full_name || 'Sem nome'}</p>
-                            <p className="text-xs text-gray-500">ID: {user.id.slice(0, 8)}...</p>
                           </div>
                         </div>
-                      </td>
-                      <td className="p-3 text-gray-600 text-sm">
-                        {user.email || 'Sem email'}
                       </td>
                       <td className="p-3">
                         {getRoleBadge(user.role || 'user')}
                       </td>
+                      <td className="p-3 text-sm text-gray-500">
+                        {formatDate(user.created_at)}
+                      </td>
                       <td className="p-3">
-                        <select
-                          value={user.role || 'user'}
-                          onChange={(e) => atualizarRole(user.id, e.target.value)}
-                          className="text-xs border border-gray-200 rounded px-2 py-1 focus:border-[#FFB800] outline-none"
-                        >
-                          <option value="user">Usuário</option>
-                          <option value="partner">Parceiro</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          user.subscription_status === 'active' ? 'bg-green-100 text-green-700' :
+                          user.subscription_status === 'trial' ? 'bg-blue-100 text-blue-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {user.subscription_status || 'inativo'}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={user.role || 'user'}
+                            onChange={(e) => atualizarRole(user.id, e.target.value)}
+                            className="text-xs border border-gray-200 rounded px-2 py-1 focus:border-[#FFB800] outline-none"
+                          >
+                            <option value="user">Usuário</option>
+                            <option value="partner">Parceiro</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                          <Link
+                            href={`/admin/usuarios/${user.id}`}
+                            className="text-[#FFB800] hover:text-[#E6A600] transition p-1"
+                            title="Ver detalhes"
+                          >
+                            <Eye size={18} />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))
