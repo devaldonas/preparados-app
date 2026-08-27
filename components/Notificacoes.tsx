@@ -69,16 +69,14 @@ export default function Notificacoes() {
       if (user) {
         await fetchNotificacoes(user.id);
         
-        // Carregar áudio
         audioRef.current = new Audio('/sounds/notificacao.mp3');
         audioRef.current.load();
         
-        // Limpar canal anterior
         if (channelRef.current) {
           channelRef.current.unsubscribe();
         }
         
-        // CORRIGIDO: Criar channel com .on() ANTES do .subscribe()
+        // CORRIGIDO: Criar channel e .on() ANTES do .subscribe()
         const channel = supabase
           .channel('notificacoes-realtime')
           .on('postgres_changes', 
@@ -103,7 +101,6 @@ export default function Notificacoes() {
         
         channelRef.current = channel;
         
-        // POLLING: Buscar a cada 5 segundos
         if (pollingIntervalRef.current) {
           clearInterval(pollingIntervalRef.current);
         }
@@ -130,7 +127,7 @@ export default function Notificacoes() {
     getUser();
   }, []);
 
-  // Resto do código (marcarComoLida, marcarTodasComoLidas, removerLidas, etc)
+  // ... resto do código (marcarComoLida, marcarTodasComoLidas, removerLidas, etc)
   const marcarComoLida = async (id: string) => {
     try {
       await supabase

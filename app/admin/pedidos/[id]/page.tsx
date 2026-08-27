@@ -2,360 +2,348 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import AdminGuard from '@/components/AdminGuard'
-import { ArrowLeft, User, Package, CreditCard, Calendar, Truck, DollarSign } from 'lucide-react'
+import { ArrowLeft, CreditCard, Truck, Check, X, Loader2, RefreshCw } from 'lucide-react'
 
 interface Order {
   id: number
   user_id: string
   total_amount: number
+  subtotal: number
+  shipping_cost: number
+  discount_amount: number
   payment_method: string
   payment_status: string
   status: string
   transaction_id: string
   shipping_address: any
   created_at: string
-  updated_at: string
   email: string
   customer_name: string
 }
 
-interface OrderItem {
-  id: number
-  order_id: number
-  product_id: number
-  quantity: number
-  price: number
-  product: {
-    id: number
-    name: string
-    price: number
-    image_url: string
-    category: string
-  }
-}
-
-function OrderDetalhesContent({ params }: { params: Promise<{ id: string }> }) {
-  const [order, setOrder] = useState<Order | null>(null)
-  const [items, setItems] = useState<OrderItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [profile, setProfile] = useState<any>(null)
-  const [shippingAddress, setShippingAddress] = useState<any>(null)
+export default function AdminPedidoDetalhes() {
+  const params = useParams()
   const router = useRouter()
+  const [order, setOrder] = useState<Order | null>(null)
+  const [items, setItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [updating, setUpdating] = useState(false)
+  const [estornando, setEstornando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const carregarDados = async () => {
-      try {
-        const { id } = await params
-        const orderId = parseInt(id)
+    carregarPedido()
+  }, [])
 
-        console.log('📋 Carregando pedido:', orderId)
+  const carregarPedido = async () => {
+    try {
+      const orderId = params.id as string
+      
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single()
 
-        // Buscar pedido
-        const { data: orderData, error: orderError } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('id', orderId)
-          .single()
+      if (orderError) throw orderError
 
-        if (orderError) throw orderError
-        setOrder(orderData)
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('order_items')
+        .select('*, products(name, image_url)')
+        .eq('order_id', orderId)
 
-        // 🔥 PARSE DO ENDEREÇO
-        if (orderData.shipping_address) {
-          try {
-            const parsed = typeof orderData.shipping_address === 'string' 
-              ? JSON.parse(orderData.shipping_address) 
-              : orderData.shipping_address
-            setShippingAddress(parsed)
-          } catch (e) {
-            console.error('Erro ao parsear endereço:', e)
-            setShippingAddress(orderData.shipping_address)
-          }
-        }
+      if (itemsError) throw itemsError
 
-        // Buscar perfil do usuário
-        if (orderData?.user_id) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('full_name, email, phone, city, state, street, number, complement, neighborhood, cep')
-            .eq('id', orderData.user_id)
-            .maybeSingle()
-          setProfile(profileData)
-        }
-
-        // Buscar itens do pedido
-        const { data: itemsData, error: itemsError } = await supabase
-          .from('order_items')
-          .select(`
-            *,
-            product:products (
-              id,
-              name,
-              price,
-              image_url,
-              category
-            )
-          `)
-          .eq('order_id', orderId)
-
-        if (!itemsError) {
-          setItems(itemsData || [])
-        }
-
-      } catch (error) {
-        console.error('Erro ao carregar pedido:', error)
-        router.push('/admin/pedidos')
-      } finally {
-        setLoading(false)
+      // Parse shipping_address se for string
+      if (orderData.shipping_address && typeof orderData.shipping_address === 'string') {
+        try {
+          orderData.shipping_address = JSON.parse(orderData.shipping_address)
+        } catch (e) {}
       }
+
+      setOrder(orderData)
+      setItems(itemsData || [])
+    } catch (error) {
+      console.error('Erro ao carregar pedido:', error)
+      setError('Erro ao carregar pedido')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const atualizarStatus = async (novoStatus: string) => {
+    if (!order) return
+    
+    setUpdating(true)
+    setError(null)
+
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          status: novoStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', order.id)
+
+      if (error) throw error
+
+      // Se o status for 'cancelled', o trigger já estorna os créditos
+      setOrder({ ...order, status: novoStatus })
+      alert(`Pedido ${novoStatus === 'cancelled' ? 'cancelado' : 'atualizado'} com sucesso!`)
+      
+      if (novoStatus === 'cancelled' && order.discount_amount > 0) {
+        alert(`💰 ${order.discount_amount} em créditos foram estornados para a carteira do usuário.`)
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error)
+      setError('Erro ao atualizar status')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const estornarCredits = async () => {
+    if (!order || order.discount_amount <= 0) {
+      alert('Este pedido não possui créditos para estornar.')
+      return
     }
 
-    carregarDados()
-  }, [params, router])
+    if (!confirm(`Deseja estornar R$ ${order.discount_amount} em créditos para o usuário?`)) return
 
-  const formatarMoeda = (valor: number) => {
+    setEstornando(true)
+    setError(null)
+
+    try {
+      const { data, error } = await supabase.rpc('estornar_creditos', {
+        p_usuario_id: order.user_id,
+        p_valor: order.discount_amount,
+        p_pedido_id: order.id,
+        p_descricao: 'Estorno manual de créditos - Pedido #' + order.id
+      })
+
+      if (error) throw error
+
+      alert(`✅ R$ ${order.discount_amount} em créditos estornados com sucesso!`)
+      
+      // Atualizar o pedido para zero desconto (já foi estornado)
+      await supabase
+        .from('orders')
+        .update({ discount_amount: 0 })
+        .eq('id', order.id)
+      
+      setOrder({ ...order, discount_amount: 0 })
+    } catch (error) {
+      console.error('Erro ao estornar créditos:', error)
+      setError('Erro ao estornar créditos')
+    } finally {
+      setEstornando(false)
+    }
+  }
+
+  const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(valor)
+    }).format(price)
   }
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-      case 'processing':
-        return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">Pago</span>
-      case 'delivered':
-        return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">Entregue</span>
-      case 'shipped':
-        return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">Enviado</span>
-      case 'pending':
-        return <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">Pendente</span>
-      case 'cancelled':
-        return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-semibold">Cancelado</span>
-      default:
-        return <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-semibold">{status}</span>
+    const styles = {
+      pending: 'bg-yellow-100 text-yellow-700',
+      paid: 'bg-green-100 text-green-700',
+      shipped: 'bg-blue-100 text-blue-700',
+      delivered: 'bg-green-100 text-green-700',
+      cancelled: 'bg-red-100 text-red-700',
+      refunded: 'bg-gray-100 text-gray-700'
     }
+    return styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-600'
   }
 
-  const getPaymentStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">Pago</span>
-      case 'pending':
-        return <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">Pendente</span>
-      case 'failed':
-        return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-semibold">Falhou</span>
-      default:
-        return <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-semibold">{status}</span>
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      pending: 'Pendente',
+      paid: 'Pago',
+      shipped: 'Enviado',
+      delivered: 'Entregue',
+      cancelled: 'Cancelado',
+      refunded: 'Reembolsado'
     }
+    return labels[status as keyof typeof labels] || status
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FFB800]" />
       </div>
     )
   }
 
-  if (!order) {
+  if (error || !order) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Pedido não encontrado</p>
+      <div className="text-center py-12">
+        <p className="text-red-500">{error || 'Pedido não encontrado'}</p>
+        <Link href="/admin/pedidos" className="text-[#FFB800] hover:underline mt-4 inline-block">
+          Voltar para lista
+        </Link>
       </div>
     )
   }
-
-  // 🔥 NOME DO CLIENTE
-  const nomeCliente = order.customer_name || profile?.full_name || 'Cliente'
-  const emailCliente = order.email || profile?.email || '-'
-
-  // 🔥 ENDEREÇO FORMATADO
-  const enderecoCompleto = shippingAddress ? (
-    <>
-      {shippingAddress.street && <span>{shippingAddress.street}{shippingAddress.number ? `, ${shippingAddress.number}` : ''}</span>}
-      {shippingAddress.complement && <span> - {shippingAddress.complement}</span>}
-      {shippingAddress.neighborhood && <span><br/>{shippingAddress.neighborhood}</span>}
-      {shippingAddress.city && <span>, {shippingAddress.city}</span>}
-      {shippingAddress.state && <span> - {shippingAddress.state}</span>}
-      {shippingAddress.zip && <span><br/>CEP: {shippingAddress.zip}</span>}
-    </>
-  ) : (
-    order.shipping_address || 'Endereço não informado'
-  )
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-6">
-          <Link
-            href="/admin/pedidos"
-            className="p-2 hover:bg-gray-200 rounded-lg transition"
-          >
-            <ArrowLeft size={20} />
-          </Link>
+    <div>
+      <div className="flex items-center gap-4 mb-6">
+        <Link
+          href="/admin/pedidos"
+          className="p-2 hover:bg-gray-100 rounded-lg transition"
+        >
+          <ArrowLeft size={20} />
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold text-black">Pedido #{order.id}</h1>
+          <p className="text-sm text-gray-500">Gerencie os detalhes do pedido</p>
+        </div>
+      </div>
+
+      {/* Status */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-black">Pedido #{order.id}</h1>
-            <p className="text-sm text-gray-500">Detalhes do pedido</p>
+            <p className="text-xs text-gray-400">Status atual</p>
+            <span className={`inline-block mt-1 text-sm px-3 py-1 rounded-full ${getStatusBadge(order.status)}`}>
+              {getStatusLabel(order.status)}
+            </span>
           </div>
-          <div className="ml-auto">
-            {getStatusBadge(order.status)}
+          <div className="flex flex-wrap gap-2">
+            {order.status === 'pending' && (
+              <>
+                <button
+                  onClick={() => atualizarStatus('paid')}
+                  disabled={updating}
+                  className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition flex items-center gap-2"
+                >
+                  {updating ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                  Marcar como Pago
+                </button>
+                <button
+                  onClick={() => atualizarStatus('cancelled')}
+                  disabled={updating}
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition flex items-center gap-2"
+                >
+                  {updating ? <Loader2 size={18} className="animate-spin" /> : <X size={18} />}
+                  Cancelar
+                </button>
+              </>
+            )}
+            {order.status === 'paid' && (
+              <button
+                onClick={() => atualizarStatus('shipped')}
+                disabled={updating}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition flex items-center gap-2"
+              >
+                {updating ? <Loader2 size={18} className="animate-spin" /> : <Truck size={18} />}
+                Marcar como Enviado
+              </button>
+            )}
+            {order.discount_amount > 0 && order.status !== 'cancelled' && (
+              <button
+                onClick={estornarCredits}
+                disabled={estornando}
+                className="bg-[#FFB800] text-black px-4 py-2 rounded-lg hover:bg-[#E5A600] transition flex items-center gap-2"
+              >
+                {estornando ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+                Estornar Créditos (R$ {order.discount_amount.toFixed(2)})
+              </button>
+            )}
           </div>
         </div>
+        {order.discount_amount > 0 && (
+          <p className="text-xs text-green-600 mt-2">
+            💰 {formatPrice(order.discount_amount)} em créditos foram usados neste pedido
+          </p>
+        )}
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Informações do Pedido */}
-          <div className="md:col-span-2 space-y-6">
-            {/* Itens do Pedido */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Package size={20} className="text-[#FFB800]" />
-                Itens do Pedido
-              </h2>
-              
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4 py-3 border-b border-gray-100 last:border-0">
-                    {item.product?.image_url ? (
-                      <img 
-                        src={item.product.image_url} 
-                        alt={item.product.name}
-                        className="w-16 h-16 object-cover rounded-lg"
-                        onError={(e) => { e.currentTarget.style.display = 'none' }}
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Package size={24} className="text-gray-400" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{item.product?.name || 'Produto'}</p>
-                      <p className="text-sm text-gray-500">{item.product?.category || '-'}</p>
-                      <div className="flex justify-between mt-1">
-                        <span className="text-sm text-gray-600">{item.quantity}x</span>
-                        <span className="font-medium text-gray-900">
-                          {formatarMoeda(item.price * item.quantity)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total do Pedido</span>
-                  <span className="text-[#FFB800]">{formatarMoeda(order.total_amount)}</span>
-                </div>
-              </div>
+      {/* Dados do pedido */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Informações do Pedido</h2>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Pedido #</span>
+              <span className="font-medium">{order.transaction_id}</span>
             </div>
-
-            {/* Informações de Pagamento */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <CreditCard size={20} className="text-[#FFB800]" />
-                Informações de Pagamento
-              </h2>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Método</span>
-                  <span className="font-medium">{order.payment_method || 'PIX'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Status</span>
-                  {getPaymentStatusBadge(order.payment_status)}
-                </div>
-                {order.transaction_id && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Transação</span>
-                    <span className="font-mono text-xs text-gray-600">{order.transaction_id}</span>
-                  </div>
-                )}
-              </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Data</span>
+              <span className="font-medium">{new Date(order.created_at).toLocaleString('pt-BR')}</span>
             </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Cliente */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <User size={20} className="text-[#FFB800]" />
-                Cliente
-              </h2>
-              <div className="space-y-2">
-                <div>
-                  <p className="text-sm text-gray-500">Nome</p>
-                  <p className="font-medium">{nomeCliente}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Email</p>
-                  <p className="font-medium">{emailCliente}</p>
-                </div>
-                {profile?.phone && (
-                  <div>
-                    <p className="text-sm text-gray-500">Telefone</p>
-                    <p className="font-medium">{profile.phone}</p>
-                  </div>
-                )}
-              </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Cliente</span>
+              <span className="font-medium">{order.customer_name || 'Não informado'}</span>
             </div>
-
-            {/* Endereço */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Truck size={20} className="text-[#FFB800]" />
-                Endereço
-              </h2>
-              <div className="space-y-2">
-                <div>
-                  <p className="text-sm text-gray-500">Endereço</p>
-                  <p className="font-medium break-words">{enderecoCompleto}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Data */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Calendar size={20} className="text-[#FFB800]" />
-                Data
-              </h2>
-              <div className="space-y-2">
-                <div>
-                  <p className="text-sm text-gray-500">Criado em</p>
-                  <p className="font-medium">{new Date(order.created_at).toLocaleString('pt-BR')}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Última atualização</p>
-                  <p className="font-medium">{new Date(order.updated_at).toLocaleString('pt-BR')}</p>
-                </div>
-              </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">E-mail</span>
+              <span className="font-medium">{order.email || 'Não informado'}</span>
             </div>
           </div>
         </div>
 
-        <div className="mt-8">
-          <Link
-            href="/admin/pedidos"
-            className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-semibold hover:bg-gray-300 transition"
-          >
-            Voltar para Pedidos
-          </Link>
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Resumo Financeiro</h2>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Subtotal</span>
+              <span className="font-medium">{formatPrice(order.subtotal || order.total_amount)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Frete</span>
+              <span className="font-medium">{formatPrice(order.shipping_cost || 0)}</span>
+            </div>
+            {order.discount_amount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Desconto (créditos)</span>
+                <span>- {formatPrice(order.discount_amount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
+              <span>Total</span>
+              <span className="text-[#FFB800]">{formatPrice(order.total_amount)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Itens */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">Itens</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Qtd</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Preço</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={item.id} className="border-b border-gray-100">
+                  <td className="px-4 py-2 text-sm text-gray-800">
+                    {item.products?.name || 'Produto'}
+                  </td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{item.quantity}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600 text-right">{formatPrice(item.price)}</td>
+                  <td className="px-4 py-2 text-sm font-medium text-right">{formatPrice(item.price * item.quantity)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-  )
-}
-
-export default function OrderDetalhes({ params }: { params: Promise<{ id: string }> }) {
-  return (
-    <AdminGuard>
-      <OrderDetalhesContent params={params} />
-    </AdminGuard>
   )
 }

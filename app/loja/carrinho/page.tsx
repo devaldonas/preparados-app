@@ -187,6 +187,14 @@ export default function Carrinho() {
         }
       }
 
+      // 🔥 LIMPAR NOTIFICAÇÕES DE CARRINHO ABANDONADO
+      await supabase
+        .from('notificacoes')
+        .update({ lida: true })
+        .eq('usuario_id', user.id)
+        .eq('titulo', 'Carrinho aguardando pagamento')
+        .eq('tipo', 'info')
+
       clearCart()
       window.location.href = `/loja/checkout?order=${order.id}`
       
@@ -373,7 +381,7 @@ export default function Carrinho() {
                   
                   {(todosDigitais || todosComFreteGratis) && items.length > 0 && (
                     <p className="text-[0.6rem] text-green-600 text-right">
-                      🎉 Frete grátis aplicado!
+                      Frete grátis aplicado!
                     </p>
                   )}
                   

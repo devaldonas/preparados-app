@@ -36,6 +36,9 @@ interface Order {
   items: OrderItem[]
   customer_name: string
   email: string
+  discount_amount?: number
+  subtotal?: number
+  shipping_cost?: number
 }
 
 interface FreteInfo {
@@ -65,7 +68,7 @@ function CheckoutContent() {
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [copiarCodigo, setCopiarCodigo] = useState('')
 
-  const allFreeShipping = order?.items?.every(item => item.product?.free_shipping === true) || false
+  const allFreeShipping = order?.items?.every((item) => item.product?.free_shipping === true) || false
   const valorFrete = allFreeShipping ? 0 : frete.valor
 
   useEffect(() => {
@@ -78,7 +81,6 @@ function CheckoutContent() {
         }
         setUser(user)
 
-        // Buscar perfil do usuário
         const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
@@ -172,10 +174,6 @@ function CheckoutContent() {
     setError(null)
 
     try {
-      console.log('📤 Gerando PIX para pedido:', orderId)
-      console.log('📤 Valor:', order?.total_amount)
-
-      // 🔥 DADOS DO CLIENTE
       const customerName = profile?.full_name || user?.user_metadata?.full_name || 'Cliente'
       const customerEmail = user?.email || 'cliente@email.com'
 
@@ -192,13 +190,11 @@ function CheckoutContent() {
       })
 
       const data = await response.json()
-      console.log('📥 Resposta completa:', JSON.stringify(data, null, 2))
       
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao gerar PIX')
       }
 
-      // 🔥 ATUALIZAR PEDIDO COM NOME E EMAIL DO CLIENTE
       if (orderId) {
         await supabase
           .from('orders')
@@ -335,9 +331,20 @@ function CheckoutContent() {
                 {frete.prazo && valorFrete > 0 && (
                   <p className="text-xs text-gray-400 text-right">Prazo: {frete.prazo}</p>
                 )}
+                
+                {/* 🔥 DESCONTO DOS CRÉDITOS */}
+                {order.discount_amount && order.discount_amount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Desconto (créditos)</span>
+                    <span>- {formatPrice(order.discount_amount)}</span>
+                  </div>
+                )}
+                
                 <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
                   <span>Total</span>
-                  <span className="text-[#FFB800]">{formatPrice(totalComFrete)}</span>
+                  <span className="text-[#FFB800]">
+                    {formatPrice(totalComFrete - (order.discount_amount || 0))}
+                  </span>
                 </div>
               </div>
             </div>
@@ -438,7 +445,7 @@ function CheckoutContent() {
                       Gerando PIX...
                     </>
                   ) : (
-                    `Gerar PIX - ${formatPrice(totalComFrete)}`
+                    `Gerar PIX - ${formatPrice(totalComFrete - (order.discount_amount || 0))}`
                   )}
                 </button>
               )}
