@@ -37,7 +37,6 @@ export default function Carrinho() {
   const todosComFreteGratis = items.every(item => item.free_shipping === true)
   const shipping = (todosDigitais || todosComFreteGratis) ? 0 : 15.90
   
-  // Usar créditos para abater no total
   const descontoCreditos = usarCreditos ? Math.min(saldoCarteira, subtotal + shipping) : 0
   const totalFinal = subtotal + shipping - descontoCreditos
 
@@ -54,7 +53,6 @@ export default function Carrinho() {
       }
       setUser(user)
       
-      // Buscar saldo da carteira
       const { data: carteira } = await supabase
         .from('carteira')
         .select('saldo')
@@ -83,15 +81,12 @@ export default function Carrinho() {
     setError(null)
     
     try {
-      console.log('🛒 Iniciando checkout...')
-      
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/auth/login')
         return
       }
 
-      // Buscar perfil
       const { data: profile, error: profileError } = await (supabase
         .from('profiles') as any)
         .select('cep, full_name, street, number, complement, neighborhood, city, state')
@@ -105,48 +100,36 @@ export default function Carrinho() {
         return
       }
 
-      console.log('📦 Perfil encontrado:', profile)
-
-      // Construir endereço
-      const shippingAddress = {
-        name: profile?.full_name || user?.user_metadata?.full_name || 'Cliente',
-        zip: profile?.cep || '',
-        street: profile?.street || '',
-        number: profile?.number || '',
-        complement: profile?.complement || '',
-        neighborhood: profile?.neighborhood || '',
-        city: profile?.city || '',
-        state: profile?.state || ''
-      }
-
-      console.log('📦 Endereço com nome:', shippingAddress)
-
-      if (!shippingAddress.street || !shippingAddress.number || !shippingAddress.city) {
+      if (!profile?.street || !profile?.number || !profile?.city) {
         setError('Endereço incompleto. Atualize seu perfil antes de finalizar a compra.')
         setProcessing(false)
         return
       }
 
-      // Debitar créditos se estiver usando
+      const shippingAddress = {
+        name: profile.full_name || user?.user_metadata?.full_name || 'Cliente',
+        zip: profile.cep || '',
+        street: profile.street || '',
+        number: profile.number || '',
+        complement: profile.complement || '',
+        neighborhood: profile.neighborhood || '',
+        city: profile.city || '',
+        state: profile.state || ''
+      }
+
+      // 🔥 NÃO DEBITAR CRÉDITOS AQUI - DEBITAR NO CHECKOUT
+      let creditosUtilizados = 0
       if (usarCreditos && descontoCreditos > 0) {
-        const { error: debitoError } = await supabase.rpc('debitar_saldo', {
-          p_usuario_id: user.id,
-          p_valor: descontoCreditos,
-          p_descricao: 'Uso de créditos na compra'
-        })
-        
-        if (debitoError) {
-          console.error('❌ Erro ao debitar créditos:', debitoError)
-          setError('Erro ao usar créditos. Tente novamente.')
-          setProcessing(false)
-          return
-        }
+        creditosUtilizados = descontoCreditos
       }
 
       const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
 
       const orderData = {
         user_id: user.id,
+        subtotal: subtotal,
+        shipping_cost: shipping,
+        discount_amount: creditosUtilizados,
         total_amount: totalFinal,
         payment_method: 'pix',
         payment_status: 'pending',
@@ -170,8 +153,7 @@ export default function Carrinho() {
         return
       }
 
-      console.log('✅ Pedido criado:', order)
-
+      // Inserir itens
       for (const item of items) {
         const { error: itemError } = await (supabase
           .from('order_items') as any)
@@ -187,15 +169,10 @@ export default function Carrinho() {
         }
       }
 
-      // 🔥 LIMPAR NOTIFICAÇÕES DE CARRINHO ABANDONADO
-      await supabase
-        .from('notificacoes')
-        .update({ lida: true })
-        .eq('usuario_id', user.id)
-        .eq('titulo', 'Carrinho aguardando pagamento')
-        .eq('tipo', 'info')
+      // 🔥 NÃO LIMPAR O CARRINHO AQUI - DEIXAR PARA O CHECKOUT
+      // clearCart() - REMOVIDO
 
-      clearCart()
+      // Redirecionar para checkout
       window.location.href = `/loja/checkout?order=${order.id}`
       
     } catch (error) {
@@ -354,7 +331,6 @@ export default function Carrinho() {
                     </span>
                   </div>
                   
-                  {/* CRÉDITOS - Checkbox */}
                   {saldoCarteira > 0 && (
                     <div className="flex justify-between items-center py-2 border-t border-gray-100">
                       <label className="flex items-center gap-2 cursor-pointer">
