@@ -5,18 +5,32 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { Loader2, Crown, Check, CreditCard, QrCode, Copy, X, Zap } from 'lucide-react'
 
+interface Plano {
+  id: number
+  name: string
+  description: string
+  price: string
+  interval: string
+  interval_count: number
+  features: string[]
+  is_active: boolean
+}
+
 export default function PlanosPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [planos, setPlanos] = useState<Plano[]>([])
+  const [planoSelecionado, setPlanoSelecionado] = useState<Plano | null>(null)
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [codigoPix, setCodigoPix] = useState<string | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>('card')
   const [showPix, setShowPix] = useState(false)
   const [paymentId, setPaymentId] = useState<string | null>(null)
   const [checkingPayment, setCheckingPayment] = useState(false)
-  const [parcelas, setParcelas] = useState(1)
+  const [parcelas, setParcelas] = useState(12)
+  const [usuarioTemAcessoGratuito, setUsuarioTemAcessoGratuito] = useState(false)
 
   useEffect(() => {
     carregarDados()
@@ -30,6 +44,39 @@ export default function PlanosPage() {
         return
       }
       setUser(user)
+
+      // Verificar se usuário já tem acesso gratuito
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('acesso_gratuito_ate, subscription_status')
+        .eq('id', user.id)
+        .single()
+
+      if (profile?.acesso_gratuito_ate && new Date(profile.acesso_gratuito_ate) > new Date()) {
+        setUsuarioTemAcessoGratuito(true)
+        // Redirecionar para o dashboard se já tem acesso gratuito
+        router.push('/dashboard')
+        return
+      }
+
+      const { data: planosData, error } = await supabase
+        .from('plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('price', { ascending: true })
+
+      if (error) throw error
+      
+      setPlanos(planosData || [])
+      if (planosData && planosData.length > 0) {
+        // Selecionar plano anual primeiro
+        const anual = planosData.find(p => p.interval === 'year')
+        setPlanoSelecionado(anual || planosData[0])
+        if (anual) {
+          // Definir parcelas padrão como 12 para plano anual
+          setParcelas(12)
+        }
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
     } finally {
@@ -38,38 +85,50 @@ export default function PlanosPage() {
   }
 
   const handleAssinar = async () => {
+    if (!planoSelecionado) return
+    
     setProcessing(true)
     setQrCode(null)
     setCodigoPix(null)
     setPaymentId(null)
 
     try {
-      let valorTotal = 476.28
-      let valorParcela = 39.69
+      const preco = parseFloat(planoSelecionado.price)
+      
+      let valorTotal = preco
+      let valorParcela = preco
+      let parcelasDisponiveis = 1
       
       if (paymentMethod === 'card') {
-        const jurosPorParcela: Record<number, number> = {
-          1: 0, 2: 0, 3: 0, 4: 2.5, 5: 3.0, 6: 3.5, 7: 4.0, 8: 4.5, 9: 5.0, 10: 5.5, 11: 6.0, 12: 6.5
+        if (planoSelecionado.interval === 'year') {
+          parcelasDisponiveis = Math.min(parcelas, 12)
+          const jurosPorParcela: Record<number, number> = {
+            1: 0, 2: 0, 3: 0, 4: 2.5, 5: 3.0, 6: 3.5, 7: 4.0, 8: 4.5, 9: 5.0, 10: 5.5, 11: 6.0, 12: 6.5
+          }
+          const juros = jurosPorParcela[parcelasDisponiveis] || 0
+          const totalComJuros = preco * (1 + juros / 100)
+          valorParcela = totalComJuros / parcelasDisponiveis
+          valorTotal = totalComJuros
+        } else {
+          parcelasDisponiveis = Math.min(parcelas, 3)
+          valorParcela = preco / parcelasDisponiveis
+          valorTotal = preco
         }
-        const juros = jurosPorParcela[parcelas] || 0
-        const totalComJuros = valorTotal * (1 + juros / 100)
-        valorParcela = totalComJuros / parcelas
-        valorTotal = totalComJuros
       }
 
       const response = await fetch('/api/assinatura/criar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          planId: 1,
-          planName: 'Plano Anual',
+          planId: planoSelecionado.id,
+          planName: planoSelecionado.name,
           price: valorParcela,
           totalPrice: valorTotal,
-          interval: 'year',
+          interval: planoSelecionado.interval,
           userId: user.id,
           userEmail: user.email,
           paymentMethod: paymentMethod,
-          parcelas: parcelas
+          parcelas: parcelasDisponiveis
         })
       })
 
@@ -144,11 +203,12 @@ export default function PlanosPage() {
     }
   }
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: string | number) => {
+    const valor = typeof price === 'string' ? parseFloat(price) : price
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(price)
+    }).format(valor)
   }
 
   if (loading) {
@@ -159,6 +219,10 @@ export default function PlanosPage() {
     )
   }
 
+  if (usuarioTemAcessoGratuito) {
+    return null // Redirecionado pelo useEffect
+  }
+
   if (showPix && qrCode) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -167,7 +231,7 @@ export default function PlanosPage() {
             Pagar com PIX
           </h2>
           <p className="text-center text-gray-500 text-sm mb-6">
-            Valor: {formatPrice(476.28)}
+            Valor: {planoSelecionado ? formatPrice(planoSelecionado.price) : ''}
           </p>
           
           {checkingPayment && (
@@ -218,136 +282,201 @@ export default function PlanosPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-gray-900">
-            Assine
+            Escolha seu Plano
           </h1>
-          <div className="flex items-center justify-center gap-2 mt-2">
-            <span className="text-gray-600">Você</span>
-            <img 
-              src="/images/preparado.png" 
-              alt="PREPARADO" 
-              className="h-4 w-auto"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
-          </div>
+          <p className="text-gray-500 mt-2">
+            Selecione o plano que melhor atende suas necessidades
+          </p>
         </div>
 
-        <div className="bg-white rounded-2xl border-2 border-[#FFB800] shadow-lg p-8 max-w-lg mx-auto">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">Acesso Total</h2>
-            <div className="mt-4">
-              <p className="text-sm text-red-500 line-through">
-                De {formatPrice(279.90)}/mês
+        {/* Planos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-8">
+          {planos.map((plano) => {
+            const isSelected = planoSelecionado?.id === plano.id
+            const isPopular = plano.interval === 'year'
+            const precoExibido = plano.interval === 'year' ? '12x de R$ 39,69' : formatPrice(plano.price)
+            
+            return (
+              <div
+                key={plano.id}
+                onClick={() => {
+                  setPlanoSelecionado(plano)
+                  if (plano.interval === 'year') {
+                    setParcelas(12)
+                  }
+                }}
+                className={`bg-white rounded-2xl border-2 p-6 cursor-pointer transition-all hover:shadow-lg ${
+                  isSelected ? 'border-[#FFB800] shadow-lg' : 'border-gray-200 hover:border-[#FFB800]/50'
+                } ${isPopular ? 'relative' : ''}`}
+              >
+                {isPopular && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#FFB800] text-black text-xs font-bold px-4 py-1 rounded-full">
+                    MAIS POPULAR
+                  </div>
+                )}
+                
+                <h3 className="text-xl font-bold text-gray-900">{plano.name}</h3>
+                <p className="text-sm text-gray-500 mt-1">{plano.description}</p>
+                
+                <div className="mt-4">
+                  <span className="text-3xl font-bold text-[#FFB800]">
+                    {plano.interval === 'year' ? '12x de R$ 39,69' : formatPrice(plano.price)}
+                  </span>
+                  <span className="text-sm text-gray-400 ml-1">
+                    /{plano.interval === 'month' ? 'mês' : 'ano'}
+                  </span>
+                  {plano.interval === 'year' && (
+                    <p className="text-xs text-gray-400 mt-1">Total: R$ 476,28</p>
+                  )}
+                </div>
+
+                <ul className="mt-4 space-y-2">
+                  {plano.features?.map((feature, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
+                      <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {isSelected && (
+                  <div className="mt-4 text-xs text-[#FFB800] font-medium">
+                    ✅ Plano selecionado
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Forma de pagamento */}
+        {planoSelecionado && (
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 max-w-lg mx-auto">
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">
+                {planoSelecionado.name}
+              </h2>
+              <p className="text-3xl font-bold text-[#FFB800] mt-2">
+                {planoSelecionado.interval === 'year' ? '12x de R$ 39,69' : formatPrice(planoSelecionado.price)}
               </p>
-              <p className="text-4xl font-bold text-[#FFB800] mt-1">
-                12x de {formatPrice(39.69)}
-              </p>
-              <p className="text-sm text-gray-400 mt-1">Assinatura anual</p>
+              {planoSelecionado.interval === 'year' && (
+                <p className="text-sm text-gray-400">Total: R$ 476,28</p>
+              )}
+            </div>
+
+            <div className="border-t border-gray-200 my-6"></div>
+
+            <div className="space-y-4 mb-6">
+              <p className="text-sm font-medium text-gray-700">Escolha a forma de pagamento:</p>
+              
+              <button
+                onClick={() => setPaymentMethod('card')}
+                className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
+                  paymentMethod === 'card' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
+                }`}
+              >
+                <CreditCard size={20} className={paymentMethod === 'card' ? 'text-[#FFB800]' : 'text-gray-400'} />
+                <div className="text-left">
+                  <p className="font-medium text-sm">Cartão de Crédito</p>
+                  <p className="text-xs text-gray-400">
+                    {planoSelecionado.interval === 'year' ? 'Em até 12x' : 'Em até 3x'}
+                  </p>
+                </div>
+                {paymentMethod === 'card' && <Check size={18} className="ml-auto text-[#FFB800]" />}
+              </button>
+
+              {paymentMethod === 'card' && (
+                <div className="pl-12 pr-4 pb-2">
+                  <label className="text-xs text-gray-500 block mb-1">Parcelas:</label>
+                  <select
+                    value={parcelas}
+                    onChange={(e) => setParcelas(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
+                  >
+                    {planoSelecionado.interval === 'year' ? (
+                      <>
+                        <option value="1">1x sem juros</option>
+                        <option value="2">2x sem juros</option>
+                        <option value="3">3x sem juros</option>
+                        <option value="4">4x com juros</option>
+                        <option value="5">5x com juros</option>
+                        <option value="6">6x com juros</option>
+                        <option value="7">7x com juros</option>
+                        <option value="8">8x com juros</option>
+                        <option value="9">9x com juros</option>
+                        <option value="10">10x com juros</option>
+                        <option value="11">11x com juros</option>
+                        <option value="12">12x com juros</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="1">1x sem juros</option>
+                        <option value="2">2x sem juros</option>
+                        <option value="3">3x sem juros</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              )}
+
+              <button
+                onClick={() => setPaymentMethod('pix')}
+                className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
+                  paymentMethod === 'pix' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
+                }`}
+              >
+                <img 
+                  src={paymentMethod === 'pix' ? '/images/pix-icon-amarelo.svg' : '/images/pix-icon-cinza.svg'} 
+                  alt="PIX" 
+                  className="w-5 h-5"
+                />
+                <div className="text-left">
+                  <p className="font-medium text-sm">PIX</p>
+                  <p className="text-xs text-gray-400">{formatPrice(planoSelecionado.price)} à vista</p>
+                </div>
+                {paymentMethod === 'pix' && <Check size={18} className="ml-auto text-[#FFB800]" />}
+              </button>
+            </div>
+
+            <button
+              onClick={handleAssinar}
+              disabled={processing}
+              className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+            >
+              {processing ? (
+                <>
+                  <Loader2 size={24} className="animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  {paymentMethod === 'pix' ? (
+                    <img src="/images/pix-icon-amarelo.svg" alt="PIX" className="w-5 h-5" />
+                  ) : (
+                    <CreditCard size={20} />
+                  )}
+                  {paymentMethod === 'pix' ? 'Gerar PIX' : 'Assinar agora'}
+                </>
+              )}
+            </button>
+
+            <p className="text-xs text-gray-400 text-center mt-4">
+              Pagamento seguro via Mercado Pago
+            </p>
+
+            <div className="mt-6 flex items-center justify-center gap-4 text-xs text-gray-400">
+              <span>🔒 Pagamento seguro</span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                <img src="/images/pix-icon-amarelo.svg" alt="PIX" className="w-4 h-4" />
+                PIX disponível
+              </span>
             </div>
           </div>
-
-          <div className="border-t border-gray-200 my-6"></div>
-
-          <div className="space-y-4 mb-6">
-            <p className="text-sm font-medium text-gray-700">Escolha a forma de pagamento:</p>
-            
-            <button
-              onClick={() => setPaymentMethod('card')}
-              className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
-                paymentMethod === 'card' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
-              }`}
-            >
-              <CreditCard size={20} className={paymentMethod === 'card' ? 'text-[#FFB800]' : 'text-gray-400'} />
-              <div className="text-left">
-                <p className="font-medium text-sm">Cartão de Crédito</p>
-                <p className="text-xs text-gray-400">12x de {formatPrice(39.69)}</p>
-              </div>
-              {paymentMethod === 'card' && <Check size={18} className="ml-auto text-[#FFB800]" />}
-            </button>
-
-            {paymentMethod === 'card' && (
-              <div className="pl-12 pr-4 pb-2">
-                <label className="text-xs text-gray-500 block mb-1">Parcelas:</label>
-                <select
-                  value={parcelas}
-                  onChange={(e) => setParcelas(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-                >
-                  <option value="1">1x sem juros</option>
-                  <option value="2">2x sem juros</option>
-                  <option value="3">3x sem juros</option>
-                  <option value="4">4x com juros</option>
-                  <option value="5">5x com juros</option>
-                  <option value="6">6x com juros</option>
-                  <option value="7">7x com juros</option>
-                  <option value="8">8x com juros</option>
-                  <option value="9">9x com juros</option>
-                  <option value="10">10x com juros</option>
-                  <option value="11">11x com juros</option>
-                  <option value="12">12x com juros</option>
-                </select>
-                <p className="text-xs text-gray-400 mt-1">
-                  {parcelas <= 3 ? '✅ Sem juros' : '🏦 Taxa de juros aplicada'}
-                </p>
-              </div>
-            )}
-
-            <button
-              onClick={() => setPaymentMethod('pix')}
-              className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
-                paymentMethod === 'pix' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
-              }`}
-            >
-              <img 
-                src={paymentMethod === 'pix' ? '/images/pix-icon-amarelo.svg' : '/images/pix-icon-cinza.svg'} 
-                alt="PIX" 
-                className="w-5 h-5"
-              />
-              <div className="text-left">
-                <p className="font-medium text-sm">PIX</p>
-                <p className="text-xs text-gray-400">{formatPrice(476.28)} à vista</p>
-              </div>
-              {paymentMethod === 'pix' && <Check size={18} className="ml-auto text-[#FFB800]" />}
-            </button>
-          </div>
-
-          <button
-            onClick={handleAssinar}
-            disabled={processing}
-            className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-          >
-            {processing ? (
-              <>
-                <Loader2 size={24} className="animate-spin" />
-                Processando...
-              </>
-            ) : (
-              <>
-                {paymentMethod === 'pix' ? (
-                  <img src="/images/pix-icon-amarelo.svg" alt="PIX" className="w-5 h-5" />
-                ) : (
-                  <CreditCard size={20} />
-                )}
-                {paymentMethod === 'pix' ? 'Gerar PIX' : 'Assinar agora'}
-              </>
-            )}
-          </button>
-
-          <p className="text-xs text-gray-400 text-center mt-4">
-            Pagamento seguro via Mercado Pago
-          </p>
-
-          <div className="mt-6 flex items-center justify-center gap-4 text-xs text-gray-400">
-            <span>🔒 Pagamento seguro</span>
-            <span>•</span>
-            <span className="flex items-center gap-1">
-              <img src="/images/pix-icon-amarelo.svg" alt="PIX" className="w-4 h-4" />
-              PIX disponível
-            </span>
-          </div>
-        </div>
+        )}
 
         <p className="text-center text-xs text-gray-400 mt-6">
           Ao assinar, você concorda com nossos termos de uso.

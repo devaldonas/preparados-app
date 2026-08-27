@@ -26,6 +26,28 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // Função para formatar data/hora no formato: 25/08/2026 19:13 (UTC-3 Brasília)
+  const formatarData = (data: string) => {
+    if (!data) return ''
+    try {
+      const d = new Date(data)
+      const offset = d.getTimezoneOffset() // Diferença em minutos do UTC
+      const brTime = d.getTime() - offset * 60000 - 3 * 60 * 60000 // Converte para UTC-3
+      const brDate = new Date(brTime)
+
+      const dia = String(brDate.getDate()).padStart(2, '0')
+      const mes = String(brDate.getMonth() + 1).padStart(2, '0')
+      const ano = brDate.getFullYear()
+      const hora = String(brDate.getHours()).padStart(2, '0')
+      const minuto = String(brDate.getMinutes()).padStart(2, '0')
+
+      return `${dia}/${mes}/${ano} ${hora}:${minuto}`
+    } catch (e) {
+      console.error('Erro ao formatar data:', e)
+      return ''
+    }
+  }
+
   useEffect(() => {
     const carregarGrupo = async () => {
       try {
@@ -161,6 +183,7 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
           ) : (
             messages.map((msg) => {
               const isOwn = msg.user_id === user?.id
+              console.log('Data do Supabase:', msg.created_at, '-> Formatada:', formatarData(msg.created_at))
               return (
                 <div
                   key={msg.id}
@@ -180,7 +203,7 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
                     }`}>
                       <p className="text-sm">{msg.content}</p>
                       <p className="text-[10px] opacity-70 mt-1">
-                        {new Date(msg.created_at).toLocaleTimeString('pt-BR')}
+                        {formatarData(msg.created_at)}
                       </p>
                     </div>
                   </div>

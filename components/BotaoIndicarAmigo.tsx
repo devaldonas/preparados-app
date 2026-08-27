@@ -42,8 +42,7 @@ export default function BotaoIndicarAmigo() {
     `Não é para ficar com medo. É justamente o contrário.\n\n` +
     `É para ter informação, tranquilidade e saber o que fazer se um dia precisar.\n\n` +
     `Quero você preparado também.\n\n` +
-    `Use este código de indicação: ${codigoIndicacao || 'XXXXXXXX'}\n` +
-    `Ao se cadastrar com este código, você ganha bônus!\n\n` +
+    `Use este código de indicação: ${codigoIndicacao || 'XXXXXXXX'}\n\n` +
     `Acesse e conheça:\n` +
     `${linkComIndicacao}\n\n` +
     `PREPARADO. Porque cuidar de quem a gente gosta também é ajudar a estar preparado.`

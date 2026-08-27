@@ -21,7 +21,8 @@ import {
   Map,
   Hash,
   Gift,
-  Users
+  Users,
+  Tag
 } from 'lucide-react'
 
 // Componente interno que usa useSearchParams
@@ -41,6 +42,10 @@ function CadastroForm() {
   const [complemento, setComplemento] = useState('')
   const [codigoIndicacao, setCodigoIndicacao] = useState('')
   const [codigoIndicacaoInput, setCodigoIndicacaoInput] = useState('')
+  const [nomeIndicador, setNomeIndicador] = useState<string | null>(null)
+  const [codigoCupom, setCodigoCupom] = useState('')
+  const [validandoCupom, setValidandoCupom] = useState(false)
+  const [cupomValido, setCupomValido] = useState<{ valido: boolean; mensagem: string; tipo?: string } | null>(null)
   const [buscandoCep, setBuscandoCep] = useState(false)
   
   const [loading, setLoading] = useState(false)
@@ -56,14 +61,86 @@ function CadastroForm() {
     numero: { valid: false, message: '' }
   })
 
-  // Pegar código de indicação da URL e preencher o input
+  // Pegar código de indicação da URL e buscar o nome do indicador
   useEffect(() => {
     const codigo = searchParams.get('ref')
     if (codigo) {
       setCodigoIndicacao(codigo)
       setCodigoIndicacaoInput(codigo)
+      buscarNomeIndicador(codigo)
     }
   }, [searchParams])
+
+  const buscarNomeIndicador = async (codigo: string) => {
+    try {
+      const { data: indicador, error } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .ilike('id::text', `${codigo}%`)
+        .maybeSingle()
+      
+      if (!error && indicador) {
+        setNomeIndicador(indicador.full_name)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar indicador:', error)
+    }
+  }
+
+  // Validar cupom quando o usuário digitar
+  useEffect(() => {
+    const validarCupom = async () => {
+      if (!codigoCupom.trim()) {
+        setCupomValido(null)
+        return
+      }
+
+      setValidandoCupom(true)
+      try {
+        const { data, error } = await supabase
+          .from('cupons')
+          .select('tipo, descricao, valido_ate, max_uso, usado_vezes, ativo')
+          .eq('codigo', codigoCupom.toUpperCase().trim())
+          .single()
+
+        if (error || !data) {
+          setCupomValido({ valido: false, mensagem: 'Código inválido' })
+          return
+        }
+
+        if (!data.ativo) {
+          setCupomValido({ valido: false, mensagem: 'Cupom inativo' })
+          return
+        }
+
+        if (data.valido_ate && new Date(data.valido_ate) < new Date()) {
+          setCupomValido({ valido: false, mensagem: 'Cupom expirado' })
+          return
+        }
+
+        if (data.max_uso && data.usado_vezes >= data.max_uso) {
+          setCupomValido({ valido: false, mensagem: 'Cupom esgotado' })
+          return
+        }
+
+        const mensagem = data.tipo === 'free_12months' 
+          ? 'Acesso gratuito por 12 meses!'
+          : data.tipo === 'credito' 
+          ? 'Crédito será adicionado à sua carteira!'
+          : 'Cupom válido!'
+
+        setCupomValido({ valido: true, mensagem, tipo: data.tipo })
+      } catch (error) {
+        console.error('Erro ao validar cupom:', error)
+        setCupomValido({ valido: false, mensagem: 'Erro ao validar cupom' })
+      } finally {
+        setValidandoCupom(false)
+      }
+    }
+
+    const timer = setTimeout(validarCupom, 500)
+    return () => clearTimeout(timer)
+  }, [codigoCupom])
 
   const buscarEnderecoPorCep = async (cepValue: string) => {
     const cleanCep = cepValue.replace(/\D/g, '')
@@ -246,7 +323,6 @@ function CadastroForm() {
       return
     }
 
-    // Usar o código do input se não tiver da URL
     const codigoFinal = codigoIndicacaoInput || codigoIndicacao
 
     try {
@@ -344,6 +420,23 @@ function CadastroForm() {
           throw new Error('Erro ao criar perfil')
         }
 
+        if (cupomValido?.valido && codigoCupom.trim()) {
+          try {
+            const { data: cupomData, error: cupomError } = await supabase.rpc('aplicar_cupom', {
+              p_usuario_id: authData.user.id,
+              p_codigo: codigoCupom.toUpperCase().trim()
+            })
+
+            if (cupomError) {
+              console.error('❌ Erro ao aplicar cupom:', cupomError)
+            } else {
+              console.log('✅ Cupom aplicado:', cupomData)
+            }
+          } catch (cupomErr) {
+            console.error('❌ Erro ao aplicar cupom:', cupomErr)
+          }
+        }
+
         if (indicadorId) {
           try {
             await supabase.rpc('adicionar_saldo', {
@@ -413,12 +506,29 @@ function CadastroForm() {
               </h2>
             </div>
 
-            {(codigoIndicacao || codigoIndicacaoInput) && (
-              <div className="bg-[#FFB800]/10 border border-[#FFB800]/30 rounded-lg p-3 mb-4 flex items-center gap-2">
-                <Gift size={18} className="text-[#FFB800]" />
+            {/* Banner de indicação - SEM ÍCONE E SEM EMOJI */}
+            {nomeIndicador && (
+              <div className="bg-[#FFB800]/10 border border-[#FFB800]/30 rounded-lg p-3 mb-4">
                 <p className="text-sm text-gray-700">
-                  🎉 Você foi convidado! Ganhe <strong>R$ 1,00</strong> de bônus ao se cadastrar!
+                  Voce foi convidado por {nomeIndicador}
                 </p>
+              </div>
+            )}
+
+            {(cupomValido?.valido || codigoCupom) && (
+              <div className="space-y-2 mb-4">
+                {cupomValido?.valido && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+                    <Check size={18} className="text-green-600" />
+                    <p className="text-sm text-green-700">{cupomValido.mensagem}</p>
+                  </div>
+                )}
+                {cupomValido?.valido === false && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2">
+                    <X size={18} className="text-red-600" />
+                    <p className="text-sm text-red-700">{cupomValido.mensagem}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -526,12 +636,12 @@ function CadastroForm() {
                     )}
                   </div>
 
-                  {/* CAMPO DE CÓDIGO DE INDICAÇÃO - NOVO */}
+                  {/* CAMPO DE CÓDIGO DE INDICAÇÃO */}
                   <div className="pt-2 border-t border-gray-100">
                     <div className="flex items-center gap-2 mb-1">
                       <Users size={16} className="text-gray-400" />
                       <label className="text-sm font-medium text-gray-600">
-                        Código de indicação (opcional)
+                        Codigo de indicacao (opcional)
                       </label>
                     </div>
                     <div className="relative">
@@ -543,11 +653,55 @@ function CadastroForm() {
                         value={codigoIndicacaoInput}
                         onChange={(e) => setCodigoIndicacaoInput(e.target.value)}
                         className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition bg-gray-50"
-                        placeholder="Digite o código de quem te indicou"
+                        placeholder="Digite o codigo de quem te indicou"
                       />
                     </div>
                     <p className="text-xs text-gray-400 mt-1">
-                      Se você foi convidado por alguém, insira o código aqui.
+                      Se voce foi convidado por alguem, insira o codigo aqui.
+                    </p>
+                  </div>
+
+                  {/* CAMPO DE CUPOM PROMOCIONAL */}
+                  <div className="pt-2 border-t border-gray-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Tag size={16} className="text-gray-400" />
+                      <label className="text-sm font-medium text-gray-600">
+                        Cupom promocional (opcional)
+                      </label>
+                      {validandoCupom && (
+                        <Loader2 size={14} className="animate-spin text-gray-400 ml-auto" />
+                      )}
+                    </div>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Tag size={18} />
+                      </div>
+                      <input
+                        type="text"
+                        value={codigoCupom}
+                        onChange={(e) => setCodigoCupom(e.target.value.toUpperCase())}
+                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition ${
+                          cupomValido?.valido === true ? 'border-green-500 bg-green-50' :
+                          cupomValido?.valido === false ? 'border-red-500 bg-red-50' :
+                          'border-gray-300'
+                        }`}
+                        placeholder="Digite seu cupom (ex: INFLUENCER2026)"
+                      />
+                      {cupomValido?.valido === true && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Check size={18} className="text-green-500" />
+                        </div>
+                      )}
+                      {cupomValido?.valido === false && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <X size={18} className="text-red-500" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {cupomValido?.valido === true 
+                        ? 'Cupom valido! Sera aplicado ao final do cadastro.'
+                        : 'Cupom promocional para acesso gratuito ou creditos.'}
                     </p>
                   </div>
                 </div>
@@ -612,7 +766,7 @@ function CadastroForm() {
                   <div className="grid grid-cols-3 gap-3">
                     <div className="col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Número
+                        Numero
                       </label>
                       <div className="relative">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -625,7 +779,7 @@ function CadastroForm() {
                           className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] transition ${
                             numero && validations.numero.valid ? 'border-green-500' : 'border-gray-300'
                           }`}
-                          placeholder="Nº"
+                          placeholder="N"
                         />
                       </div>
                     </div>
@@ -721,7 +875,7 @@ function CadastroForm() {
                       <span className="text-gray-900 font-medium">{email}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Endereço</span>
+                      <span className="text-gray-500">Endereco</span>
                       <span className="text-gray-900 font-medium text-right">
                         {logradouro}, {numero}
                         {complemento && `, ${complemento}`}
@@ -733,15 +887,27 @@ function CadastroForm() {
                     </div>
                     {(codigoIndicacaoInput || codigoIndicacao) && (
                       <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
-                        <span className="text-gray-500">Código de indicação</span>
+                        <span className="text-gray-500">Codigo de indicacao</span>
                         <span className="text-[#FFB800] font-medium">{codigoIndicacaoInput || codigoIndicacao}</span>
+                      </div>
+                    )}
+                    {cupomValido?.valido && (
+                      <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
+                        <span className="text-gray-500">Cupom</span>
+                        <span className="text-green-600 font-medium">{codigoCupom}</span>
+                      </div>
+                    )}
+                    {nomeIndicador && (
+                      <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
+                        <span className="text-gray-500">Convidado por</span>
+                        <span className="text-gray-900 font-medium">{nomeIndicador}</span>
                       </div>
                     )}
                   </div>
 
                   <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-4">
                     <p className="text-sm text-yellow-700">
-                      Ao criar sua conta, você concorda com os termos de uso e política de privacidade.
+                      Ao criar sua conta, voce concorda com os termos de uso e politica de privacidade.
                     </p>
                   </div>
                 </div>
@@ -791,9 +957,9 @@ function CadastroForm() {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-500">
-                Já tem uma conta?{' '}
+                Ja tem uma conta?{' '}
                 <Link href="/auth/login" className="text-[#FFB800] hover:underline font-medium">
-                  Faça login
+                  Faca login
                 </Link>
               </p>
             </div>
@@ -802,7 +968,7 @@ function CadastroForm() {
 
         <div className="mt-4 text-center">
           <p className="text-xs text-gray-400">
-            Seus dados estão seguros. Não compartilhamos suas informações.
+            Seus dados estao seguros. Nao compartilhamos suas informacoes.
           </p>
         </div>
       </div>
