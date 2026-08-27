@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, CreditCard, QrCode, Wallet, Truck, Loader2 } from 'lucide-react'
 import { calcularFretePedido } from '@/lib/frete'
+import { useCart } from '@/lib/store/cart'
 
 interface OrderItem {
   id: number
@@ -26,19 +27,20 @@ interface OrderItem {
 
 interface Order {
   id: number
+  user_id: string
   total_amount: number
+  subtotal: number
+  shipping_cost: number
+  discount_amount: number
   payment_method: string
   payment_status: string
   status: string
   transaction_id: string
   shipping_address: any
   created_at: string
-  items: OrderItem[]
   customer_name: string
   email: string
-  discount_amount?: number
-  subtotal?: number
-  shipping_cost?: number
+  items: OrderItem[]
 }
 
 interface FreteInfo {
@@ -51,6 +53,7 @@ function CheckoutContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams?.get('order')
+  const { clearCart } = useCart()
   
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
@@ -67,9 +70,12 @@ function CheckoutContent() {
   const [paymentMethod, setPaymentMethod] = useState('pix')
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [copiarCodigo, setCopiarCodigo] = useState('')
+  const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false)
 
-  const allFreeShipping = order?.items?.every((item) => item.product?.free_shipping === true) || false
-  const valorFrete = allFreeShipping ? 0 : frete.valor
+  const subtotal = order?.subtotal || 0
+  const valorFrete = order?.shipping_cost || 0
+  const desconto = order?.discount_amount || 0
+  const totalFinal = order?.total_amount || 0
 
   useEffect(() => {
     const carregarDados = async () => {
@@ -103,13 +109,15 @@ function CheckoutContent() {
             .single()
           
           if (orderData) {
+            if (orderData.shipping_address && typeof orderData.shipping_address === 'string') {
+              try {
+                orderData.shipping_address = JSON.parse(orderData.shipping_address)
+              } catch (e) {}
+            }
+            
             setOrder(orderData)
             
-            const hasFreeShipping = orderData.items?.every((item: any) => item.product?.free_shipping === true)
-            if (hasFreeShipping) {
-              setFrete({ valor: 0, prazo: 'Grátis', detalhes: [] })
-              setCepDestino('')
-            } else if (profileData?.cep) {
+            if (profileData?.cep) {
               setCepDestino(profileData.cep)
               setCepDigitado(profileData.cep)
               await calcularFrete(orderData.items, profileData.cep)
@@ -177,11 +185,29 @@ function CheckoutContent() {
       const customerName = profile?.full_name || user?.user_metadata?.full_name || 'Cliente'
       const customerEmail = user?.email || 'cliente@email.com'
 
+      // 🔥 DEBITAR CRÉDITOS AGORA
+      if (desconto > 0) {
+        const { error: debitoError } = await supabase.rpc('debitar_saldo', {
+          p_usuario_id: user.id,
+          p_valor: desconto,
+          p_descricao: 'Uso de créditos na compra - Pedido #' + orderId
+        })
+        
+        if (debitoError) {
+          console.error('❌ Erro ao debitar créditos:', debitoError)
+          setError('Erro ao usar créditos. Tente novamente.')
+          setProcessing(false)
+          return
+        }
+        console.log('✅ Créditos debitados:', desconto)
+      }
+
+      // 🔥 GERAR PIX
       const response = await fetch('/api/mercadopago/pix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          total: order?.total_amount || 0,
+          total: totalFinal,
           orderId: parseInt(orderId as string),
           userEmail: customerEmail,
           customerName: customerName,
@@ -200,16 +226,7 @@ function CheckoutContent() {
           .from('orders')
           .update({
             customer_name: customerName,
-            email: customerEmail,
-            shipping_address: profile?.address ? {
-              street: profile.street,
-              number: profile.number,
-              complement: profile.complement,
-              neighborhood: profile.neighborhood,
-              city: profile.city,
-              state: profile.state,
-              zip: profile.cep
-            } : null
+            email: customerEmail
           })
           .eq('id', parseInt(orderId as string))
       }
@@ -223,6 +240,9 @@ function CheckoutContent() {
       if (data.codigoPix) {
         setCopiarCodigo(data.codigoPix)
       }
+
+      // 🔥 LIMPAR CARRINHO APÓS GERAR PIX
+      clearCart()
       
     } catch (error: any) {
       console.error('❌ Erro ao gerar PIX:', error)
@@ -260,8 +280,7 @@ function CheckoutContent() {
     )
   }
 
-  const subtotal = order.items?.reduce((acc, item) => acc + (item.price * item.quantity), 0) || 0
-  const totalComFrete = subtotal + valorFrete
+  const allFreeShipping = order?.items?.every((item) => item.product?.free_shipping === true) || false
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -324,27 +343,20 @@ function CheckoutContent() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Frete</span>
                   <span className={`font-medium ${allFreeShipping || valorFrete === 0 ? 'text-green-600' : ''}`}>
-                    {allFreeShipping || valorFrete === 0 ? 'Grátis 🎉' : formatPrice(valorFrete)}
+                    {allFreeShipping || valorFrete === 0 ? 'Grátis' : formatPrice(valorFrete)}
                   </span>
                 </div>
                 
-                {frete.prazo && valorFrete > 0 && (
-                  <p className="text-xs text-gray-400 text-right">Prazo: {frete.prazo}</p>
-                )}
-                
-                {/* 🔥 DESCONTO DOS CRÉDITOS */}
-                {order.discount_amount && order.discount_amount > 0 && (
+                {desconto > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Desconto (créditos)</span>
-                    <span>- {formatPrice(order.discount_amount)}</span>
+                    <span>- {formatPrice(desconto)}</span>
                   </div>
                 )}
                 
                 <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
                   <span>Total</span>
-                  <span className="text-[#FFB800]">
-                    {formatPrice(totalComFrete - (order.discount_amount || 0))}
-                  </span>
+                  <span className="text-[#FFB800]">{formatPrice(totalFinal)}</span>
                 </div>
               </div>
             </div>
@@ -382,7 +394,6 @@ function CheckoutContent() {
 
             {allFreeShipping && (
               <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
-                <span className="text-lg">🎉</span>
                 <span className="font-medium">Frete grátis aplicado a todos os produtos!</span>
               </div>
             )}
@@ -445,7 +456,7 @@ function CheckoutContent() {
                       Gerando PIX...
                     </>
                   ) : (
-                    `Gerar PIX - ${formatPrice(totalComFrete - (order.discount_amount || 0))}`
+                    `Gerar PIX - ${formatPrice(totalFinal)}`
                   )}
                 </button>
               )}

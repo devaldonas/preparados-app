@@ -42,7 +42,14 @@ export default function NavBar({
   const [user, setUser] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const cartCount = getTotalItems()
+  const [cartCount, setCartCount] = useState(0)
+  const [mounted, setMounted] = useState(false)
+
+  // 🔥 CORRIGIDO: só atualizar o cartCount no cliente
+  useEffect(() => {
+    setMounted(true)
+    setCartCount(getTotalItems())
+  }, [getTotalItems])
 
   useEffect(() => {
     carregarUsuario()
@@ -84,13 +91,11 @@ export default function NavBar({
     router.push('/auth/login')
   }
 
-  // 🔥 LINKS DA NAVBAR (sem Admin)
   const getNavLinks = () => {
     const links = [
       { href: '/loja', label: 'Loja', icon: Store }
     ]
 
-    // Admin NÃO aparece aqui - só no menu suspenso
     if (userProfile?.role === 'partner') {
       links.push({ href: '/parceiro/dashboard', label: 'Dashboard', icon: LayoutDashboard })
     } else if (user) {
@@ -101,7 +106,6 @@ export default function NavBar({
   }
 
   const navLinks = getNavLinks()
-
   const isTrial = userProfile?.subscription_status === 'trial'
   const isAdmin = userProfile?.role === 'admin'
 
@@ -109,7 +113,6 @@ export default function NavBar({
     <div className="bg-white border-b border-gray-100 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          {/* Lado esquerdo com a LOGO */}
           <div className="flex items-center gap-3 flex-1">
             {showBackButton ? (
               <button
@@ -123,7 +126,6 @@ export default function NavBar({
               <div className="lg:hidden w-8" />
             )}
             
-            {/* LOGO */}
             <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2">
               <img 
                 src="/logo.svg" 
@@ -136,9 +138,7 @@ export default function NavBar({
             </Link>
           </div>
 
-          {/* Lado direito - Ações */}
           <div className="flex items-center gap-2">
-            {/* Links de navegação - Desktop (sem Admin) */}
             {!hideNavLinks && user && (
               <div className="hidden lg:flex items-center gap-1">
                 {navLinks.map((link) => (
@@ -154,19 +154,18 @@ export default function NavBar({
               </div>
             )}
 
-            {/* NOTIFICAÇÕES - COMPONENTE SEPARADO */}
             <div className="flex items-center gap-2">
               <Notificacoes />
             </div>
             
-            {/* Botão do Carrinho */}
             {showCart && (
               <Link
                 href="/loja/carrinho"
                 className="relative p-2 hover:bg-gray-100 rounded-lg transition"
               >
                 <ShoppingBag size={20} className="text-gray-700" />
-                {cartCount > 0 && (
+                {/* 🔥 CORRIGIDO: só mostrar se mounted */}
+                {mounted && cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-[#FFB800] text-black text-[0.55rem] font-bold rounded-full w-5 h-5 flex items-center justify-center">
                     {cartCount}
                   </span>
@@ -174,7 +173,6 @@ export default function NavBar({
               </Link>
             )}
 
-            {/* Ícone do Usuário */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 hover:bg-gray-100 rounded-lg transition flex items-center gap-2"
@@ -190,7 +188,6 @@ export default function NavBar({
           </div>
         </div>
 
-        {/* MENU DROPDOWN */}
         {isMenuOpen && (
           <>
             <div 
@@ -199,7 +196,6 @@ export default function NavBar({
             />
             
             <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
-              {/* Cabeçalho do usuário */}
               <div className="px-4 py-3 border-b border-gray-100">
                 <p className="text-sm font-medium text-gray-900">
                   {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}
@@ -218,7 +214,6 @@ export default function NavBar({
                 </div>
               </div>
 
-              {/* Links de navegação - Mobile */}
               {!hideNavLinks && user && (
                 <div className="lg:hidden">
                   {navLinks.map((link) => (
@@ -236,7 +231,6 @@ export default function NavBar({
                 </div>
               )}
 
-              {/* 🔥 LINK ADMIN - APENAS NO MENU SUSPENSO */}
               {isAdmin && (
                 <>
                   <Link
@@ -250,7 +244,6 @@ export default function NavBar({
                       BETA
                     </span>
                   </Link>
-                  {/* 🔥 Link para Cupons */}
                   <Link
                     href="/admin/cupons"
                     onClick={() => setIsMenuOpen(false)}
@@ -266,7 +259,6 @@ export default function NavBar({
                 </>
               )}
 
-              {/* Link Assinar Premium - apenas para trial */}
               {isTrial && (
                 <>
                   <Link
@@ -284,7 +276,6 @@ export default function NavBar({
                 </>
               )}
 
-              {/* ⭐ LINK DA CARTEIRA */}
               <Link
                 href="/carteira"
                 onClick={() => setIsMenuOpen(false)}
@@ -319,7 +310,7 @@ export default function NavBar({
               >
                 <ShoppingBag size={18} />
                 Carrinho
-                {cartCount > 0 && (
+                {mounted && cartCount > 0 && (
                   <span className="ml-auto bg-[#FFB800] text-black text-[0.55rem] font-bold rounded-full w-5 h-5 flex items-center justify-center">
                     {cartCount}
                   </span>
