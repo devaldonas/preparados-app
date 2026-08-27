@@ -154,7 +154,7 @@ export default function StreamPlayer({
           hl: 'pt',
           enablejsapi: 1,
           widget_referrer: window.location.origin,
-          playsinline: 1 // 🔥 IMPORTANTE PARA IPHONE
+          playsinline: 1
         },
         events: {
           onReady: (event: any) => {
@@ -217,7 +217,6 @@ export default function StreamPlayer({
     };
   }, [apiLoaded, cleanYoutubeId, isLive, playerId]);
 
-  // Funções de controle
   const togglePlay = () => {
     if (!playerRef.current || !playerReady) return;
     try {
@@ -228,14 +227,6 @@ export default function StreamPlayer({
       }
     } catch (e) {
       console.error('Erro no play:', e);
-      // Fallback para iPhone
-      try {
-        if (isPlaying) {
-          playerRef.current.pauseVideo();
-        } else {
-          playerRef.current.playVideo();
-        }
-      } catch (e2) {}
     }
   };
 
@@ -260,9 +251,13 @@ export default function StreamPlayer({
     
     try {
       // Verificar se já está em tela cheia
-      if (document.fullscreenElement || 
-          (document as any).webkitFullscreenElement || 
-          (document as any).mozFullScreenElement) {
+      const isFullscreenNow = !!(
+        document.fullscreenElement || 
+        (document as any).webkitFullscreenElement || 
+        (document as any).mozFullScreenElement
+      );
+      
+      if (isFullscreenNow) {
         // Sair da tela cheia
         if (document.exitFullscreen) {
           document.exitFullscreen();
@@ -274,6 +269,10 @@ export default function StreamPlayer({
         setIsFullscreen(false);
       } else {
         // Entrar em tela cheia
+        // Para iOS, precisamos usar webkitEnterFullscreen no elemento video
+        // ou usar o container com webkitRequestFullscreen
+        
+        // Tenta com o container primeiro
         if (element.requestFullscreen) {
           element.requestFullscreen();
         } else if ((element as any).webkitRequestFullscreen) {
@@ -281,6 +280,20 @@ export default function StreamPlayer({
         } else if ((element as any).mozRequestFullScreen) {
           (element as any).mozRequestFullScreen();
         }
+        
+        // Fallback para iOS: tentar com o vídeo diretamente
+        if (videoRef.current) {
+          try {
+            // @ts-ignore - webkitEnterFullscreen é específico do iOS
+            if (videoRef.current.webkitEnterFullscreen) {
+              // @ts-ignore
+              videoRef.current.webkitEnterFullscreen();
+            }
+          } catch (e) {
+            console.log('Fallback fullscreen iOS não disponível');
+          }
+        }
+        
         setIsFullscreen(true);
       }
     } catch (e) {
@@ -298,7 +311,7 @@ export default function StreamPlayer({
     }
   };
 
-  // 🔥 CORRIGIDO: Detectar mudanças de fullscreen
+  // Detectar mudanças de fullscreen
   useEffect(() => {
     const handleFullscreenChange = () => {
       const isFull = !!(document.fullscreenElement || 
@@ -341,7 +354,6 @@ export default function StreamPlayer({
         className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group"
       >
         <style>{`
-          /* Esconde todos os controles do YouTube */
           .ytp-chrome-top,
           .ytp-chrome-bottom,
           .ytp-cued-thumbnail-overlay,
@@ -387,7 +399,6 @@ export default function StreamPlayer({
         
         <div ref={containerRef} className="w-full h-full" />
         
-        {/* OVERLAY BLOQUEADOR */}
         <div className="absolute inset-0 z-20" />
         
         {isLive && (
@@ -402,7 +413,6 @@ export default function StreamPlayer({
           <span>YouTube</span>
         </div>
 
-        {/* Barra de progresso */}
         <div className="absolute bottom-16 left-0 right-0 px-4 z-30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           <div className="pointer-events-auto">
             <input
@@ -424,7 +434,6 @@ export default function StreamPlayer({
           </div>
         </div>
 
-        {/* Controles customizados */}
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none">
           <div className="flex items-center justify-center gap-6 text-white pointer-events-auto">
             <button
@@ -491,8 +500,8 @@ export default function StreamPlayer({
           src={src}
           poster={posterUrl}
           className="w-full h-full object-contain"
-          playsInline // 🔥 IMPORTANTE PARA IPHONE
-          webkit-playsinline="true" // 🔥 IMPORTANTE PARA IPHONE
+          playsInline
+          webkit-playsinline="true"
           onTimeUpdate={(e) => {
             setCurrentTime(e.currentTarget.currentTime);
           }}
