@@ -54,7 +54,6 @@ export default function PlanosPage() {
 
       if (profile?.acesso_gratuito_ate && new Date(profile.acesso_gratuito_ate) > new Date()) {
         setUsuarioTemAcessoGratuito(true)
-        // Redirecionar para o dashboard se já tem acesso gratuito
         router.push('/dashboard')
         return
       }
@@ -69,11 +68,9 @@ export default function PlanosPage() {
       
       setPlanos(planosData || [])
       if (planosData && planosData.length > 0) {
-        // Selecionar plano anual primeiro
-        const anual = planosData.find(p => p.interval === 'year')
+        const anual = planosData.find((p: Plano) => p.interval === 'year')
         setPlanoSelecionado(anual || planosData[0])
         if (anual) {
-          // Definir parcelas padrão como 12 para plano anual
           setParcelas(12)
         }
       }
@@ -220,7 +217,7 @@ export default function PlanosPage() {
   }
 
   if (usuarioTemAcessoGratuito) {
-    return null // Redirecionado pelo useEffect
+    return null
   }
 
   if (showPix && qrCode) {
@@ -294,7 +291,7 @@ export default function PlanosPage() {
 
         {/* Planos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-8">
-          {planos.map((plano) => {
+          {planos.map((plano: Plano) => {
             const isSelected = planoSelecionado?.id === plano.id
             const isPopular = plano.interval === 'year'
             const precoExibido = plano.interval === 'year' ? '12x de R$ 39,69' : formatPrice(plano.price)
@@ -334,7 +331,7 @@ export default function PlanosPage() {
                 </div>
 
                 <ul className="mt-4 space-y-2">
-                  {plano.features?.map((feature, index) => (
+                  {plano.features?.map((feature: string, index: number) => (
                     <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
                       <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
                       <span>{feature}</span>
