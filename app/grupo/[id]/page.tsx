@@ -26,24 +26,22 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Função para formatar data/hora no formato: 25/08/2026 19:13 (UTC-3 Brasília)
-  const formatarData = (data: string) => {
+  // 🔥 CORRIGIDO: Verificar se precisa subtrair ou adicionar
+  const formatarDataHora = (data: string) => {
     if (!data) return ''
     try {
-      const d = new Date(data)
-      const offset = d.getTimezoneOffset() // Diferença em minutos do UTC
-      const brTime = d.getTime() - offset * 60000 - 3 * 60 * 60000 // Converte para UTC-3
-      const brDate = new Date(brTime)
-
-      const dia = String(brDate.getDate()).padStart(2, '0')
-      const mes = String(brDate.getMonth() + 1).padStart(2, '0')
-      const ano = brDate.getFullYear()
-      const hora = String(brDate.getHours()).padStart(2, '0')
-      const minuto = String(brDate.getMinutes()).padStart(2, '0')
-
-      return `${dia}/${mes}/${ano} ${hora}:${minuto}`
-    } catch (e) {
-      console.error('Erro ao formatar data:', e)
+      const date = new Date(data)
+      // 🔥 SUBTRAIR 3 HORAS (o banco está adiantado)
+      date.setHours(date.getHours() - 3)
+      
+      const dia = String(date.getDate()).padStart(2, '0')
+      const mes = String(date.getMonth() + 1).padStart(2, '0')
+      const ano = date.getFullYear()
+      const horas = String(date.getHours()).padStart(2, '0')
+      const minutos = String(date.getMinutes()).padStart(2, '0')
+      
+      return `${dia}/${mes}/${ano} ${horas}:${minutos}`
+    } catch {
       return ''
     }
   }
@@ -51,8 +49,8 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
   useEffect(() => {
     const carregarGrupo = async () => {
       try {
-        const { id } = await params
-        const idNum = parseInt(id)
+        const resolvedParams = await params
+        const idNum = parseInt(resolvedParams.id)
         setGrupoId(idNum)
 
         const { data: { user } } = await supabase.auth.getUser()
@@ -183,7 +181,6 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
           ) : (
             messages.map((msg) => {
               const isOwn = msg.user_id === user?.id
-              console.log('Data do Supabase:', msg.created_at, '-> Formatada:', formatarData(msg.created_at))
               return (
                 <div
                   key={msg.id}
@@ -203,7 +200,7 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
                     }`}>
                       <p className="text-sm">{msg.content}</p>
                       <p className="text-[10px] opacity-70 mt-1">
-                        {formatarData(msg.created_at)}
+                        {formatarDataHora(msg.created_at)}
                       </p>
                     </div>
                   </div>

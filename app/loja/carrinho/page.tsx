@@ -15,6 +15,7 @@ export default function Carrinho() {
     removeItem, 
     updateQuantity, 
     clearCart, 
+    setItems,
     getTotalPrice, 
     getTotalItems,
     usarCreditos,
@@ -53,6 +54,7 @@ export default function Carrinho() {
       }
       setUser(user)
       
+      // Buscar saldo da carteira
       const { data: carteira } = await supabase
         .from('carteira')
         .select('saldo')
@@ -63,11 +65,62 @@ export default function Carrinho() {
       setSaldoCarteira(saldo)
       setValorCreditos(saldo)
       
+      // 🔥 BUSCAR PEDIDO PENDENTE
+      await buscarPedidoPendente(user.id)
+      
     } catch (error) {
       console.error('Erro ao carregar usuário:', error)
       router.push('/auth/login')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // 🔥 NOVA FUNÇÃO: Buscar pedido pendente e restaurar carrinho
+  const buscarPedidoPendente = async (userId: string) => {
+    try {
+      const { data: pedido, error } = await supabase
+        .from('orders')
+        .select('*, items:order_items(*, product:products(*))')
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (error) {
+        console.error('Erro ao buscar pedido pendente:', error)
+        return
+      }
+
+      if (pedido && pedido.length > 0 && pedido[0].items) {
+        // Se o carrinho local está vazio, restaurar do pedido pendente
+        if (items.length === 0) {
+          const itensRestaurados = pedido[0].items.map((item: any) => ({
+            product_id: String(item.product_id),
+            name: item.product?.name || 'Produto',
+            price: item.price,
+            image: item.product?.image_url || '/images/placeholder.jpg',
+            quantity: item.quantity,
+            max_stock: 999,
+            is_digital: item.product?.is_digital || false,
+            free_shipping: item.product?.free_shipping || false
+          }))
+          
+          // Restaurar itens no carrinho
+          itensRestaurados.forEach((item: any) => {
+            // Verificar se já existe no carrinho para não duplicar
+            const existe = items.some(i => i.product_id === item.product_id)
+            if (!existe) {
+              // Adicionar via setItems para não perder o estado
+              setItems([...items, item])
+            }
+          })
+          
+          console.log('🔄 Itens restaurados do pedido pendente:', itensRestaurados.length)
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao buscar pedido pendente:', error)
     }
   }
 
@@ -117,10 +170,22 @@ export default function Carrinho() {
         state: profile.state || ''
       }
 
-      // 🔥 NÃO DEBITAR CRÉDITOS AQUI - DEBITAR NO CHECKOUT
+      // Debitar créditos
       let creditosUtilizados = 0
       if (usarCreditos && descontoCreditos > 0) {
         creditosUtilizados = descontoCreditos
+        const { error: debitoError } = await supabase.rpc('debitar_saldo', {
+          p_usuario_id: user.id,
+          p_valor: creditosUtilizados,
+          p_descricao: 'Uso de créditos na compra'
+        })
+        
+        if (debitoError) {
+          console.error('❌ Erro ao debitar créditos:', debitoError)
+          setError('Erro ao usar créditos. Tente novamente.')
+          setProcessing(false)
+          return
+        }
       }
 
       const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
@@ -168,6 +233,14 @@ export default function Carrinho() {
           console.error('❌ Erro ao inserir item:', itemError)
         }
       }
+
+      // Limpar notificações de carrinho abandonado
+      await supabase
+        .from('notificacoes')
+        .update({ lida: true })
+        .eq('usuario_id', user.id)
+        .eq('titulo', 'Carrinho aguardando pagamento')
+        .eq('tipo', 'info')
 
       // 🔥 NÃO LIMPAR O CARRINHO AQUI - DEIXAR PARA O CHECKOUT
       // clearCart() - REMOVIDO
@@ -293,7 +366,18 @@ export default function Carrinho() {
 
               <div className="flex justify-between items-center mb-4">
                 <button
-                  onClick={clearCart}
+                  onClick={() => {
+                    clearCart()
+                    // Também cancelar pedido pendente no banco
+                    if (user) {
+                      supabase
+                        .from('orders')
+                        .update({ status: 'cancelled' })
+                        .eq('user_id', user.id)
+                        .eq('status', 'pending')
+                        .then(() => console.log('Pedido pendente cancelado'))
+                    }
+                  }}
                   className="text-sm text-gray-500 hover:text-red-500 transition"
                 >
                   Limpar Carrinho

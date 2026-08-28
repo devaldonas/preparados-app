@@ -12,24 +12,46 @@ interface Message {
   receiver_id: string
   content: string
   created_at: string
+  read: boolean
 }
 
 export default function ChatPage({ params }: { params: Promise<{ id: string }> }) {
-  const [receiverId, setReceiverId] = useState<string>('')
-  const [receiverName, setReceiverName] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
-  const [loading, setLoading] = useState(true)
   const [newMessage, setNewMessage] = useState('')
-  const [sending, setSending] = useState(false)
   const [user, setUser] = useState<any>(null)
-  const router = useRouter()
+  const [otherUser, setOtherUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [otherUserId, setOtherUserId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
 
+  const formatarDataHora = (data: string) => {
+    if (!data) return ''
+    try {
+      const date = new Date(data)
+      return date.toLocaleString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
+    } catch {
+      return ''
+    }
+  }
+
+  // 🔥 CORRIGIDO: Resolver params antes de usar
   useEffect(() => {
     const carregarChat = async () => {
       try {
-        const { id } = await params
-        setReceiverId(id)
+        // Resolver params
+        const resolvedParams = await params
+        const otherUserId = resolvedParams.id
+        setOtherUserId(otherUserId)
 
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
@@ -41,23 +63,49 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name')
-          .eq('id', id)
+          .eq('id', otherUserId)
           .single()
+        setOtherUser(profile)
 
-        setReceiverName(profile?.full_name || 'Usuário')
+        const { data: messagesData } = await supabase
+          .from('messages')
+          .select('*')
+          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .or(`sender_id.eq.${otherUserId},receiver_id.eq.${otherUserId}`)
+          .order('created_at', { ascending: true })
 
-        await carregarMensagens(user.id, id)
+        if (messagesData) {
+          setMessages(messagesData)
+        }
 
-        const interval = setInterval(() => {
-          carregarMensagens(user.id, id)
-        }, 3000)
+        await supabase
+          .from('messages')
+          .update({ read: true })
+          .eq('receiver_id', user.id)
+          .eq('sender_id', otherUserId)
+
+        // 🔥 CORRIGIDO: Criar channel e .on() antes do subscribe
+        const channel = supabase
+          .channel('chat-realtime')
+          .on('postgres_changes', 
+            { 
+              event: 'INSERT', 
+              schema: 'public', 
+              table: 'messages',
+              filter: `sender_id=eq.${otherUserId}`
+            }, 
+            (payload) => {
+              const newMsg = payload.new as Message
+              setMessages(prev => [...prev, newMsg])
+            }
+          )
+          .subscribe()
 
         return () => {
-          clearInterval(interval)
+          channel.unsubscribe()
         }
       } catch (error) {
         console.error('Erro ao carregar chat:', error)
-        router.push('/pessoas')
       } finally {
         setLoading(false)
       }
@@ -66,34 +114,12 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     carregarChat()
   }, [params, router])
 
-  const carregarMensagens = async (userId: string, receiverId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .or(`and(sender_id.eq.${userId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${userId})`)
-        .order('created_at', { ascending: true })
-
-      if (error) {
-        console.error('Erro ao carregar mensagens:', error)
-        return
-      }
-      
-      setMessages(data || [])
-      scrollToBottom()
-    } catch (error) {
-      console.error('Erro ao carregar mensagens:', error)
-    }
-  }
-
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, 100)
-  }
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   const enviarMensagem = async () => {
-    if (!newMessage.trim() || !receiverId || !user) return
+    if (!newMessage.trim() || !user || !otherUserId || sending) return
 
     setSending(true)
     try {
@@ -101,8 +127,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         .from('messages')
         .insert({
           sender_id: user.id,
-          receiver_id: receiverId,
-          content: newMessage.trim()
+          receiver_id: otherUserId,
+          content: newMessage.trim(),
+          private: true,
+          read: false
         })
         .select()
         .single()
@@ -111,8 +139,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
       setMessages(prev => [...prev, data])
       setNewMessage('')
-      await carregarMensagens(user.id, receiverId)
-      scrollToBottom()
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error)
       alert('Erro ao enviar mensagem')
@@ -130,84 +156,68 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-6">
-          <Link
-            href="/pessoas/usuarios"
-            className="p-2 hover:bg-gray-200 rounded-lg transition"
-          >
-            <ArrowLeft size={20} />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-black">Chat</h1>
-            <p className="text-sm text-gray-500">Conversando com {receiverName}</p>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+        <Link
+          href="/pessoas"
+          className="p-2 hover:bg-gray-100 rounded-lg transition"
+        >
+          <ArrowLeft size={20} />
+        </Link>
+        <div>
+          <p className="font-semibold text-gray-900">{otherUser?.full_name || 'Usuário'}</p>
+          <p className="text-xs text-gray-500">Online</p>
         </div>
+      </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 h-[400px] overflow-y-auto mb-4">
-          {messages.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <p>Nenhuma mensagem ainda</p>
-              <p className="text-sm">Envie uma mensagem para iniciar a conversa</p>
-            </div>
-          ) : (
-            messages.map((msg) => {
-              const isOwn = msg.sender_id === user?.id
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex items-start gap-3 mb-3 ${isOwn ? 'flex-row-reverse' : ''}`}
-                >
-                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                    isOwn ? 'bg-[#FFB800]' : 'bg-gray-200'
-                  }`}>
-                    <img 
-                      src="/images/markmap.png" 
-                      alt="Usuário" 
-                      className="w-5 h-5 object-contain"
-                      onError={(e) => { e.currentTarget.style.display = 'none' }}
-                    />
-                  </div>
-                  <div className={`max-w-[70%] ${isOwn ? 'text-right' : ''}`}>
-                    <p className={`text-xs ${isOwn ? 'text-[#FFB800]' : 'text-gray-500'}`}>
-                      {isOwn ? 'Você' : receiverName}
-                    </p>
-                    <div className={`p-3 rounded-lg mt-1 ${
-                      isOwn ? 'bg-[#FFB800] text-black' : 'bg-gray-100 text-gray-900'
-                    }`}>
-                      <p className="text-sm">{msg.content}</p>
-                      <p className="text-[10px] opacity-70 mt-1">
-                        {new Date(msg.created_at).toLocaleTimeString('pt-BR')}
-                      </p>
-                    </div>
-                  </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.length === 0 ? (
+          <div className="text-center text-gray-400 text-sm mt-8">
+            Nenhuma mensagem ainda. Comece a conversa!
+          </div>
+        ) : (
+          messages.map((msg) => {
+            const isOwn = msg.sender_id === user?.id
+            return (
+              <div
+                key={msg.id}
+                className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}
+              >
+                <div className={`max-w-[70%] p-3 rounded-lg ${
+                  isOwn 
+                    ? 'bg-[#FFB800] text-black rounded-br-none' 
+                    : 'bg-white text-gray-900 border border-gray-200 rounded-bl-none'
+                }`}>
+                  <p className="text-sm break-words">{msg.content}</p>
                 </div>
-              )
-            })
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+                <span className="text-[10px] text-gray-400 mt-1">
+                  {formatarDataHora(msg.created_at)}
+                </span>
+              </div>
+            )
+          })
+        )}
+        <div ref={messagesEndRef} />
+      </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <div className="flex gap-3">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && enviarMensagem()}
-              placeholder="Digite sua mensagem..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800]"
-            />
-            <button
-              onClick={enviarMensagem}
-              disabled={sending || !newMessage.trim()}
-              className="bg-[#FFB800] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition disabled:opacity-50 flex items-center gap-2"
-            >
-              <Send size={18} />
-              Enviar
-            </button>
-          </div>
+      <div className="bg-white border-t border-gray-200 p-3">
+        <div className="flex gap-2 max-w-4xl mx-auto">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && enviarMensagem()}
+            placeholder="Digite sua mensagem..."
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#FFB800] text-sm"
+            disabled={sending}
+          />
+          <button
+            onClick={enviarMensagem}
+            disabled={!newMessage.trim() || sending}
+            className="bg-[#FFB800] text-black p-2 rounded-full hover:bg-[#E5A600] transition disabled:opacity-50"
+          >
+            <Send size={20} />
+          </button>
         </div>
       </div>
     </div>
