@@ -15,6 +15,13 @@ interface Message {
   read: boolean
 }
 
+// Tipo para o payload do Realtime
+interface RealtimePayload {
+  new: Message
+  old: Message
+  eventType: string
+}
+
 export default function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -44,11 +51,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     }
   }
 
-  // 🔥 CORRIGIDO: Resolver params antes de usar
   useEffect(() => {
     const carregarChat = async () => {
       try {
-        // Resolver params
         const resolvedParams = await params
         const otherUserId = resolvedParams.id
         setOtherUserId(otherUserId)
@@ -84,7 +89,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           .eq('receiver_id', user.id)
           .eq('sender_id', otherUserId)
 
-        // 🔥 CORRIGIDO: Criar channel e .on() antes do subscribe
         const channel = supabase
           .channel('chat-realtime')
           .on('postgres_changes', 
@@ -94,7 +98,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
               table: 'messages',
               filter: `sender_id=eq.${otherUserId}`
             }, 
-            (payload) => {
+            (payload: RealtimePayload) => {
               const newMsg = payload.new as Message
               setMessages(prev => [...prev, newMsg])
             }
