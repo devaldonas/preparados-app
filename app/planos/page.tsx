@@ -3,27 +3,19 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { Loader2, Check, CreditCard, QrCode, Copy } from 'lucide-react'
+import { Loader2, Check, CreditCard, Smartphone, Monitor } from 'lucide-react'
 
 export default function PlanosPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [user, setUser] = useState<any>(null)
-  const [qrCode, setQrCode] = useState<string | null>(null)
-  const [codigoPix, setCodigoPix] = useState<string | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>('card')
-  const [showPix, setShowPix] = useState(false)
-  const [paymentId, setPaymentId] = useState<string | null>(null)
-  const [checkingPayment, setCheckingPayment] = useState(false)
-  const [parcelas, setParcelas] = useState(12)
   const [usuarioTemAcessoGratuito, setUsuarioTemAcessoGratuito] = useState(false)
-
-  // 🔥 VALOR FIXO PARA TESTE - R$ 10,00
-  const VALOR_TOTAL = 10.00
-  const VALOR_PARCELA = 0.84
+  const [plataforma, setPlataforma] = useState<'web' | 'mobile'>('web')
 
   useEffect(() => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    setPlataforma(isMobile ? 'mobile' : 'web')
     carregarDados()
   }, [])
 
@@ -55,114 +47,43 @@ export default function PlanosPage() {
     }
   }
 
-  const handleAssinar = async () => {
+  // 🔥 MODO DEMONSTRAÇÃO PARA PLAY STORE
+  const handleAssinarMobile = async () => {
     setProcessing(true)
-    setQrCode(null)
-    setCodigoPix(null)
-    setPaymentId(null)
 
     try {
-      // 🔥 GARANTIR VALORES COM 2 CASAS DECIMAIS
-      const priceFinal = Number(VALOR_PARCELA.toFixed(2))
-      const totalFinal = Number(VALOR_TOTAL.toFixed(2))
-
-      console.log('📤 Enviando para API:', {
-        planId: 2,
-        planName: 'Anual',
-        price: priceFinal,
-        totalPrice: totalFinal,
-        interval: 'year',
-        userId: user.id,
-        userEmail: user.email,
-        paymentMethod: paymentMethod,
-        parcelas: parcelas
-      })
-
-      const response = await fetch('/api/assinatura/criar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          planId: 2,
-          planName: 'Anual',
-          price: priceFinal,
-          totalPrice: totalFinal,
-          interval: 'year',
-          userId: user.id,
-          userEmail: user.email,
-          paymentMethod: paymentMethod,
-          parcelas: parcelas
+      // 🔥 SIMULAR COMPRA NA PLAY STORE
+      // Em produção, aqui seria integração com Google Play Billing
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          subscription_status: 'active',
+          acesso_gratuito_ate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
         })
-      })
+        .eq('id', user.id)
 
-      const data = await response.json()
-
-      if (!data.success) {
-        throw new Error(data.error || 'Erro ao processar pagamento')
-      }
-
-      if (data.paymentMethod === 'pix') {
-        setQrCode(data.qrCode)
-        setCodigoPix(data.codigoPix)
-        setPaymentId(data.paymentId)
-        setShowPix(true)
+      if (error) {
+        console.error('Erro ao ativar assinatura:', error)
+        alert('Erro ao ativar assinatura.')
         setProcessing(false)
-        
-        verificarPagamentoAutomatico(data.paymentId)
         return
       }
 
-      if (data.initPoint) {
-        window.location.href = data.initPoint
-      }
-
+      alert('✅ Assinatura ativada com sucesso!')
+      router.push('/dashboard')
     } catch (error) {
-      console.error('Erro ao assinar:', error)
-      alert('Erro ao processar pagamento. Tente novamente.')
+      console.error('❌ Erro:', error)
+      alert('Erro ao processar pagamento.')
+    } finally {
       setProcessing(false)
     }
   }
 
-  const verificarPagamentoAutomatico = async (paymentId: string) => {
-    setCheckingPayment(true)
-    
-    let tentativas = 0
-    const maxTentativas = 24
-    
-    const intervalo = setInterval(async () => {
-      tentativas++
-      
-      try {
-        const response = await fetch(`/api/mercadopago/status?payment_id=${paymentId}`)
-        const data = await response.json()
-        
-        console.log(`🔍 Verificando pagamento (${tentativas}/${maxTentativas}):`, data.status)
-        
-        if (data.status === 'approved') {
-          clearInterval(intervalo)
-          setCheckingPayment(false)
-          router.push('/auth/welcome')
-        } else if (tentativas >= maxTentativas) {
-          clearInterval(intervalo)
-          setCheckingPayment(false)
-          alert('⏳ O pagamento está sendo processado. Você será notificado quando for confirmado.')
-          setShowPix(false)
-          router.push('/dashboard')
-        }
-      } catch (error) {
-        console.error('Erro ao verificar pagamento:', error)
-        if (tentativas >= maxTentativas) {
-          clearInterval(intervalo)
-          setCheckingPayment(false)
-        }
-      }
-    }, 5000)
-  }
-
-  const copiarCodigoPix = () => {
-    if (codigoPix) {
-      navigator.clipboard.writeText(codigoPix)
-      alert('✅ Código PIX copiado!')
-    }
+  const handleAssinarWeb = async () => {
+    // 🔥 REDIRECIONAR PARA MERCADO PAGO (WEB)
+    // Ou implementar Stripe
+    alert('🔧 Em breve: Pagamento via Mercado Pago para Web')
   }
 
   const formatPrice = (price: number) => {
@@ -184,60 +105,6 @@ export default function PlanosPage() {
     return null
   }
 
-  if (showPix && qrCode) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-          <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
-            Pagar com PIX
-          </h2>
-          <p className="text-center text-gray-500 text-sm mb-6">
-            Valor: {formatPrice(VALOR_TOTAL)}
-          </p>
-          
-          {checkingPayment && (
-            <div className="text-center mb-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#FFB800]"></div>
-              <p className="text-sm text-gray-500 mt-2">Aguardando confirmação...</p>
-            </div>
-          )}
-          
-          {qrCode && (
-            <div className="bg-gray-50 rounded-xl p-4 mb-4 flex justify-center">
-              <img 
-                src={qrCode} 
-                alt="QR Code PIX" 
-                className="w-48 h-48"
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
-              />
-            </div>
-          )}
-          
-          {codigoPix && (
-            <button
-              onClick={copiarCodigoPix}
-              className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg transition"
-            >
-              <Copy size={18} />
-              Copiar código PIX
-            </button>
-          )}
-          
-          <p className="text-xs text-gray-400 text-center mt-4">
-            Após o pagamento, você será redirecionado.
-          </p>
-          
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="w-full mt-4 bg-gray-200 text-gray-600 py-2 rounded-lg font-medium hover:bg-gray-300 transition"
-          >
-            Voltar ao início
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto px-4">
@@ -248,6 +115,21 @@ export default function PlanosPage() {
           <p className="text-gray-500 mt-2">
             Acesso completo por 1 ano
           </p>
+          
+          {/* Indicador de plataforma */}
+          <div className="mt-4 inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg">
+            {plataforma === 'mobile' ? (
+              <>
+                <Smartphone size={18} className="text-[#FFB800]" />
+                <span className="text-sm text-gray-600">Versão Mobile</span>
+              </>
+            ) : (
+              <>
+                <Monitor size={18} className="text-[#FFB800]" />
+                <span className="text-sm text-gray-600">Versão Web</span>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="max-w-md mx-auto">
@@ -258,10 +140,10 @@ export default function PlanosPage() {
               
               <div className="mt-4">
                 <span className="text-3xl font-bold text-[#FFB800]">
-                  12x de R$ 0,84
+                  12x de R$ 4,17
                 </span>
                 <span className="text-sm text-gray-400 ml-1">/ano</span>
-                <p className="text-xs text-gray-400 mt-1">Total: R$ 10,00</p>
+                <p className="text-xs text-gray-400 mt-1">Total: R$ 50,00</p>
               </div>
 
               <ul className="mt-6 space-y-2 text-left">
@@ -286,125 +168,77 @@ export default function PlanosPage() {
                   <span>Dicas diárias</span>
                 </li>
               </ul>
-
-              <div className="mt-6 text-xs text-[#FFB800] font-medium">
-                ✅ Plano selecionado
-              </div>
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 max-w-lg mx-auto mt-8">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Anual</h2>
-            <p className="text-3xl font-bold text-[#FFB800] mt-2">
-              12x de R$ 0,84
+            <h2 className="text-xl font-bold text-gray-900">Finalizar Assinatura</h2>
+            <p className="text-sm text-gray-500 mt-2">
+              {plataforma === 'mobile' 
+                ? '📱 Assinatura via Google Play Store' 
+                : '💻 Assinatura via Mercado Pago'}
             </p>
-            <p className="text-sm text-gray-400">Total: R$ 10,00</p>
           </div>
 
           <div className="border-t border-gray-200 my-6"></div>
 
           <div className="space-y-4 mb-6">
-            <p className="text-sm font-medium text-gray-700">Escolha a forma de pagamento:</p>
-            
-            <button
-              onClick={() => setPaymentMethod('card')}
-              className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
-                paymentMethod === 'card' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
-              }`}
-            >
-              <CreditCard size={20} className={paymentMethod === 'card' ? 'text-[#FFB800]' : 'text-gray-400'} />
-              <div className="text-left">
-                <p className="font-medium text-sm">Cartão de Crédito</p>
-                <p className="text-xs text-gray-400">Em até 12x</p>
-              </div>
-              {paymentMethod === 'card' && <Check size={18} className="ml-auto text-[#FFB800]" />}
-            </button>
-
-            {paymentMethod === 'card' && (
-              <div className="pl-12 pr-4 pb-2">
-                <label className="text-xs text-gray-500 block mb-1">Parcelas:</label>
-                <select
-                  value={parcelas}
-                  onChange={(e) => setParcelas(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800]"
-                >
-                  <option value="1">1x sem juros</option>
-                  <option value="2">2x sem juros</option>
-                  <option value="3">3x sem juros</option>
-                  <option value="4">4x sem juros</option>
-                  <option value="5">5x sem juros</option>
-                  <option value="6">6x sem juros</option>
-                  <option value="7">7x sem juros</option>
-                  <option value="8">8x sem juros</option>
-                  <option value="9">9x sem juros</option>
-                  <option value="10">10x sem juros</option>
-                  <option value="11">11x sem juros</option>
-                  <option value="12">12x sem juros</option>
-                </select>
-                <p className="text-xs text-green-600 mt-1">✅ Todas as parcelas sem juros</p>
-              </div>
-            )}
-
-            <button
-              onClick={() => setPaymentMethod('pix')}
-              className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
-                paymentMethod === 'pix' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
-              }`}
-            >
-              <img 
-                src={paymentMethod === 'pix' ? '/images/pix-icon-amarelo.svg' : '/images/pix-icon-cinza.svg'} 
-                alt="PIX" 
-                className="w-5 h-5"
-              />
-              <div className="text-left">
-                <p className="font-medium text-sm">PIX</p>
-                <p className="text-xs text-gray-400">R$ 10,00 à vista</p>
-              </div>
-              {paymentMethod === 'pix' && <Check size={18} className="ml-auto text-[#FFB800]" />}
-            </button>
+            <div className="bg-gray-50 rounded-lg p-4 text-center">
+              <p className="text-sm text-gray-600">
+                {plataforma === 'mobile' 
+                  ? '🔹 Você será direcionado para o Google Play para concluir o pagamento.'
+                  : '🔹 Você será direcionado para o Mercado Pago para concluir o pagamento.'}
+              </p>
+              <p className="text-xs text-gray-400 mt-2">
+                Total: R$ 50,00 (12x de R$ 4,17)
+              </p>
+            </div>
           </div>
 
-          <button
-            onClick={handleAssinar}
-            disabled={processing}
-            className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-          >
-            {processing ? (
+          {plataforma === 'mobile' ? (
+            <button
+              onClick={handleAssinarMobile}
+              disabled={processing}
+              className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+            >
+              {processing ? (
+                <>
+                  <Loader2 size={24} className="animate-spin" />
+                  Processando...
+                </>
+              ) : (
+                <>
+                  <Smartphone size={20} />
+                  Assinar via Google Play
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={handleAssinarWeb}
+              disabled={processing}
+              className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+            >
               <>
-                <Loader2 size={24} className="animate-spin" />
-                Processando...
+                <CreditCard size={20} />
+                Assinar via Mercado Pago
               </>
-            ) : (
-              <>
-                {paymentMethod === 'pix' ? (
-                  <img src="/images/pix-icon-amarelo.svg" alt="PIX" className="w-5 h-5" />
-                ) : (
-                  <CreditCard size={20} />
-                )}
-                {paymentMethod === 'pix' ? 'Gerar PIX' : 'Assinar agora'}
-              </>
-            )}
-          </button>
+            </button>
+          )}
 
           <p className="text-xs text-gray-400 text-center mt-4">
-            Pagamento seguro via Mercado Pago
+            🔒 Pagamento seguro
           </p>
 
-          <div className="mt-6 flex items-center justify-center gap-4 text-xs text-gray-400">
-            <span>🔒 Pagamento seguro</span>
-            <span>•</span>
-            <span className="flex items-center gap-1">
-              <img src="/images/pix-icon-amarelo.svg" alt="PIX" className="w-4 h-4" />
-              PIX disponível
-            </span>
-          </div>
+          <p className="text-xs text-gray-400 text-center mt-2">
+            Cancele quando quiser
+          </p>
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
           Ao assinar, você concorda com nossos termos de uso.
-          Cancele a qualquer momento.
         </p>
       </div>
     </div>
