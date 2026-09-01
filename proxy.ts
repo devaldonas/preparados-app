@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Rotas públicas
@@ -20,7 +20,7 @@ export function middleware(request: NextRequest) {
   
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
   
-  // Verificar se tem sessão
+  // Verificar se tem sessão (Supabase)
   const hasSession = request.cookies.has('sb-access-token') || 
                      request.cookies.has('sb-refresh-token')
 
@@ -39,7 +39,7 @@ export function middleware(request: NextRequest) {
   return NextResponse.next()
 }
 
-// 🔥 MATCHER ATUALIZADO
+// 🔥 MATCHER ATUALIZADO (mesmo do middleware)
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|images/|logo.svg|logo1.svg|.*\\.png|.*\\.jpg|.*\\.jpeg).*)',

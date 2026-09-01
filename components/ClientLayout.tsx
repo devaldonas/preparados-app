@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import NavBar from '@/components/NavBar'
-import CarouselFooter from '@/components/CarouselFooter'
+import { Footer } from '@/components/Footer'
 
 export default function ClientLayout({
   children,
@@ -10,9 +10,6 @@ export default function ClientLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  
-  // DESABILITAR CARROSSEL TEMPORARIAMENTE - retornar false sempre
-  const showCarousel = false
 
   // 🔥 Páginas onde NÃO deve aparecer o NavBar
   const hideNavBarPaths = [
@@ -29,11 +26,20 @@ export default function ClientLayout({
     '/parceiro/dashboard',
   ]
 
+  // 🔥 Páginas onde NÃO deve aparecer o Footer
+  const hideFooterPaths = [
+    '/auth/login',
+    '/auth/cadastro',
+    '/auth/recuperar-senha',
+    '/auth/nova-senha',
+  ]
+
   const shouldHideNavBar = hideNavBarPaths.some(path => pathname?.startsWith(path))
   const isSimpleNavBar = simpleNavBarPaths.some(path => pathname?.startsWith(path))
+  const shouldHideFooter = hideFooterPaths.some(path => pathname?.startsWith(path))
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       {/* 🔥 NavBar - visível em todas as páginas, exceto auth */}
       {!shouldHideNavBar && (
         <NavBar 
@@ -41,13 +47,13 @@ export default function ClientLayout({
         />
       )}
       
-      {/* 🔥 Conteúdo principal - sem margem extra */}
-      <main className={!shouldHideNavBar ? 'bg-gray-50' : ''}>
-  {children}
-</main>
+      {/* 🔥 Conteúdo principal */}
+      <main className={`flex-1 ${!shouldHideNavBar ? 'bg-gray-50' : ''}`}>
+        {children}
+      </main>
       
-      {/* 🔥 Footer (desabilitado) */}
-      {showCarousel && <CarouselFooter />}
-    </>
+      {/* 🔥 Footer - visível em todas as páginas, exceto auth */}
+      {!shouldHideFooter && <Footer />}
+    </div>
   )
 }
