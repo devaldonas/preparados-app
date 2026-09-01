@@ -14,11 +14,9 @@ console.log('🚀 Modo:', isDevelopment ? '🧪 TESTE (sandbox)' : '🚀 PRODUÇ
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { planId, planName, price, interval, userId, userEmail, paymentMethod } = body
+    const { planId, planName, price, totalPrice, interval, userId, userEmail, paymentMethod, parcelas } = body
 
-    console.log('📥 Dados recebidos:', { planId, planName, price, interval, userId, paymentMethod })
-    console.log('🔑 Token:', MERCADO_PAGO_ACCESS_TOKEN ? '✅ Presente' : '❌ Ausente')
-    console.log('🔑 Token (primeiros 20):', MERCADO_PAGO_ACCESS_TOKEN?.substring(0, 20))
+    console.log('📥 Dados recebidos:', { planId, planName, price, totalPrice, interval, userId, paymentMethod, parcelas })
 
     if (!planId || !userId) {
       return NextResponse.json(
@@ -28,7 +26,7 @@ export async function POST(request: Request) {
     }
 
     if (!MERCADO_PAGO_ACCESS_TOKEN) {
-      console.error('❌ MERCADO_PAGO_ACCESS_TOKEN não configurado')
+      console.error('❌ Token não configurado')
       return NextResponse.json(
         { error: 'Token do Mercado Pago não configurado' },
         { status: 500 }
@@ -44,11 +42,18 @@ export async function POST(request: Request) {
 
     console.log('👤 Usuário:', profile?.full_name)
 
+    // 🔥 USAR OS VALORES RECEBIDOS (R$ 10,00)
+    const valorTotal = Number((totalPrice || 10.00).toFixed(2))
+    const valorParcela = Number((price || 0.84).toFixed(2))
+
+    console.log('💰 Valor total:', valorTotal)
+    console.log('💰 Valor parcela:', valorParcela)
+
     // 🔥 Se for PIX
     if (paymentMethod === 'pix') {
       const pixData = {
-        transaction_amount: 476.28,
-        description: 'Plano Anual - PREPARADO (PIX) - TESTE',
+        transaction_amount: valorTotal,
+        description: `Plano ${planName} - PREPARADO`,
         payment_method_id: 'pix',
         payer: {
           email: userEmail || profile?.email || 'cliente@email.com',
@@ -68,7 +73,7 @@ export async function POST(request: Request) {
         notification_url: `${APP_URL}/api/mercadopago/webhook`
       }
 
-      console.log('📤 Enviando PIX para Mercado Pago...')
+      console.log('📤 Enviando PIX...')
 
       const response = await fetch('https://api.mercadopago.com/v1/payments', {
         method: 'POST',
@@ -84,12 +89,9 @@ export async function POST(request: Request) {
       console.log('📥 Status:', response.status)
       
       if (!response.ok) {
-        console.error('❌ Erro Mercado Pago:', JSON.stringify(data, null, 2))
+        console.error('❌ Erro:', data)
         return NextResponse.json(
-          { 
-            success: false, 
-            error: data.message || 'Erro ao gerar PIX'
-          },
+          { success: false, error: data.message || 'Erro ao gerar PIX' },
           { status: response.status }
         )
       }
@@ -99,32 +101,25 @@ export async function POST(request: Request) {
       
       if (data.point_of_interaction?.transaction_data?.qr_code_base64) {
         qrCode = `data:image/png;base64,${data.point_of_interaction.transaction_data.qr_code_base64}`
-      } else if (data.qr_code_base64) {
-        qrCode = `data:image/png;base64,${data.qr_code_base64}`
       }
-      
       codigoPix = data.point_of_interaction?.transaction_data?.qr_code || null
-
-      console.log('✅ PIX gerado com sucesso!')
 
       return NextResponse.json({
         success: true,
         paymentMethod: 'pix',
         qrCode: qrCode,
         codigoPix: codigoPix,
-        paymentId: data.id,
-        message: 'PIX gerado com sucesso!',
-        isTest: isDevelopment
+        paymentId: data.id
       })
     }
 
-    // 🔥 Se for cartão - usar credenciais de teste
+    // 🔥 Se for cartão
     const subscriptionData = {
-      reason: `Plano Anual - PREPARADO - TESTE`,
+      reason: `Plano ${planName} - PREPARADO`,
       auto_recurring: {
         frequency: 1,
         frequency_type: 'months',
-        transaction_amount: 39.69,
+        transaction_amount: valorParcela,
         currency_id: 'BRL'
       },
       back_url: `${APP_URL}/auth/welcome`,
@@ -134,12 +129,13 @@ export async function POST(request: Request) {
         plan_id: planId,
         plan_name: planName,
         user_id: userId,
-        environment: isDevelopment ? 'test' : 'production'
+        parcelas: parcelas || 1,
+        total_amount: valorTotal
       },
       notification_url: `${APP_URL}/api/mercadopago/webhook`
     }
 
-    console.log('📤 Enviando assinatura para Mercado Pago...')
+    console.log('📤 Enviando assinatura...')
 
     const response = await fetch('https://api.mercadopago.com/preapproval', {
       method: 'POST',
@@ -151,38 +147,26 @@ export async function POST(request: Request) {
     })
 
     const data = await response.json()
-    console.log('📥 Status:', response.status)
-    console.log('📥 Resposta:', JSON.stringify(data, null, 2))
 
     if (!response.ok) {
-      console.error('❌ Erro Mercado Pago:', data)
+      console.error('❌ Erro:', data)
       return NextResponse.json(
-        { 
-          success: false, 
-          error: data.message || 'Erro ao criar assinatura'
-        },
+        { success: false, error: data.message || 'Erro ao criar assinatura' },
         { status: response.status }
       )
     }
-
-    console.log('✅ Assinatura criada com sucesso!')
 
     return NextResponse.json({
       success: true,
       paymentMethod: 'card',
       initPoint: data.init_point,
-      subscriptionId: data.id,
-      message: 'Assinatura criada!',
-      isTest: isDevelopment
+      subscriptionId: data.id
     })
 
   } catch (error) {
-    console.error('❌ Erro ao criar assinatura:', error)
+    console.error('❌ Erro:', error)
     return NextResponse.json(
-      { 
-        success: false, 
-        error: String(error)
-      },
+      { success: false, error: String(error) },
       { status: 500 }
     )
   }

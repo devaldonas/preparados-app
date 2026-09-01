@@ -3,26 +3,13 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { Loader2, Crown, Check, CreditCard, QrCode, Copy, X, Zap } from 'lucide-react'
-
-interface Plano {
-  id: number
-  name: string
-  description: string
-  price: string
-  interval: string
-  interval_count: number
-  features: string[]
-  is_active: boolean
-}
+import { Loader2, Check, CreditCard, QrCode, Copy } from 'lucide-react'
 
 export default function PlanosPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [user, setUser] = useState<any>(null)
-  const [planos, setPlanos] = useState<Plano[]>([])
-  const [planoSelecionado, setPlanoSelecionado] = useState<Plano | null>(null)
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [codigoPix, setCodigoPix] = useState<string | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>('card')
@@ -31,6 +18,10 @@ export default function PlanosPage() {
   const [checkingPayment, setCheckingPayment] = useState(false)
   const [parcelas, setParcelas] = useState(12)
   const [usuarioTemAcessoGratuito, setUsuarioTemAcessoGratuito] = useState(false)
+
+  // 🔥 VALOR FIXO PARA TESTE - R$ 10,00
+  const VALOR_TOTAL = 10.00
+  const VALOR_PARCELA = 0.84
 
   useEffect(() => {
     carregarDados()
@@ -45,7 +36,6 @@ export default function PlanosPage() {
       }
       setUser(user)
 
-      // Verificar se usuário já tem acesso gratuito
       const { data: profile } = await supabase
         .from('profiles')
         .select('acesso_gratuito_ate, subscription_status')
@@ -58,22 +48,6 @@ export default function PlanosPage() {
         return
       }
 
-      const { data: planosData, error } = await supabase
-        .from('plans')
-        .select('*')
-        .eq('is_active', true)
-        .order('price', { ascending: true })
-
-      if (error) throw error
-      
-      setPlanos(planosData || [])
-      if (planosData && planosData.length > 0) {
-        const anual = planosData.find((p: Plano) => p.interval === 'year')
-        setPlanoSelecionado(anual || planosData[0])
-        if (anual) {
-          setParcelas(12)
-        }
-      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
     } finally {
@@ -82,50 +56,41 @@ export default function PlanosPage() {
   }
 
   const handleAssinar = async () => {
-    if (!planoSelecionado) return
-    
     setProcessing(true)
     setQrCode(null)
     setCodigoPix(null)
     setPaymentId(null)
 
     try {
-      const preco = parseFloat(planoSelecionado.price)
-      
-      let valorTotal = preco
-      let valorParcela = preco
-      let parcelasDisponiveis = 1
-      
-      if (paymentMethod === 'card') {
-        if (planoSelecionado.interval === 'year') {
-          parcelasDisponiveis = Math.min(parcelas, 12)
-          const jurosPorParcela: Record<number, number> = {
-            1: 0, 2: 0, 3: 0, 4: 2.5, 5: 3.0, 6: 3.5, 7: 4.0, 8: 4.5, 9: 5.0, 10: 5.5, 11: 6.0, 12: 6.5
-          }
-          const juros = jurosPorParcela[parcelasDisponiveis] || 0
-          const totalComJuros = preco * (1 + juros / 100)
-          valorParcela = totalComJuros / parcelasDisponiveis
-          valorTotal = totalComJuros
-        } else {
-          parcelasDisponiveis = Math.min(parcelas, 3)
-          valorParcela = preco / parcelasDisponiveis
-          valorTotal = preco
-        }
-      }
+      // 🔥 GARANTIR VALORES COM 2 CASAS DECIMAIS
+      const priceFinal = Number(VALOR_PARCELA.toFixed(2))
+      const totalFinal = Number(VALOR_TOTAL.toFixed(2))
+
+      console.log('📤 Enviando para API:', {
+        planId: 2,
+        planName: 'Anual',
+        price: priceFinal,
+        totalPrice: totalFinal,
+        interval: 'year',
+        userId: user.id,
+        userEmail: user.email,
+        paymentMethod: paymentMethod,
+        parcelas: parcelas
+      })
 
       const response = await fetch('/api/assinatura/criar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          planId: planoSelecionado.id,
-          planName: planoSelecionado.name,
-          price: valorParcela,
-          totalPrice: valorTotal,
-          interval: planoSelecionado.interval,
+          planId: 2,
+          planName: 'Anual',
+          price: priceFinal,
+          totalPrice: totalFinal,
+          interval: 'year',
           userId: user.id,
           userEmail: user.email,
           paymentMethod: paymentMethod,
-          parcelas: parcelasDisponiveis
+          parcelas: parcelas
         })
       })
 
@@ -200,12 +165,11 @@ export default function PlanosPage() {
     }
   }
 
-  const formatPrice = (price: string | number) => {
-    const valor = typeof price === 'string' ? parseFloat(price) : price
+  const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
-    }).format(valor)
+    }).format(price)
   }
 
   if (loading) {
@@ -228,13 +192,13 @@ export default function PlanosPage() {
             Pagar com PIX
           </h2>
           <p className="text-center text-gray-500 text-sm mb-6">
-            Valor: {planoSelecionado ? formatPrice(planoSelecionado.price) : ''}
+            Valor: {formatPrice(VALOR_TOTAL)}
           </p>
           
           {checkingPayment && (
             <div className="text-center mb-4">
-              <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-[#FFB800]"></div>
-              <p className="text-sm text-gray-500 mt-2">Aguardando confirmação do pagamento...</p>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#FFB800]"></div>
+              <p className="text-sm text-gray-500 mt-2">Aguardando confirmação...</p>
             </div>
           )}
           
@@ -244,10 +208,7 @@ export default function PlanosPage() {
                 src={qrCode} 
                 alt="QR Code PIX" 
                 className="w-48 h-48"
-                onError={(e) => {
-                  console.error('❌ Erro ao carregar QR Code:', e)
-                  e.currentTarget.style.display = 'none'
-                }}
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
               />
             </div>
           )}
@@ -263,7 +224,7 @@ export default function PlanosPage() {
           )}
           
           <p className="text-xs text-gray-400 text-center mt-4">
-            Após o pagamento, você será redirecionado automaticamente.
+            Após o pagamento, você será redirecionado.
           </p>
           
           <button
@@ -282,198 +243,164 @@ export default function PlanosPage() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-gray-900">
-            Escolha seu Plano
+            Plano Anual
           </h1>
           <p className="text-gray-500 mt-2">
-            Selecione o plano que melhor atende suas necessidades
+            Acesso completo por 1 ano
           </p>
         </div>
 
-        {/* Planos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-8">
-          {planos.map((plano: Plano) => {
-            const isSelected = planoSelecionado?.id === plano.id
-            const isPopular = plano.interval === 'year'
-            const precoExibido = plano.interval === 'year' ? '12x de R$ 39,69' : formatPrice(plano.price)
-            
-            return (
-              <div
-                key={plano.id}
-                onClick={() => {
-                  setPlanoSelecionado(plano)
-                  if (plano.interval === 'year') {
-                    setParcelas(12)
-                  }
-                }}
-                className={`bg-white rounded-2xl border-2 p-6 cursor-pointer transition-all hover:shadow-lg ${
-                  isSelected ? 'border-[#FFB800] shadow-lg' : 'border-gray-200 hover:border-[#FFB800]/50'
-                } ${isPopular ? 'relative' : ''}`}
-              >
-                {isPopular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-[#FFB800] text-black text-xs font-bold px-4 py-1 rounded-full">
-                    MAIS POPULAR
-                  </div>
-                )}
-                
-                <h3 className="text-xl font-bold text-gray-900">{plano.name}</h3>
-                <p className="text-sm text-gray-500 mt-1">{plano.description}</p>
-                
-                <div className="mt-4">
-                  <span className="text-3xl font-bold text-[#FFB800]">
-                    {plano.interval === 'year' ? '12x de R$ 39,69' : formatPrice(plano.price)}
-                  </span>
-                  <span className="text-sm text-gray-400 ml-1">
-                    /{plano.interval === 'month' ? 'mês' : 'ano'}
-                  </span>
-                  {plano.interval === 'year' && (
-                    <p className="text-xs text-gray-400 mt-1">Total: R$ 476,28</p>
-                  )}
-                </div>
-
-                <ul className="mt-4 space-y-2">
-                  {plano.features?.map((feature: string, index: number) => (
-                    <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
-                      <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                {isSelected && (
-                  <div className="mt-4 text-xs text-[#FFB800] font-medium">
-                    ✅ Plano selecionado
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Forma de pagamento */}
-        {planoSelecionado && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 max-w-lg mx-auto">
-            <div className="text-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">
-                {planoSelecionado.name}
-              </h2>
-              <p className="text-3xl font-bold text-[#FFB800] mt-2">
-                {planoSelecionado.interval === 'year' ? '12x de R$ 39,69' : formatPrice(planoSelecionado.price)}
-              </p>
-              {planoSelecionado.interval === 'year' && (
-                <p className="text-sm text-gray-400">Total: R$ 476,28</p>
-              )}
-            </div>
-
-            <div className="border-t border-gray-200 my-6"></div>
-
-            <div className="space-y-4 mb-6">
-              <p className="text-sm font-medium text-gray-700">Escolha a forma de pagamento:</p>
+        <div className="max-w-md mx-auto">
+          <div className="bg-white rounded-2xl border-2 border-[#FFB800] p-8 shadow-lg">
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-gray-900">Anual</h3>
+              <p className="text-sm text-gray-500 mt-1">Acesso completo por 1 ano</p>
               
-              <button
-                onClick={() => setPaymentMethod('card')}
-                className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
-                  paymentMethod === 'card' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
-                }`}
-              >
-                <CreditCard size={20} className={paymentMethod === 'card' ? 'text-[#FFB800]' : 'text-gray-400'} />
-                <div className="text-left">
-                  <p className="font-medium text-sm">Cartão de Crédito</p>
-                  <p className="text-xs text-gray-400">
-                    {planoSelecionado.interval === 'year' ? 'Em até 12x' : 'Em até 3x'}
-                  </p>
-                </div>
-                {paymentMethod === 'card' && <Check size={18} className="ml-auto text-[#FFB800]" />}
-              </button>
+              <div className="mt-4">
+                <span className="text-3xl font-bold text-[#FFB800]">
+                  12x de R$ 0,84
+                </span>
+                <span className="text-sm text-gray-400 ml-1">/ano</span>
+                <p className="text-xs text-gray-400 mt-1">Total: R$ 10,00</p>
+              </div>
 
-              {paymentMethod === 'card' && (
-                <div className="pl-12 pr-4 pb-2">
-                  <label className="text-xs text-gray-500 block mb-1">Parcelas:</label>
-                  <select
-                    value={parcelas}
-                    onChange={(e) => setParcelas(parseInt(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-                  >
-                    {planoSelecionado.interval === 'year' ? (
-                      <>
-                        <option value="1">1x sem juros</option>
-                        <option value="2">2x sem juros</option>
-                        <option value="3">3x sem juros</option>
-                        <option value="4">4x com juros</option>
-                        <option value="5">5x com juros</option>
-                        <option value="6">6x com juros</option>
-                        <option value="7">7x com juros</option>
-                        <option value="8">8x com juros</option>
-                        <option value="9">9x com juros</option>
-                        <option value="10">10x com juros</option>
-                        <option value="11">11x com juros</option>
-                        <option value="12">12x com juros</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="1">1x sem juros</option>
-                        <option value="2">2x sem juros</option>
-                        <option value="3">3x sem juros</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-              )}
+              <ul className="mt-6 space-y-2 text-left">
+                <li className="flex items-start gap-2 text-sm text-gray-600">
+                  <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                  <span>Acesso a todos os checklists</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-gray-600">
+                  <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                  <span>Conexão com grupos</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-gray-600">
+                  <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                  <span>Chat em tempo real</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-gray-600">
+                  <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                  <span>Guia de catástrofes</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-gray-600">
+                  <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                  <span>Dicas diárias</span>
+                </li>
+              </ul>
 
-              <button
-                onClick={() => setPaymentMethod('pix')}
-                className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
-                  paymentMethod === 'pix' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
-                }`}
-              >
-                <img 
-                  src={paymentMethod === 'pix' ? '/images/pix-icon-amarelo.svg' : '/images/pix-icon-cinza.svg'} 
-                  alt="PIX" 
-                  className="w-5 h-5"
-                />
-                <div className="text-left">
-                  <p className="font-medium text-sm">PIX</p>
-                  <p className="text-xs text-gray-400">{formatPrice(planoSelecionado.price)} à vista</p>
-                </div>
-                {paymentMethod === 'pix' && <Check size={18} className="ml-auto text-[#FFB800]" />}
-              </button>
-            </div>
-
-            <button
-              onClick={handleAssinar}
-              disabled={processing}
-              className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-            >
-              {processing ? (
-                <>
-                  <Loader2 size={24} className="animate-spin" />
-                  Processando...
-                </>
-              ) : (
-                <>
-                  {paymentMethod === 'pix' ? (
-                    <img src="/images/pix-icon-amarelo.svg" alt="PIX" className="w-5 h-5" />
-                  ) : (
-                    <CreditCard size={20} />
-                  )}
-                  {paymentMethod === 'pix' ? 'Gerar PIX' : 'Assinar agora'}
-                </>
-              )}
-            </button>
-
-            <p className="text-xs text-gray-400 text-center mt-4">
-              Pagamento seguro via Mercado Pago
-            </p>
-
-            <div className="mt-6 flex items-center justify-center gap-4 text-xs text-gray-400">
-              <span>🔒 Pagamento seguro</span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <img src="/images/pix-icon-amarelo.svg" alt="PIX" className="w-4 h-4" />
-                PIX disponível
-              </span>
+              <div className="mt-6 text-xs text-[#FFB800] font-medium">
+                ✅ Plano selecionado
+              </div>
             </div>
           </div>
-        )}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 max-w-lg mx-auto mt-8">
+          <div className="text-center mb-6">
+            <h2 className="text-xl font-bold text-gray-900">Anual</h2>
+            <p className="text-3xl font-bold text-[#FFB800] mt-2">
+              12x de R$ 0,84
+            </p>
+            <p className="text-sm text-gray-400">Total: R$ 10,00</p>
+          </div>
+
+          <div className="border-t border-gray-200 my-6"></div>
+
+          <div className="space-y-4 mb-6">
+            <p className="text-sm font-medium text-gray-700">Escolha a forma de pagamento:</p>
+            
+            <button
+              onClick={() => setPaymentMethod('card')}
+              className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
+                paymentMethod === 'card' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
+              }`}
+            >
+              <CreditCard size={20} className={paymentMethod === 'card' ? 'text-[#FFB800]' : 'text-gray-400'} />
+              <div className="text-left">
+                <p className="font-medium text-sm">Cartão de Crédito</p>
+                <p className="text-xs text-gray-400">Em até 12x</p>
+              </div>
+              {paymentMethod === 'card' && <Check size={18} className="ml-auto text-[#FFB800]" />}
+            </button>
+
+            {paymentMethod === 'card' && (
+              <div className="pl-12 pr-4 pb-2">
+                <label className="text-xs text-gray-500 block mb-1">Parcelas:</label>
+                <select
+                  value={parcelas}
+                  onChange={(e) => setParcelas(parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800]"
+                >
+                  <option value="1">1x sem juros</option>
+                  <option value="2">2x sem juros</option>
+                  <option value="3">3x sem juros</option>
+                  <option value="4">4x sem juros</option>
+                  <option value="5">5x sem juros</option>
+                  <option value="6">6x sem juros</option>
+                  <option value="7">7x sem juros</option>
+                  <option value="8">8x sem juros</option>
+                  <option value="9">9x sem juros</option>
+                  <option value="10">10x sem juros</option>
+                  <option value="11">11x sem juros</option>
+                  <option value="12">12x sem juros</option>
+                </select>
+                <p className="text-xs text-green-600 mt-1">✅ Todas as parcelas sem juros</p>
+              </div>
+            )}
+
+            <button
+              onClick={() => setPaymentMethod('pix')}
+              className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
+                paymentMethod === 'pix' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
+              }`}
+            >
+              <img 
+                src={paymentMethod === 'pix' ? '/images/pix-icon-amarelo.svg' : '/images/pix-icon-cinza.svg'} 
+                alt="PIX" 
+                className="w-5 h-5"
+              />
+              <div className="text-left">
+                <p className="font-medium text-sm">PIX</p>
+                <p className="text-xs text-gray-400">R$ 10,00 à vista</p>
+              </div>
+              {paymentMethod === 'pix' && <Check size={18} className="ml-auto text-[#FFB800]" />}
+            </button>
+          </div>
+
+          <button
+            onClick={handleAssinar}
+            disabled={processing}
+            className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+          >
+            {processing ? (
+              <>
+                <Loader2 size={24} className="animate-spin" />
+                Processando...
+              </>
+            ) : (
+              <>
+                {paymentMethod === 'pix' ? (
+                  <img src="/images/pix-icon-amarelo.svg" alt="PIX" className="w-5 h-5" />
+                ) : (
+                  <CreditCard size={20} />
+                )}
+                {paymentMethod === 'pix' ? 'Gerar PIX' : 'Assinar agora'}
+              </>
+            )}
+          </button>
+
+          <p className="text-xs text-gray-400 text-center mt-4">
+            Pagamento seguro via Mercado Pago
+          </p>
+
+          <div className="mt-6 flex items-center justify-center gap-4 text-xs text-gray-400">
+            <span>🔒 Pagamento seguro</span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              <img src="/images/pix-icon-amarelo.svg" alt="PIX" className="w-4 h-4" />
+              PIX disponível
+            </span>
+          </div>
+        </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
           Ao assinar, você concorda com nossos termos de uso.
