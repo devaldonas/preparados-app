@@ -55,127 +55,8 @@
   border: 2px solid white;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
-/* Remover "Assistir no YouTube" do player */
-.youtube-embed {
-  position: relative;
-  overflow: hidden;
-}
 
-.youtube-embed iframe {
-  width: 100%;
-  height: 100%;
-}
-
-/* Esconde o link do YouTube que aparece no canto */
-.youtube-embed .ytp-watermark {
-  display: none !important;
-}
-
-/* Esconde o logo do YouTube */
-.ytp-logo {
-  display: none !important;
-}
-
-/* Esconde o botão de compartilhamento */
-.ytp-share-icon {
-  display: none !important;
-}
-/* Remover elementos do YouTube globalmente */
-.ytp-watermark,
-.ytp-youtube-button,
-.ytp-share-button,
-.ytp-info-button,
-.ytp-title,
-.ytp-logo,
-.ytp-gradient-top,
-.ytp-autonav-toggle-button {
-  display: none !important;
-}
-
-.ytp-chrome-top {
-  opacity: 0 !important;
-  transition: none !important;
-  pointer-events: none !important;
-}
-
-.ytp-chrome-bottom {
-  display: block !important;
-}
-
-.ytp-fullscreen-button,
-.ytp-settings-button,
-.ytp-play-button,
-.ytp-volume-panel {
-  display: block !important;
-}
-/* Remover elementos do YouTube globalmente */
-.ytp-watermark,
-.ytp-youtube-button,
-.ytp-share-button,
-.ytp-share-icon,
-.ytp-title,
-.ytp-logo,
-.ytp-info-button,
-.ytp-report-button,
-.ytp-annotations-button,
-.ytp-subtitles-button,
-.ytp-autonav-toggle-button,
-.ytp-gradient-top {
-  display: none !important;
-}
-
-.ytp-chrome-top {
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
-.ytp-chrome-bottom {
-  display: block !important;
-}
-
-.ytp-play-button,
-.ytp-volume-panel,
-.ytp-fullscreen-button,
-.ytp-settings-button,
-.ytp-progress-bar,
-.ytp-time-display {
-  display: block !important;
-}
-/* Remover elementos do YouTube */
-.ytp-watermark,
-.ytp-youtube-button,
-.ytp-share-button,
-.ytp-share-icon,
-.ytp-title,
-.ytp-logo,
-.ytp-info-button,
-.ytp-report-button,
-.ytp-annotations-button,
-.ytp-subtitles-button,
-.ytp-autonav-toggle-button,
-.ytp-gradient-top {
-  display: none !important;
-}
-
-.ytp-chrome-top {
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
-.ytp-chrome-bottom {
-  display: block !important;
-}
-
-.ytp-play-button,
-.ytp-volume-panel,
-.ytp-fullscreen-button,
-.ytp-settings-button,
-.ytp-progress-bar,
-.ytp-time-display {
-  display: block !important;
-}
 /* ===== REMOVER BOTÕES DO YOUTUBE ===== */
-
 /* Esconde o logo do YouTube */
 .ytp-watermark,
 .ytp-logo,
@@ -230,9 +111,6 @@
   display: none !important;
 }
 
-/* Esconde o menu de configurações (opcional) */
-/* .ytp-settings-button { display: none !important; } */
-
 /* Mantém os controles essenciais */
 .ytp-chrome-bottom {
   display: block !important;
@@ -257,37 +135,108 @@
 .ytp-time-display {
   display: block !important;
 }
-/* Esconde o botão "Assistir no YouTube" */
-.ytp-youtube-button {
-  display: none !important;
-}
 
-/* Esconde o botão "Share" */
-.ytp-share-button {
-  display: none !important;
-}
+/* ===== NOVOS ESTILOS PARA O MERCADO PAGO CHECKOUT ===== */
+/* Garantir que o checkout ocupe toda a tela no celular */
 
-/* Esconde o logo do YouTube */
-.ytp-watermark {
-  display: none !important;
-}
-/* Bloqueia interação com o iframe do YouTube nas áreas dos botões */
-.ytp-youtube-button,
-.ytp-share-button,
-.ytp-watermark {
-  pointer-events: none !important;
-  opacity: 0.3 !important;
-}
-/* Forçar remoção de legendas do YouTube */
-.ytp-subtitles-button,
-.ytp-subtitles,
-.captions-text,
-.ytp-caption-segment,
-.ytp-caption-window,
-.ytp-caption-window-container {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  height: 0 !important;
+body:has(iframe[src*="mercadopago"]),
+body:has(iframe[src*="checkout"]),
+body:has(.mercadopago-checkout) {
+  margin: 0 !important;
+  padding: 0 !important;
   overflow: hidden !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+}
+
+/* Iframe do Mercado Pago - ocupar tela inteira */
+iframe[src*="mercadopago"],
+iframe[src*="checkout"] {
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important;
+  border: none !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 99999 !important;
+  overflow: hidden !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: none !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Container do checkout */
+.mercadopago-checkout-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 99998 !important;
+  background: #ffffff !important;
+  overflow: hidden !important;
+}
+
+/* Ajustes para telas menores */
+@media (max-width: 768px) {
+  iframe[src*="mercadopago"],
+  iframe[src*="checkout"] {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+  
+  body:has(iframe[src*="mercadopago"]),
+  body:has(iframe[src*="checkout"]) {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+/* Classe para quando o checkout está aberto */
+.checkout-open {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Garantir que o viewport esteja correto */
+@viewport {
+  width: device-width;
+  initial-scale: 1.0;
+  maximum-scale: 1.0;
+  user-scalable: no;
+}
+
+/* Esconder outros elementos quando o checkout estiver aberto */
+iframe[src*="mercadopago"] ~ *:not(iframe) {
+  display: none !important;
+}
+
+/* Overlay para garantir que o checkout esteja acima de tudo */
+.checkout-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 99999 !important;
+  background: #ffffff !important;
 }
