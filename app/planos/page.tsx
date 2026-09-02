@@ -1,17 +1,17 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { Loader2, Check, CreditCard, Copy } from 'lucide-react'
 
-// 🔥 VALOR DE TESTE - R$ 1,00
-const VALOR_TOTAL = 10.00
-const VALOR_PARCELA = 10.00
+// 🔥 VALOR REAL DA ASSINATURA
+const VALOR_TOTAL = 476.28
+const VALOR_PARCELA = 39.69
+const PARCELAS_MAX = 12
 
 export default function PlanosPage() {
   const router = useRouter()
-  const linkRef = useRef<HTMLAnchorElement>(null)
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [user, setUser] = useState<any>(null)
@@ -24,19 +24,10 @@ export default function PlanosPage() {
   const [parcelas, setParcelas] = useState(1)
   const [usuarioTemAcessoGratuito, setUsuarioTemAcessoGratuito] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [redirectUrl, setRedirectUrl] = useState<string | null>(null)
 
   useEffect(() => {
     carregarDados()
   }, [])
-
-  // 🔥 EFEITO PARA REDIRECIONAR VIA LINK
-  useEffect(() => {
-    if (redirectUrl && linkRef.current) {
-      console.log('🔗 Redirecionando via link para:', redirectUrl)
-      linkRef.current.click()
-    }
-  }, [redirectUrl])
 
   const carregarDados = async () => {
     try {
@@ -81,7 +72,7 @@ export default function PlanosPage() {
     try {
       const payload = {
         planId: 2,
-        planName: 'Teste - R$ 10,00',
+        planName: 'Anual',
         price: VALOR_PARCELA,
         totalPrice: VALOR_TOTAL,
         interval: 'year',
@@ -105,7 +96,7 @@ export default function PlanosPage() {
         throw new Error(data.error || 'Erro ao processar pagamento')
       }
 
-      // 🔥 PIX - Mostrar QR Code
+      // 🔥 PIX
       if (data.paymentMethod === 'pix') {
         console.log('✅ PIX gerado com sucesso!')
         setQrCode(data.qrCode)
@@ -118,10 +109,10 @@ export default function PlanosPage() {
         return
       }
 
-      // 🔥 CARTÃO - REDIRECIONAR VIA LINK
+      // 🔥 CARTÃO
       if (data.initPoint) {
-        console.log('🔗 Preparando redirecionamento para:', data.initPoint)
-        setRedirectUrl(data.initPoint)
+        console.log('🔗 Redirecionando para:', data.initPoint)
+        window.location.href = data.initPoint
         return
       } else {
         throw new Error('Não foi possível gerar o link de pagamento')
@@ -134,7 +125,6 @@ export default function PlanosPage() {
     }
   }
 
-  // 🔥 FUNÇÃO ESPECÍFICA PARA GERAR PIX
   const handleGerarPix = async () => {
     setPaymentMethod('pix')
     setTimeout(() => {
@@ -192,6 +182,11 @@ export default function PlanosPage() {
     }).format(price)
   }
 
+  const getValorParcela = (parcelas: number) => {
+    if (parcelas === 1) return VALOR_TOTAL
+    return VALOR_PARCELA
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -204,7 +199,6 @@ export default function PlanosPage() {
     return null
   }
 
-  // 🔥 TELA DO PIX
   if (showPix && qrCode) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -261,60 +255,66 @@ export default function PlanosPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
-      {/* 🔥 LINK INVISÍVEL PARA REDIRECIONAMENTO */}
-      <a
-        ref={linkRef}
-        href={redirectUrl || '#'}
-        target="_self"
-        rel="noopener noreferrer"
-        style={{ display: 'none' }}
-      >
-        Redirecionar
-      </a>
-
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-gray-900">
-            TESTE - R$ 1,00
+            Plano Anual
           </h1>
           <p className="text-gray-500 mt-2">
-            Valor reduzido para teste de pagamento
+            Acesso completo por 1 ano
           </p>
-          <div className="mt-2 inline-block bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full">
-            🧪 Modo de Teste
-          </div>
         </div>
 
         <div className="max-w-md mx-auto">
           <div className="bg-white rounded-2xl border-2 border-[#FFB800] p-8 shadow-lg">
             <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900">Plano de Teste</h3>
-              <p className="text-sm text-gray-500 mt-1">R$ 1,00 para testar o pagamento</p>
+              <h3 className="text-xl font-bold text-gray-900">Anual</h3>
+              <p className="text-sm text-gray-500 mt-1">Acesso completo por 1 ano</p>
               
               <div className="mt-4">
-                <span className="text-3xl font-bold text-[#FFB800]">
-                  R$ 1,00
-                </span>
-                <span className="text-sm text-gray-400 ml-1">/teste</span>
+                {parcelas > 1 ? (
+                  <>
+                    <span className="text-3xl font-bold text-[#FFB800]">
+                      {parcelas}x de {formatPrice(VALOR_PARCELA)}
+                    </span>
+                    <span className="text-sm text-gray-400 ml-1">/ano</span>
+                    <p className="text-xs text-gray-400 mt-1">Total: {formatPrice(VALOR_TOTAL)}</p>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-3xl font-bold text-[#FFB800]">
+                      {formatPrice(VALOR_TOTAL)}
+                    </span>
+                    <span className="text-sm text-gray-400 ml-1">/ano</span>
+                  </>
+                )}
               </div>
 
               <ul className="mt-6 space-y-2 text-left">
                 <li className="flex items-start gap-2 text-sm text-gray-600">
                   <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                  <span>Teste de pagamento</span>
+                  <span>Acesso a todos os checklists</span>
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-600">
                   <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                  <span>Valor mínimo de R$ 1,00</span>
+                  <span>Conexão com grupos</span>
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-600">
                   <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                  <span>Teste o fluxo completo</span>
+                  <span>Chat em tempo real</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-gray-600">
+                  <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                  <span>Guia de catástrofes</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-gray-600">
+                  <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
+                  <span>Dicas diárias</span>
                 </li>
               </ul>
 
               <div className="mt-6 text-xs text-[#FFB800] font-medium">
-                🧪 Plano de Teste
+                ✅ Plano selecionado
               </div>
             </div>
           </div>
@@ -322,11 +322,19 @@ export default function PlanosPage() {
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 max-w-lg mx-auto mt-8">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">TESTE</h2>
-            <p className="text-3xl font-bold text-[#FFB800] mt-2">
-              R$ 1,00
-            </p>
-            <p className="text-sm text-gray-400">À vista</p>
+            <h2 className="text-xl font-bold text-gray-900">Anual</h2>
+            {parcelas > 1 ? (
+              <>
+                <p className="text-3xl font-bold text-[#FFB800] mt-2">
+                  {parcelas}x de {formatPrice(VALOR_PARCELA)}
+                </p>
+                <p className="text-sm text-gray-400">Total: {formatPrice(VALOR_TOTAL)}</p>
+              </>
+            ) : (
+              <p className="text-3xl font-bold text-[#FFB800] mt-2">
+                {formatPrice(VALOR_TOTAL)}
+              </p>
+            )}
           </div>
 
           <div className="border-t border-gray-200 my-6" />
@@ -343,10 +351,28 @@ export default function PlanosPage() {
               <CreditCard size={20} className={paymentMethod === 'card' ? 'text-[#FFB800]' : 'text-gray-400'} />
               <div className="text-left">
                 <p className="font-medium text-sm">Cartão de Crédito</p>
-                <p className="text-xs text-gray-400">R$ 1,00 à vista</p>
+                <p className="text-xs text-gray-400">Em até {PARCELAS_MAX}x</p>
               </div>
               {paymentMethod === 'card' && <Check size={18} className="ml-auto text-[#FFB800]" />}
             </button>
+
+            {paymentMethod === 'card' && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-500 block mb-1">Parcelas:</p>
+                <select
+                  value={parcelas}
+                  onChange={(e) => setParcelas(parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800]"
+                >
+                  <option value="1">1x de {formatPrice(VALOR_TOTAL)}</option>
+                  {Array.from({ length: PARCELAS_MAX - 1 }, (_, i) => i + 2).map((n) => (
+                    <option key={n} value={n}>
+                      {n}x de {formatPrice(VALOR_PARCELA)} (Total: {formatPrice(VALOR_TOTAL)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <button
               onClick={handleGerarPix}
@@ -362,7 +388,7 @@ export default function PlanosPage() {
               />
               <div className="text-left">
                 <p className="font-medium text-sm">PIX</p>
-                <p className="text-xs text-gray-400">R$ 1,00 à vista</p>
+                <p className="text-xs text-gray-400">{formatPrice(VALOR_TOTAL)} à vista</p>
               </div>
               <Check size={18} className={`ml-auto ${paymentMethod === 'pix' ? 'text-[#FFB800]' : 'text-transparent'}`} />
             </button>
@@ -392,7 +418,7 @@ export default function PlanosPage() {
             ) : (
               <>
                 <CreditCard size={20} />
-                Pagar R$ 1,00
+                Assinar agora
               </>
             )}
           </button>
@@ -412,9 +438,8 @@ export default function PlanosPage() {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          🧪 Este é um plano de teste com valor de R$ 1,00.
-          <br />
-          O pagamento será processado normalmente.
+          Ao assinar, você concorda com nossos termos de uso.
+          Cancele a qualquer momento.
         </p>
       </div>
     </div>
