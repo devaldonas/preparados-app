@@ -80,7 +80,6 @@ const getIntensityLabel = (magnitude: number): string => {
 // 🔥 FUNÇÃO PARA CALCULAR RAIO DO CÍRCULO (baseado na magnitude)
 const getCircleRadius = (event: DisasterEvent): number => {
   if (event.type === 'Terremoto' && event.magnitude) {
-    // Raio baseado na magnitude: quanto maior a magnitude, maior o círculo
     return Math.pow(2, event.magnitude - 3) * 5
   }
   if (event.type === 'Inundação') {
@@ -183,13 +182,12 @@ export default function MapaMonitoramentoCompleto() {
     }
   }
 
-  // 🔥 FUNÇÃO PARA CRIAR ÍCONE (SEM EMOJIS)
+  // 🔥 FUNÇÃO PARA CRIAR ÍCONE
   const createIcon = (type: string, alertLevel: string, magnitude?: number) => {
     if (!L) return null
     
     const alertColor = alertColors[alertLevel] || '#888888'
     
-    // Texto do ícone baseado no tipo
     let iconText = '⚠'
     if (type === 'Terremoto') iconText = 'M'
     else if (type === 'Inundação') iconText = 'I'
@@ -338,9 +336,10 @@ export default function MapaMonitoramentoCompleto() {
           zoomControl={false}
           attributionControl={false}
         >
+          {/* 🔥 CORRIGIDO: USAR OPENSTREETMAP, NÃO CARTO DB */}
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; CartoDB'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
 
           {/* CÍRCULOS E MARCADORES DOS EVENTOS */}
@@ -383,10 +382,9 @@ export default function MapaMonitoramentoCompleto() {
                         </div>
                       </div>
                       
-                      {/* 🔥 INFORMAÇÕES DO EVENTO - AGORA COM MAGNITUDE CORRETA */}
+                      {/* INFORMAÇÕES DO EVENTO */}
                       <div className="bg-gray-50 rounded-lg p-2 mb-2 border border-gray-200">
                         {event.type === 'Terremoto' ? (
-                          // 🔥 TERREMOTO - MOSTRA MAGNITUDE RICHTER
                           <>
                             {event.magnitude ? (
                               <>
@@ -467,7 +465,6 @@ export default function MapaMonitoramentoCompleto() {
                             </div>
                           </>
                         ) : (
-                          // 🔥 OUTROS TIPOS
                           <>
                             <div className="flex items-center justify-between text-xs">
                               <span className="font-medium text-gray-700">Severidade:</span>
