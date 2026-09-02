@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    const { pedidoId, valor, descricao, cliente } = await request.json()
+    const { pedidoId, valor, descricao, cliente, parcelas } = await request.json()
 
-    const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
+    // 🔥 USAR TOKEN DE PRODUÇÃO OU TESTE
+    const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN || process.env.MERCADO_PAGO_ACCESS_TOKEN_TEST
+    const IS_SANDBOX = process.env.NODE_ENV !== 'production'
 
     if (!accessToken) {
       console.error('❌ Token do Mercado Pago não configurado')
@@ -14,7 +16,6 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
-    // 🔥 GARANTIR QUE A URL ESTÁ CORRETA
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://preparado.vercel.app'
     const cleanBaseUrl = baseUrl.replace(/\/$/, '')
     const webhookUrl = `${cleanBaseUrl}/api/mercadopago/webhook`
@@ -31,41 +32,47 @@ export async function POST(request: Request) {
       throw new Error(`URL do webhook inválida: ${webhookUrl}`)
     }
 
+    // 🔥 CRIAR PREFERÊNCIA DE PAGAMENTO
+    const preferenceData = {
+      items: [{
+        id: `order-${pedidoId}`,
+        title: `Pedido #${pedidoId} - PREPARADO`,
+        description: descricao || `Pedido #${pedidoId}`,
+        quantity: 1,
+        currency_id: 'BRL',
+        unit_price: Number(valor)
+      }],
+      payer: {
+        email: cliente.email || 'cliente@email.com',
+        name: cliente.nome || 'Cliente'
+      },
+      payment_methods: {
+        installments: parcelas || 12,
+        default_installments: 1
+      },
+      back_urls: {
+        success: `${cleanBaseUrl}/loja/pedidos`,
+        failure: `${cleanBaseUrl}/loja/carrinho`,
+        pending: `${cleanBaseUrl}/loja/checkout?order=${pedidoId}`
+      },
+      auto_return: 'approved',
+      notification_url: webhookUrl,
+      external_reference: `order_${pedidoId}`,
+      metadata: {
+        pedido_id: pedidoId,
+        test: IS_SANDBOX
+      }
+    }
+
+    console.log('📤 Enviando preferência...')
+
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        items: [{
-          id: `order-${pedidoId}`,
-          title: `Pedido #${pedidoId} - PREPARADO`,
-          description: descricao || `Pedido #${pedidoId}`,
-          quantity: 1,
-          currency_id: 'BRL',
-          unit_price: Number(valor)
-        }],
-        payer: {
-          email: cliente.email,
-          name: cliente.nome || 'Cliente'
-        },
-        payment_methods: {
-          installments: 12,
-          default_installments: 1
-        },
-        back_urls: {
-          success: `${cleanBaseUrl}/loja/pedidos`,
-          failure: `${cleanBaseUrl}/loja/carrinho`,
-          pending: `${cleanBaseUrl}/loja/checkout?order=${pedidoId}`
-        },
-        auto_return: 'approved',
-        notification_url: webhookUrl,
-        external_reference: `order_${pedidoId}`,
-        metadata: {
-          pedido_id: pedidoId
-        }
-      })
+      body: JSON.stringify(preferenceData)
     })
 
     const data = await response.json()
