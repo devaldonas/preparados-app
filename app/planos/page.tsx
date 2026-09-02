@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { Loader2, Check, CreditCard, Copy } from 'lucide-react'
@@ -11,6 +11,7 @@ const VALOR_PARCELA = 1.00
 
 export default function PlanosPage() {
   const router = useRouter()
+  const linkRef = useRef<HTMLAnchorElement>(null)
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [user, setUser] = useState<any>(null)
@@ -23,10 +24,19 @@ export default function PlanosPage() {
   const [parcelas, setParcelas] = useState(1)
   const [usuarioTemAcessoGratuito, setUsuarioTemAcessoGratuito] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null)
 
   useEffect(() => {
     carregarDados()
   }, [])
+
+  // 🔥 EFEITO PARA REDIRECIONAR VIA LINK
+  useEffect(() => {
+    if (redirectUrl && linkRef.current) {
+      console.log('🔗 Redirecionando via link para:', redirectUrl)
+      linkRef.current.click()
+    }
+  }, [redirectUrl])
 
   const carregarDados = async () => {
     try {
@@ -108,10 +118,10 @@ export default function PlanosPage() {
         return
       }
 
-      // 🔥 CARTÃO - REDIRECIONAR PARA O MERCADO PAGO
+      // 🔥 CARTÃO - REDIRECIONAR VIA LINK
       if (data.initPoint) {
-        console.log('🔗 Redirecionando para:', data.initPoint)
-        window.location.href = data.initPoint
+        console.log('🔗 Preparando redirecionamento para:', data.initPoint)
+        setRedirectUrl(data.initPoint)
         return
       } else {
         throw new Error('Não foi possível gerar o link de pagamento')
@@ -127,7 +137,6 @@ export default function PlanosPage() {
   // 🔥 FUNÇÃO ESPECÍFICA PARA GERAR PIX
   const handleGerarPix = async () => {
     setPaymentMethod('pix')
-    // Aguardar o estado ser atualizado
     setTimeout(() => {
       handleAssinar()
     }, 100)
@@ -252,6 +261,17 @@ export default function PlanosPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
+      {/* 🔥 LINK INVISÍVEL PARA REDIRECIONAMENTO */}
+      <a
+        ref={linkRef}
+        href={redirectUrl || '#'}
+        target="_self"
+        rel="noopener noreferrer"
+        style={{ display: 'none' }}
+      >
+        Redirecionar
+      </a>
+
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-gray-900">
