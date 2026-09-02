@@ -49,6 +49,11 @@ export default function PlanosPage() {
         return
       }
 
+      if (profile?.subscription_status === 'active') {
+        router.push('/dashboard')
+        return
+      }
+
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
     } finally {
@@ -58,6 +63,9 @@ export default function PlanosPage() {
 
   const handleAssinar = async () => {
     setProcessing(true)
+    setQrCode(null)
+    setCodigoPix(null)
+    setPaymentId(null)
     setErrorMessage(null)
 
     try {
@@ -89,6 +97,7 @@ export default function PlanosPage() {
 
       // 🔥 PIX - Mostrar QR Code
       if (data.paymentMethod === 'pix') {
+        console.log('✅ PIX gerado com sucesso!')
         setQrCode(data.qrCode)
         setCodigoPix(data.codigoPix)
         setPaymentId(data.paymentId)
@@ -113,6 +122,15 @@ export default function PlanosPage() {
       setErrorMessage(error.message || 'Erro ao processar pagamento. Tente novamente.')
       setProcessing(false)
     }
+  }
+
+  // 🔥 FUNÇÃO ESPECÍFICA PARA GERAR PIX
+  const handleGerarPix = async () => {
+    setPaymentMethod('pix')
+    // Aguardar o estado ser atualizado
+    setTimeout(() => {
+      handleAssinar()
+    }, 100)
   }
 
   const verificarPagamentoAutomatico = async (paymentId: string) => {
@@ -177,6 +195,7 @@ export default function PlanosPage() {
     return null
   }
 
+  // 🔥 TELA DO PIX
   if (showPix && qrCode) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -310,13 +329,13 @@ export default function PlanosPage() {
             </button>
 
             <button
-              onClick={() => setPaymentMethod('pix')}
+              onClick={handleGerarPix}
               className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
                 paymentMethod === 'pix' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
               }`}
             >
               <img 
-                src={paymentMethod === 'pix' ? '/images/pix-icon-amarelo.svg' : '/images/pix-icon-cinza.svg'} 
+                src="/images/pix-icon-amarelo.svg" 
                 alt="PIX" 
                 className="w-5 h-5"
                 onError={(e) => { e.currentTarget.style.display = 'none' }}
@@ -325,7 +344,7 @@ export default function PlanosPage() {
                 <p className="font-medium text-sm">PIX</p>
                 <p className="text-xs text-gray-400">R$ 1,00 à vista</p>
               </div>
-              {paymentMethod === 'pix' && <Check size={18} className="ml-auto text-[#FFB800]" />}
+              <Check size={18} className={`ml-auto ${paymentMethod === 'pix' ? 'text-[#FFB800]' : 'text-transparent'}`} />
             </button>
           </div>
 
