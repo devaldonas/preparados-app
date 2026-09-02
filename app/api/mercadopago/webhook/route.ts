@@ -2,61 +2,48 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
 
 export async function POST(request: Request) {
-  console.log('🚀 WEBHOOK - Buscando pedido 169')
+  console.log('🚀 WEBHOOK - Recebido!')
   
   try {
     const body = await request.json()
     console.log('📦 Body:', JSON.stringify(body, null, 2))
 
-    const paymentId = body.data?.id
-    if (!paymentId) {
-      return NextResponse.json({ error: 'No payment ID' }, { status: 400 })
+    // 🔥 IDENTIFICAR O TIPO DE EVENTO
+    const { type, data, topic, id } = body
+
+    console.log('📌 Tipo:', type || topic)
+    console.log('📌 ID:', id || data?.id)
+
+    // 🔥 PROCESSAR ASSINATURA (preapproval)
+    if (type === 'preapproval' || topic === 'preapproval') {
+      console.log('🔄 Processando assinatura...')
+      return await processarAssinatura(data?.id || id, body)
     }
 
-    console.log('💰 Payment ID:', paymentId)
-
-    // 🔥 1. BUSCAR PELO TRANSACTION_ID
-    console.log('🔍 Buscando pedido com transaction_id:', paymentId)
-    
-    const { data: orderByTransaction, error: error1 } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('transaction_id', String(paymentId))
-      .maybeSingle()
-
-    console.log('📊 Resultado transaction_id:', orderByTransaction)
-    if (error1) console.error('❌ Erro1:', error1)
-
-    if (orderByTransaction) {
-      console.log('✅ Pedido encontrado pelo transaction_id:', orderByTransaction.id)
-      await atualizarPedido(orderByTransaction.id, paymentId)
-      return NextResponse.json({ success: true, orderId: orderByTransaction.id })
+    // 🔥 PROCESSAR PAGAMENTO (payment)
+    if (type === 'payment' || topic === 'payment') {
+      console.log('💳 Processando pagamento...')
+      return await processarPagamento(data?.id || id, body)
     }
 
-    // 🔥 2. BUSCAR DIRETAMENTE O PEDIDO 169
-    console.log('🔍 Buscando pedido 169 diretamente...')
-    
-    const { data: orderById, error: error2 } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', 169)
-      .maybeSingle()
-
-    console.log('📊 Resultado id 169:', orderById)
-    if (error2) console.error('❌ Erro2:', error2)
-
-    if (!orderById) {
-      console.log('❌ Pedido 169 não encontrado!')
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+    // 🔥 PROCESSAR ORDEM (merchant_order)
+    if (topic === 'merchant_order') {
+      console.log('📦 Processando merchant_order...')
+      return await processarMerchantOrder(id, body)
     }
 
-    console.log('✅ Pedido 169 encontrado!', orderById)
+    // 🔥 SE NÃO IDENTIFICOU, TENTAR PROCESSAR COMO PAGAMENTO DIRETO
+    if (data?.id) {
+      console.log('🔄 Tentando processar como pagamento direto...')
+      return await processarPagamento(data.id, body)
+    }
 
-    // 🔥 3. ATUALIZAR O PEDIDO 169
-    await atualizarPedido(169, paymentId)
-
-    console.log('✅ Pedido #169 atualizado para PAID!')
-    return NextResponse.json({ success: true, orderId: 169 })
+    console.log('⚠️ Tipo de evento não reconhecido:', type || topic)
+    return NextResponse.json({ 
+      success: false, 
+      message: 'Evento não reconhecido',
+      received: { type, topic, id }
+    }, { status: 200 })
 
   } catch (error) {
     console.error('❌ Erro no webhook:', error)
@@ -64,6 +51,208 @@ export async function POST(request: Request) {
   }
 }
 
+// 🔥 PROCESSAR ASSINATURA
+async function processarAssinatura(paymentId: string, body: any) {
+  try {
+    console.log('💰 Payment ID:', paymentId)
+
+    // 🔥 BUSCAR O PAGAMENTO NO MERCADO PAGO
+    const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
+    
+    if (!accessToken) {
+      console.error('❌ Token do Mercado Pago não configurado')
+      return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
+    }
+
+    const response = await fetch(`https://api.mercadopago.com/preapproval/${paymentId}`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    })
+
+    const preapproval = await response.json()
+
+    if (!response.ok) {
+      console.error('❌ Erro ao buscar assinatura:', preapproval)
+      return NextResponse.json({ error: 'Erro ao buscar assinatura' }, { status: response.status })
+    }
+
+    console.log('✅ Assinatura encontrada:', {
+      id: preapproval.id,
+      status: preapproval.status,
+      external_reference: preapproval.external_reference
+    })
+
+    // 🔥 EXTRAIR O USER_ID DO external_reference
+    const externalReference = preapproval.external_reference || ''
+    const userId = externalReference.replace('plan_2_user_', '')
+
+    if (!userId) {
+      console.warn('⚠️ Usuário não identificado')
+      return NextResponse.json({ error: 'Usuário não identificado' }, { status: 400 })
+    }
+
+    // 🔥 ATUALIZAR O PERFIL
+    if (preapproval.status === 'authorized' || preapproval.status === 'approved') {
+      console.log(`✅ Assinatura autorizada para usuário: ${userId}`)
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          subscription_status: 'active',
+          subscription_end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          plan_id: 2,
+          subscription_id: preapproval.id,
+          payment_method: 'card'
+        })
+        .eq('id', userId)
+
+      if (error) {
+        console.error('❌ Erro ao atualizar perfil:', error)
+        return NextResponse.json({ error: 'Erro ao atualizar perfil' }, { status: 500 })
+      }
+
+      console.log('✅ Assinatura ativada para o usuário:', userId)
+      return NextResponse.json({ success: true, message: 'Assinatura ativada', userId })
+    } else {
+      console.log(`⏳ Assinatura ${preapproval.status} para usuário: ${userId}`)
+    }
+
+    return NextResponse.json({ success: true, status: preapproval.status })
+
+  } catch (error) {
+    console.error('❌ Erro ao processar assinatura:', error)
+    return NextResponse.json({ error: String(error) }, { status: 500 })
+  }
+}
+
+// 🔥 PROCESSAR PAGAMENTO
+async function processarPagamento(paymentId: string, body: any) {
+  try {
+    console.log('💰 Payment ID:', paymentId)
+
+    // 🔥 BUSCAR O PAGAMENTO NO MERCADO PAGO
+    const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
+    
+    if (!accessToken) {
+      console.error('❌ Token do Mercado Pago não configurado')
+      return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
+    }
+
+    const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    })
+
+    const payment = await response.json()
+
+    if (!response.ok) {
+      console.error('❌ Erro ao buscar pagamento:', payment)
+      return NextResponse.json({ error: 'Erro ao buscar pagamento' }, { status: response.status })
+    }
+
+    console.log('✅ Pagamento encontrado:', {
+      id: payment.id,
+      status: payment.status,
+      external_reference: payment.external_reference
+    })
+
+    // 🔥 VERIFICAR SE É UM PAGAMENTO DE ASSINATURA
+    const externalReference = payment.external_reference || ''
+    
+    if (externalReference.includes('plan_')) {
+      console.log('🔄 Pagamento de assinatura detectado')
+      const userId = externalReference.replace('plan_2_user_', '')
+      
+      if (userId && payment.status === 'approved') {
+        await supabase
+          .from('profiles')
+          .update({
+            subscription_status: 'active',
+            subscription_end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+            plan_id: 2
+          })
+          .eq('id', userId)
+        
+        console.log('✅ Assinatura ativada para:', userId)
+      }
+    }
+
+    // 🔥 SE FOR PEDIDO DA LOJA
+    const orderId = externalReference.replace('order_', '')
+    if (orderId && !isNaN(Number(orderId))) {
+      console.log(`🔄 Pedido da loja #${orderId}`)
+      
+      if (payment.status === 'approved') {
+        await atualizarPedido(Number(orderId), paymentId)
+      }
+    }
+
+    return NextResponse.json({ success: true, status: payment.status })
+
+  } catch (error) {
+    console.error('❌ Erro ao processar pagamento:', error)
+    return NextResponse.json({ error: String(error) }, { status: 500 })
+  }
+}
+
+// 🔥 PROCESSAR MERCHANT_ORDER
+async function processarMerchantOrder(orderId: string, body: any) {
+  try {
+    console.log('📦 Merchant Order ID:', orderId)
+
+    // 🔥 BUSCAR A ORDEM NO MERCADO PAGO
+    const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN
+    
+    if (!accessToken) {
+      console.error('❌ Token do Mercado Pago não configurado')
+      return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
+    }
+
+    const response = await fetch(`https://api.mercadopago.com/merchant_orders/${orderId}`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    })
+
+    const order = await response.json()
+
+    if (!response.ok) {
+      console.error('❌ Erro ao buscar ordem:', order)
+      return NextResponse.json({ error: 'Erro ao buscar ordem' }, { status: response.status })
+    }
+
+    console.log('✅ Ordem encontrada:', {
+      id: order.id,
+      status: order.order_status,
+      external_reference: order.external_reference
+    })
+
+    // 🔥 EXTRAIR O external_reference
+    const externalReference = order.external_reference || ''
+
+    // 🔥 VERIFICAR SE É UM PEDIDO DA LOJA
+    if (externalReference.includes('order_')) {
+      const orderId = externalReference.replace('order_', '')
+      const isPaid = order.payments?.some((p: any) => p.status === 'approved')
+
+      if (isPaid && !isNaN(Number(orderId))) {
+        const paymentId = order.payments?.find((p: any) => p.status === 'approved')?.id
+        await atualizarPedido(Number(orderId), paymentId)
+        console.log(`✅ Pedido #${orderId} atualizado para PAID!`)
+      }
+    }
+
+    return NextResponse.json({ success: true })
+
+  } catch (error) {
+    console.error('❌ Erro ao processar merchant_order:', error)
+    return NextResponse.json({ error: String(error) }, { status: 500 })
+  }
+}
+
+// 🔥 FUNÇÃO AUXILIAR PARA ATUALIZAR PEDIDO
 async function atualizarPedido(orderId: number, paymentId: string) {
   const { error: updateError } = await supabase
     .from('orders')
