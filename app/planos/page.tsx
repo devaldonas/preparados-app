@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { Loader2, Check, CreditCard, Copy } from 'lucide-react'
 
-const VALOR_TOTAL = 100.00
-const VALOR_PARCELA = 8.34
+// 🔥 VALOR DE TESTE - R$ 1,00
+const VALOR_TOTAL = 1.00
+const VALOR_PARCELA = 1.00
 
 export default function PlanosPage() {
   const router = useRouter()
@@ -19,7 +20,7 @@ export default function PlanosPage() {
   const [showPix, setShowPix] = useState(false)
   const [paymentId, setPaymentId] = useState<string | null>(null)
   const [checkingPayment, setCheckingPayment] = useState(false)
-  const [parcelas, setParcelas] = useState(12)
+  const [parcelas, setParcelas] = useState(1)
   const [usuarioTemAcessoGratuito, setUsuarioTemAcessoGratuito] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -57,20 +58,14 @@ export default function PlanosPage() {
 
   const handleAssinar = async () => {
     setProcessing(true)
-    setQrCode(null)
-    setCodigoPix(null)
-    setPaymentId(null)
     setErrorMessage(null)
 
     try {
-      const priceFinal = Number(VALOR_PARCELA.toFixed(2))
-      const totalFinal = Number(VALOR_TOTAL.toFixed(2))
-
       const payload = {
         planId: 2,
-        planName: 'Anual',
-        price: priceFinal,
-        totalPrice: totalFinal,
+        planName: 'Teste - R$ 1,00',
+        price: VALOR_PARCELA,
+        totalPrice: VALOR_TOTAL,
         interval: 'year',
         userId: user.id,
         userEmail: user.email,
@@ -104,10 +99,11 @@ export default function PlanosPage() {
         return
       }
 
-      // 🔥 CARTÃO - Redirecionar para o Checkout Pro
+      // 🔥 CARTÃO - REDIRECIONAR PARA O MERCADO PAGO
       if (data.initPoint) {
         console.log('🔗 Redirecionando para:', data.initPoint)
         window.location.href = data.initPoint
+        return
       } else {
         throw new Error('Não foi possível gerar o link de pagamento')
       }
@@ -240,52 +236,46 @@ export default function PlanosPage() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-gray-900">
-            Plano Anual - Teste
+            TESTE - R$ 1,00
           </h1>
           <p className="text-gray-500 mt-2">
-            Acesso completo por 1 ano - VALOR DE TESTE
+            Valor reduzido para teste de pagamento
           </p>
+          <div className="mt-2 inline-block bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full">
+            🧪 Modo de Teste
+          </div>
         </div>
 
         <div className="max-w-md mx-auto">
           <div className="bg-white rounded-2xl border-2 border-[#FFB800] p-8 shadow-lg">
             <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900">Anual</h3>
-              <p className="text-sm text-gray-500 mt-1">Acesso completo por 1 ano</p>
+              <h3 className="text-xl font-bold text-gray-900">Plano de Teste</h3>
+              <p className="text-sm text-gray-500 mt-1">R$ 1,00 para testar o pagamento</p>
               
               <div className="mt-4">
                 <span className="text-3xl font-bold text-[#FFB800]">
-                  12x de R$ 8,34
+                  R$ 1,00
                 </span>
-                <span className="text-sm text-gray-400 ml-1">/ano</span>
-                <p className="text-xs text-gray-400 mt-1">Total: R$ 100,00</p>
+                <span className="text-sm text-gray-400 ml-1">/teste</span>
               </div>
 
               <ul className="mt-6 space-y-2 text-left">
                 <li className="flex items-start gap-2 text-sm text-gray-600">
                   <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                  <span>Acesso a todos os checklists</span>
+                  <span>Teste de pagamento</span>
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-600">
                   <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                  <span>Conexão com grupos</span>
+                  <span>Valor mínimo de R$ 1,00</span>
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-600">
                   <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                  <span>Chat em tempo real</span>
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-600">
-                  <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                  <span>Guia de catástrofes</span>
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-600">
-                  <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                  <span>Dicas diárias</span>
+                  <span>Teste o fluxo completo</span>
                 </li>
               </ul>
 
               <div className="mt-6 text-xs text-[#FFB800] font-medium">
-                ✅ Plano selecionado
+                🧪 Plano de Teste
               </div>
             </div>
           </div>
@@ -293,11 +283,11 @@ export default function PlanosPage() {
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 max-w-lg mx-auto mt-8">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Anual</h2>
+            <h2 className="text-xl font-bold text-gray-900">TESTE</h2>
             <p className="text-3xl font-bold text-[#FFB800] mt-2">
-              12x de R$ 8,34
+              R$ 1,00
             </p>
-            <p className="text-sm text-gray-400">Total: R$ 100,00</p>
+            <p className="text-sm text-gray-400">À vista</p>
           </div>
 
           <div className="border-t border-gray-200 my-6" />
@@ -314,21 +304,10 @@ export default function PlanosPage() {
               <CreditCard size={20} className={paymentMethod === 'card' ? 'text-[#FFB800]' : 'text-gray-400'} />
               <div className="text-left">
                 <p className="font-medium text-sm">Cartão de Crédito</p>
-                <p className="text-xs text-gray-400">Em até 12x</p>
+                <p className="text-xs text-gray-400">R$ 1,00 à vista</p>
               </div>
               {paymentMethod === 'card' && <Check size={18} className="ml-auto text-[#FFB800]" />}
             </button>
-
-            {paymentMethod === 'card' && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-sm text-gray-600">
-                  💳 Você será redirecionado para o Mercado Pago para concluir o pagamento.
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  O Mercado Pago processa o pagamento com total segurança.
-                </p>
-              </div>
-            )}
 
             <button
               onClick={() => setPaymentMethod('pix')}
@@ -344,7 +323,7 @@ export default function PlanosPage() {
               />
               <div className="text-left">
                 <p className="font-medium text-sm">PIX</p>
-                <p className="text-xs text-gray-400">R$ 100,00 à vista</p>
+                <p className="text-xs text-gray-400">R$ 1,00 à vista</p>
               </div>
               {paymentMethod === 'pix' && <Check size={18} className="ml-auto text-[#FFB800]" />}
             </button>
@@ -374,7 +353,7 @@ export default function PlanosPage() {
             ) : (
               <>
                 <CreditCard size={20} />
-                Assinar agora
+                Pagar R$ 1,00
               </>
             )}
           </button>
@@ -394,8 +373,9 @@ export default function PlanosPage() {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          Ao assinar, você concorda com nossos termos de uso.
-          Cancele a qualquer momento.
+          🧪 Este é um plano de teste com valor de R$ 1,00.
+          <br />
+          O pagamento será processado normalmente.
         </p>
       </div>
     </div>
