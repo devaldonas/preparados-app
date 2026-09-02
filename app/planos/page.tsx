@@ -6,8 +6,8 @@ import { supabase } from '@/lib/supabaseClient'
 import { Loader2, Check, CreditCard, Copy } from 'lucide-react'
 
 // 🔥 VALOR DE TESTE - R$ 1,00
-const VALOR_TOTAL = 1.00
-const VALOR_PARCELA = 1.00
+const VALOR_TOTAL = 10.00
+const VALOR_PARCELA = 10.00
 
 export default function PlanosPage() {
   const router = useRouter()
@@ -81,7 +81,7 @@ export default function PlanosPage() {
     try {
       const payload = {
         planId: 2,
-        planName: 'Teste - R$ 1,00',
+        planName: 'Teste - R$ 10,00',
         price: VALOR_PARCELA,
         totalPrice: VALOR_TOTAL,
         interval: 'year',
