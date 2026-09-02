@@ -23,3 +23,8 @@ storage/
 public/images/comunicador/Backup/
 *.pdf
 .env.local
+
+# Arquivos locais
+h para o GitHub
+taging
+scripts/check-profile-schema.js
