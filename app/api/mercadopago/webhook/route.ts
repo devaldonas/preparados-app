@@ -1,9 +1,24 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function POST(request: Request) {
   try {
     console.log('🚀 WEBHOOK - INICIADO')
+    
+    // 🔥 TESTAR SE O SUPABASE ADMIN ESTÁ FUNCIONANDO
+    console.log('🔍 Testando conexão com Supabase Admin...')
+    
+    const testResult = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name')
+      .limit(1)
+
+    if (testResult.error) {
+      console.error('❌ Erro no teste do Supabase Admin:', testResult.error)
+    } else {
+      console.log('✅ Supabase Admin conectado com sucesso!')
+      console.log('📊 Teste:', testResult.data)
+    }
     
     const rawBody = await request.text()
     console.log('📦 Raw Body:', rawBody)
@@ -23,7 +38,6 @@ export async function POST(request: Request) {
 
     console.log('📌 Body:', JSON.stringify(body, null, 2))
 
-    // 🔥 EXTRAIR O ID
     let id = body.id || body.data?.id
     
     if (!id && body.resource) {
@@ -45,7 +59,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Token não configurado' }, { status: 500 })
     }
 
-    // 🔥 PROCESSAR MERCHANT_ORDER
     if (body.topic === 'merchant_order') {
       console.log(`📦 Buscando ordem #${id} no Mercado Pago...`)
 
@@ -71,11 +84,9 @@ export async function POST(request: Request) {
       const externalReference = order.external_reference || ''
       console.log(`🔗 External Reference: ${externalReference}`)
 
-      // 🔥 PROCESSAR ASSINATURA
       if (externalReference.includes('plan_')) {
         console.log('🔄 Assinatura detectada!')
         
-        // 🔥 EXTRAIR O USER_ID
         const userId = externalReference.replace('plan_2_user_', '')
         console.log(`👤 User ID extraído: ${userId}`)
 
@@ -84,14 +95,12 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'UserId inválido' }, { status: 400 })
         }
 
-        // 🔥 VERIFICAR SE O PAGAMENTO FOI APROVADO
         const isPaid = order.payments?.some((p: any) => p.status === 'approved')
         console.log(`💳 Pagamento aprovado? ${isPaid}`)
 
         if (isPaid) {
           console.log(`✅ Assinatura aprovada para: ${userId}`)
           
-          // 🔥 ATUALIZAR O PERFIL
           const updateData = {
             subscription_status: 'active',
             subscription_end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
@@ -100,11 +109,14 @@ export async function POST(request: Request) {
           }
           console.log('📝 Dados para atualizar:', updateData)
 
-          // 🔥 SEM .select() - apenas atualizar
-          const { error: updateError } = await supabase
+          // 🔥 USAR SUPABASE ADMIN
+          console.log('🔑 Atualizando com supabaseAdmin...')
+          
+          const { data, error: updateError } = await supabaseAdmin
             .from('profiles')
             .update(updateData)
             .eq('id', userId)
+            .select()
 
           if (updateError) {
             console.error('❌ Erro ao atualizar perfil:', updateError)
@@ -112,21 +124,21 @@ export async function POST(request: Request) {
           }
 
           console.log('✅ Perfil atualizado com sucesso!')
+          console.log('📊 Dados retornados:', data)
 
-          // 🔥 VERIFICAR SE FOI ATUALIZADO
-          const { data: updatedUser, error: checkError } = await supabase
+          // 🔥 VERIFICAR NOVAMENTE
+          const { data: checkData, error: checkError } = await supabaseAdmin
             .from('profiles')
             .select('id, full_name, subscription_status, subscription_end_date, plan_id')
             .eq('id', userId)
-            .single()
 
           if (checkError) {
-            console.error('❌ Erro ao verificar atualização:', checkError)
+            console.error('❌ Erro ao verificar:', checkError)
           } else {
-            console.log('📊 Dados após atualização:', updatedUser)
+            console.log('📊 Verificação pós-update:', checkData)
           }
 
-          return NextResponse.json({ success: true, userId })
+          return NextResponse.json({ success: true, userId, data })
         } else {
           console.log(`⏳ Pagamento ainda não aprovado`)
           return NextResponse.json({ success: true, status: 'pending' })
