@@ -6,7 +6,8 @@ import {
   VolumeX, 
   Maximize, 
   Minimize, 
-  PlayCircle
+  PlayCircle,
+  RotateCw
 } from 'lucide-react';
 
 interface StreamPlayerProps {
@@ -39,6 +40,7 @@ declare global {
   interface Window {
     YT: any;
     onYouTubeIframeAPIReady: () => void;
+    screen: any;
   }
 }
 
@@ -56,6 +58,7 @@ export default function StreamPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +92,156 @@ export default function StreamPlayer({
   };
 
   const cleanYoutubeId = youtubeId ? extractYoutubeId(youtubeId) : null;
+
+  // 🔥 FUNÇÃO PARA GIRAR A TELA PARA PAISAGEM
+  const girarParaPaisagem = async () => {
+    try {
+      // 🔥 Para dispositivos móveis (Android/iOS)
+      if (screen.orientation && screen.orientation.lock) {
+        await screen.orientation.lock('landscape');
+        setIsLandscape(true);
+        console.log('📱 Tela bloqueada em paisagem');
+      } 
+      // 🔥 Fallback para navegadores que não suportam screen.orientation.lock
+      else if (screen && (screen as any).lockOrientation) {
+        (screen as any).lockOrientation('landscape');
+        setIsLandscape(true);
+        console.log('📱 Tela bloqueada em paisagem (fallback)');
+      }
+    } catch (error) {
+      console.warn('⚠️ Não foi possível bloquear a orientação:', error);
+    }
+  };
+
+  // 🔥 FUNÇÃO PARA VOLTAR PARA RETRATO
+  const voltarParaRetrato = async () => {
+    try {
+      if (screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock();
+        setIsLandscape(false);
+        console.log('📱 Tela desbloqueada');
+      } else if (screen && (screen as any).unlockOrientation) {
+        (screen as any).unlockOrientation();
+        setIsLandscape(false);
+      }
+    } catch (error) {
+      console.warn('⚠️ Não foi possível desbloquear a orientação:', error);
+    }
+  };
+
+  // 🔥 Tela cheia com rotação
+  const toggleFullscreen = async () => {
+    const element = playerWrapperRef.current;
+    if (!element) return;
+    
+    try {
+      const isFullscreenNow = !!(
+        document.fullscreenElement || 
+        (document as any).webkitFullscreenElement || 
+        (document as any).mozFullScreenElement
+      );
+      
+      if (isFullscreenNow) {
+        // 🔥 Sair da tela cheia e voltar para retrato
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        } else if ((document as any).mozCancelFullScreen) {
+          (document as any).mozCancelFullScreen();
+        }
+        setIsFullscreen(false);
+        await voltarParaRetrato();
+      } else {
+        // 🔥 Entrar em tela cheia e girar para paisagem
+        if (element.requestFullscreen) {
+          await element.requestFullscreen();
+        } else if ((element as any).webkitRequestFullscreen) {
+          (element as any).webkitRequestFullscreen();
+        } else if ((element as any).mozRequestFullScreen) {
+          (element as any).mozRequestFullScreen();
+        } else {
+          // Fallback para iOS via iframe
+          const iframe = element.querySelector('iframe');
+          if (iframe) {
+            try {
+              if ((iframe as any).webkitEnterFullscreen) {
+                (iframe as any).webkitEnterFullscreen();
+              }
+            } catch (e) {}
+          }
+        }
+        setIsFullscreen(true);
+        
+        // 🔥 GIRAR PARA PAISAGEM
+        await girarParaPaisagem();
+      }
+    } catch (e) {
+      console.error('Erro no fullscreen:', e);
+      // Fallback: tentar com o elemento pai
+      try {
+        const parent = element.parentElement;
+        if (parent) {
+          if ((parent as any).webkitRequestFullscreen) {
+            (parent as any).webkitRequestFullscreen();
+            setIsFullscreen(true);
+            await girarParaPaisagem();
+          }
+        }
+      } catch (e2) {}
+    }
+  };
+
+  // 🔥 BOTÃO PARA GIRAR MANUALMENTE (caso o fullscreen não gire automaticamente)
+  const toggleRotate = async () => {
+    if (isLandscape) {
+      await voltarParaRetrato();
+    } else {
+      await girarParaPaisagem();
+    }
+  };
+
+  // Detectar mudanças de fullscreen
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFull = !!(document.fullscreenElement || 
+        (document as any).webkitFullscreenElement || 
+        (document as any).mozFullScreenElement);
+      setIsFullscreen(isFull);
+      
+      // Se saiu do fullscreen, voltar para retrato
+      if (!isFull && isLandscape) {
+        voltarParaRetrato();
+      }
+    };
+
+    // 🔥 Detectar mudanças de orientação
+    const handleOrientationChange = () => {
+      if (screen.orientation) {
+        const isLandscapeMode = screen.orientation.type.includes('landscape');
+        setIsLandscape(isLandscapeMode);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    
+    if (screen.orientation) {
+      screen.orientation.addEventListener('change', handleOrientationChange);
+    }
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      if (screen.orientation) {
+        screen.orientation.removeEventListener('change', handleOrientationChange);
+      }
+      // 🔥 Garantir que a tela volte ao normal ao desmontar
+      voltarParaRetrato();
+    };
+  }, []);
 
   // Carregar a API do YouTube
   useEffect(() => {
@@ -244,102 +397,6 @@ export default function StreamPlayer({
     }
   };
 
-  // 🔥 CORRIGIDO: Tela cheia para iPhone e todos os navegadores
-  const toggleFullscreen = () => {
-    const element = playerWrapperRef.current;
-    if (!element) return;
-    
-    try {
-      const isFullscreenNow = !!(
-        document.fullscreenElement || 
-        (document as any).webkitFullscreenElement || 
-        (document as any).mozFullScreenElement
-      );
-      
-      if (isFullscreenNow) {
-        // Sair da tela cheia
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          (document as any).webkitExitFullscreen();
-        } else if ((document as any).mozCancelFullScreen) {
-          (document as any).mozCancelFullScreen();
-        }
-        setIsFullscreen(false);
-      } else {
-        // 🔥 PARA IPHONE: O YouTube já tem suporte nativo a fullscreen via iframe
-        // Vamos tentar várias abordagens
-        
-        // Abordagem 1: requestFullscreen padrão
-        if (element.requestFullscreen) {
-          element.requestFullscreen();
-        } 
-        // Abordagem 2: webkitRequestFullscreen (Safari)
-        else if ((element as any).webkitRequestFullscreen) {
-          (element as any).webkitRequestFullscreen();
-        } 
-        // Abordagem 3: mozRequestFullScreen (Firefox)
-        else if ((element as any).mozRequestFullScreen) {
-          (element as any).mozRequestFullScreen();
-        } 
-        // 🔥 Abordagem 4: Para iOS, tentar via iframe
-        else {
-          // Buscar o iframe do YouTube e usar o método nativo
-          const iframe = element.querySelector('iframe');
-          if (iframe) {
-            // Tentar via iframe
-            try {
-              // @ts-ignore
-              if (iframe.webkitEnterFullscreen) {
-                // @ts-ignore
-                iframe.webkitEnterFullscreen();
-              } else if (iframe.requestFullscreen) {
-                iframe.requestFullscreen();
-              } else if ((iframe as any).webkitRequestFullscreen) {
-                (iframe as any).webkitRequestFullscreen();
-              }
-            } catch (e) {
-              console.log('Fallback fullscreen via iframe:', e);
-            }
-          }
-        }
-        setIsFullscreen(true);
-      }
-    } catch (e) {
-      console.error('Erro no fullscreen:', e);
-      // Fallback: tentar com o elemento pai
-      try {
-        const parent = element.parentElement;
-        if (parent) {
-          if ((parent as any).webkitRequestFullscreen) {
-            (parent as any).webkitRequestFullscreen();
-            setIsFullscreen(true);
-          }
-        }
-      } catch (e2) {}
-    }
-  };
-
-  // Detectar mudanças de fullscreen
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isFull = !!(document.fullscreenElement || 
-        (document as any).webkitFullscreenElement || 
-        (document as any).mozFullScreenElement);
-      setIsFullscreen(isFull);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-    };
-  }, []);
-
   // Monitorar mute
   useEffect(() => {
     if (!playerRef.current || !playerReady) return;
@@ -476,6 +533,15 @@ export default function StreamPlayer({
             >
               {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
             </button>
+
+            {/* 🔥 BOTÃO PARA GIRAR MANUALMENTE */}
+            <button
+              onClick={toggleRotate}
+              className="p-2 hover:bg-white/20 rounded-full transition touch-manipulation"
+              title={isLandscape ? 'Voltar para retrato' : 'Girar para paisagem'}
+            >
+              <RotateCw size={24} className={isLandscape ? 'text-[#FFB800]' : 'text-white'} />
+            </button>
           </div>
         </div>
 
@@ -603,15 +669,24 @@ export default function StreamPlayer({
                   if (!document.fullscreenElement) {
                     container.requestFullscreen();
                     setIsFullscreen(true);
+                    girarParaPaisagem();
                   } else {
                     document.exitFullscreen();
                     setIsFullscreen(false);
+                    voltarParaRetrato();
                   }
                 }
               }}
               className="p-2 hover:bg-white/20 rounded-full transition"
             >
               {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+            </button>
+
+            <button
+              onClick={toggleRotate}
+              className="p-2 hover:bg-white/20 rounded-full transition"
+            >
+              <RotateCw size={20} className={isLandscape ? 'text-[#FFB800]' : 'text-white'} />
             </button>
           </div>
         </div>
