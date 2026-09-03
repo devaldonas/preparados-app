@@ -244,13 +244,12 @@ export default function StreamPlayer({
     }
   };
 
-  // 🔥 CORRIGIDO: Tela cheia para iPhone
+  // 🔥 CORRIGIDO: Tela cheia para iPhone e todos os navegadores
   const toggleFullscreen = () => {
     const element = playerWrapperRef.current;
     if (!element) return;
     
     try {
-      // Verificar se já está em tela cheia
       const isFullscreenNow = !!(
         document.fullscreenElement || 
         (document as any).webkitFullscreenElement || 
@@ -268,32 +267,42 @@ export default function StreamPlayer({
         }
         setIsFullscreen(false);
       } else {
-        // Entrar em tela cheia
-        // Para iOS, precisamos usar webkitEnterFullscreen no elemento video
-        // ou usar o container com webkitRequestFullscreen
+        // 🔥 PARA IPHONE: O YouTube já tem suporte nativo a fullscreen via iframe
+        // Vamos tentar várias abordagens
         
-        // Tenta com o container primeiro
+        // Abordagem 1: requestFullscreen padrão
         if (element.requestFullscreen) {
           element.requestFullscreen();
-        } else if ((element as any).webkitRequestFullscreen) {
+        } 
+        // Abordagem 2: webkitRequestFullscreen (Safari)
+        else if ((element as any).webkitRequestFullscreen) {
           (element as any).webkitRequestFullscreen();
-        } else if ((element as any).mozRequestFullScreen) {
+        } 
+        // Abordagem 3: mozRequestFullScreen (Firefox)
+        else if ((element as any).mozRequestFullScreen) {
           (element as any).mozRequestFullScreen();
-        }
-        
-        // Fallback para iOS: tentar com o vídeo diretamente
-        if (videoRef.current) {
-          try {
-            // @ts-ignore - webkitEnterFullscreen é específico do iOS
-            if (videoRef.current.webkitEnterFullscreen) {
+        } 
+        // 🔥 Abordagem 4: Para iOS, tentar via iframe
+        else {
+          // Buscar o iframe do YouTube e usar o método nativo
+          const iframe = element.querySelector('iframe');
+          if (iframe) {
+            // Tentar via iframe
+            try {
               // @ts-ignore
-              videoRef.current.webkitEnterFullscreen();
+              if (iframe.webkitEnterFullscreen) {
+                // @ts-ignore
+                iframe.webkitEnterFullscreen();
+              } else if (iframe.requestFullscreen) {
+                iframe.requestFullscreen();
+              } else if ((iframe as any).webkitRequestFullscreen) {
+                (iframe as any).webkitRequestFullscreen();
+              }
+            } catch (e) {
+              console.log('Fallback fullscreen via iframe:', e);
             }
-          } catch (e) {
-            console.log('Fallback fullscreen iOS não disponível');
           }
         }
-        
         setIsFullscreen(true);
       }
     } catch (e) {
@@ -494,7 +503,10 @@ export default function StreamPlayer({
   // Player para HLS/arquivos locais
   if (src) {
     return (
-      <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group">
+      <div 
+        ref={playerWrapperRef}
+        className="relative w-full aspect-video bg-black rounded-lg overflow-hidden group"
+      >
         <video
           ref={videoRef}
           src={src}
