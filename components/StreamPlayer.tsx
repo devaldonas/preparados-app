@@ -40,7 +40,7 @@ declare global {
   interface Window {
     YT: any;
     onYouTubeIframeAPIReady: () => void;
-    screen: any;
+    // 🔥 REMOVER screen daqui para evitar conflito
   }
 }
 
