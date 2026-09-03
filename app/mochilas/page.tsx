@@ -223,36 +223,6 @@ export default function MinhasMochilas() {
             <h3 className="font-bold text-gray-900">Guia de Preparação da Mochila</h3>
             <p className="text-sm text-gray-500">Dicas e orientações para montar sua mochila</p>
           </div>
-
-          {/* Pilares da Preparação */}
-          <div className="border-t border-gray-100 pt-4 mt-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Pilares da Preparação</h4>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <img src="/images/defesa.jpeg" alt="Defesa" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => { e.currentTarget.style.display = 'none' }} />
-                <p className="font-bold text-gray-900 text-xs">Defesa</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <img src="/images/agua.jpeg" alt="Água" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => { e.currentTarget.style.display = 'none' }} />
-                <p className="font-bold text-gray-900 text-xs">Água</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <img src="/images/abrigo.jpeg" alt="Abrigo" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => { e.currentTarget.style.display = 'none' }} />
-                <p className="font-bold text-gray-900 text-xs">Abrigo</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <img src="/images/alimento.jpeg" alt="Alimento" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => { e.currentTarget.style.display = 'none' }} />
-                <p className="font-bold text-gray-900 text-xs">Alimento</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 text-center">
-                <img src="/images/fogo.jpeg" alt="Fogo" className="w-8 h-8 mx-auto mb-1 object-contain" onError={(e) => { e.currentTarget.style.display = 'none' }} />
-                <p className="font-bold text-gray-900 text-xs">Fogo</p>
-              </div>
-            </div>
-            <p className="text-[0.6rem] text-center text-gray-400 mt-2">
-              A Defesa é o primeiro pilar: esteja mentalmente preparado para qualquer situação.
-            </p>
-          </div>
         </Link>
 
         {/* Botão Voltar ao Início */}
