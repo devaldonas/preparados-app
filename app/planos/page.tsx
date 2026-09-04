@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { Loader2, Check, CreditCard, Copy, Barcode } from 'lucide-react'
+import { Loader2, Check, CreditCard, Copy } from 'lucide-react'
 
 // 🔥 VALOR DA ASSINATURA
 const VALOR_TOTAL = 476.28
@@ -97,7 +97,7 @@ export default function PlanosPage() {
     }
   }
 
-  // 🔥 FUNÇÃO PARA PIX (Mercado Pago)
+  // 🔥 FUNÇÃO PARA PIX (Mercado Pago) - CORRIGIDA
   const handleAssinarPix = async () => {
     setProcessing(true)
     setQrCode(null)
@@ -118,7 +118,7 @@ export default function PlanosPage() {
         parcelas: 1
       }
 
-      console.log('📤 Gerando PIX no Mercado Pago...')
+      console.log('📤 Gerando PIX no Mercado Pago...', payload)
 
       const response = await fetch('/api/assinatura/criar', {
         method: 'POST',
@@ -127,6 +127,8 @@ export default function PlanosPage() {
       })
 
       const data = await response.json()
+
+      console.log('📥 Resposta do PIX:', data)
 
       if (!data.success) {
         throw new Error(data.error || 'Erro ao gerar PIX')
@@ -147,12 +149,14 @@ export default function PlanosPage() {
     }
   }
 
-  // 🔥 FUNÇÃO PRINCIPAL
+  // 🔥 FUNÇÃO PRINCIPAL - CORRIGIDA
   const handleAssinar = async () => {
     if (paymentMethod === 'stripe') {
       await handleAssinarStripe()
-    } else {
+    } else if (paymentMethod === 'pix') {
       await handleAssinarPix()
+    } else {
+      setErrorMessage('Método de pagamento não selecionado')
     }
   }
 
@@ -347,17 +351,15 @@ export default function PlanosPage() {
                 paymentMethod === 'stripe' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <CreditCard size={20} className={paymentMethod === 'stripe' ? 'text-[#FFB800]' : 'text-gray-400'} />
-                <div className="text-left">
-                  <p className="font-medium text-sm">Cartão de Crédito / Boleto</p>
-                  <p className="text-xs text-gray-400">Parcelamento disponível / Vencimento em 3 dias</p>
-                </div>
+              <CreditCard size={20} className={paymentMethod === 'stripe' ? 'text-[#FFB800]' : 'text-gray-400'} />
+              <div className="text-left">
+                <p className="font-medium text-sm">Cartão de Crédito / Boleto</p>
+                <p className="text-xs text-gray-400">Parcelamento disponível / Vencimento em 3 dias</p>
               </div>
               {paymentMethod === 'stripe' && <Check size={18} className="ml-auto text-[#FFB800]" />}
             </button>
 
-            {/* 🔥 MERCADO PAGO - PIX */}
+            {/* 🔥 PIX */}
             <button
               onClick={() => setPaymentMethod('pix')}
               className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
