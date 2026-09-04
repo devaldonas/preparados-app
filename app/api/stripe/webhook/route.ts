@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { supabase } from '@/lib/supabaseClient'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {})
 
 export async function POST(request: Request) {
   const body = await request.text()
@@ -24,16 +24,15 @@ export async function POST(request: Request) {
   console.log('📥 Webhook recebido:', event.type)
 
   try {
-    // 🔥 ASSINATURA CRIADA
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session
       const userId = session.metadata?.user_id
       const planId = session.metadata?.plan_id
+      const parcelas = parseInt(session.metadata?.parcelas || '1')
 
-      console.log('✅ Pagamento concluído:', { userId, planId })
+      console.log('✅ Pagamento concluído:', { userId, planId, parcelas })
 
       if (userId) {
-        // 🔥 Atualizar o status da assinatura
         const { error } = await supabase
           .from('profiles')
           .update({
@@ -53,7 +52,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // 🔥 ASSINATURA CANCELADA
     if (event.type === 'customer.subscription.deleted') {
       const subscription = event.data.object as Stripe.Subscription
       const userId = subscription.metadata?.user_id

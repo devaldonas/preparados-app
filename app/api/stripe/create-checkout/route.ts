@@ -7,23 +7,28 @@ export async function POST(request: Request) {
   try {
     const { planId, userId, userEmail, planName, amount, interval, parcelas } = await request.json()
 
-    console.log('📥 Criando checkout no Stripe:', { planId, userId, amount, interval })
+    console.log('📥 Criando checkout no Stripe:', { planId, userId, amount, interval, parcelas })
+
+    // 🔥 Calcular valor da parcela
+    const valorParcela = amount / (parcelas || 1)
+    const valorEmCentavos = Math.round(valorParcela * 100)
 
     // 🔥 Criar a sessão de checkout
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      payment_method_types: ['card', 'boleto'],
+      payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
             currency: 'brl',
             product_data: {
               name: `Plano ${planName} - PREPARADO`,
-              description: `Assinatura ${interval} - Acesso completo`,
+              description: `${parcelas}x de R$ ${valorParcela.toFixed(2)} - Total: R$ ${amount.toFixed(2)}`,
             },
-            unit_amount: Math.round(amount * 100),
+            unit_amount: valorEmCentavos,
             recurring: {
-              interval: interval === 'year' ? 'year' : 'month',
+              interval: 'month',
+              interval_count: 1,
             },
           },
           quantity: 1,
@@ -35,18 +40,14 @@ export async function POST(request: Request) {
       metadata: {
         plan_id: String(planId || 2),
         user_id: userId,
+        parcelas: String(parcelas || 1),
+        valor_total: String(amount),
       },
-      // 🔥 CORREÇÃO: Remover 'payment_intent_data' que causa erro
-      // Usar 'subscription_data' para assinaturas
       subscription_data: {
         metadata: {
           plan_id: String(planId || 2),
           user_id: userId,
-        },
-      },
-      payment_method_options: {
-        boleto: {
-          expires_after_days: 3,
+          parcelas: String(parcelas || 1),
         },
       },
     })

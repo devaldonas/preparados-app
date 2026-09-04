@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { Loader2, Check, CreditCard, Copy } from 'lucide-react'
+import { Loader2, Check, CreditCard, Copy, Barcode } from 'lucide-react'
 
-// 🔥 VALOR DA ASSINATURA
-const VALOR_TOTAL = 476.28
-const VALOR_PARCELA = 39.69
+// 🔥 VALORES DE TESTE EM PRODUÇÃO
+const VALOR_TOTAL = 44.28
+const VALOR_PARCELA = 3.69
+const PARCELAS_MAX = 12
 
 export default function PlanosPage() {
   const router = useRouter()
@@ -20,6 +21,7 @@ export default function PlanosPage() {
   const [showPix, setShowPix] = useState(false)
   const [paymentId, setPaymentId] = useState<string | null>(null)
   const [checkingPayment, setCheckingPayment] = useState(false)
+  const [parcelas, setParcelas] = useState(1)
   const [usuarioTemAcessoGratuito, setUsuarioTemAcessoGratuito] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -60,34 +62,28 @@ export default function PlanosPage() {
     }
   }
 
-  // 🔥 FUNÇÃO PARA ASSINAR (Stripe)
-  const handleAssinarStripe = async () => {
+  // 🔥 STRIPE (Cartão com parcelamento)
+  const handleStripe = async () => {
     setProcessing(true)
     setErrorMessage(null)
 
     try {
-      console.log('📤 Criando checkout no Stripe...')
-
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           planId: 2,
-          planName: 'Anual',
+          planName: 'Anual (Teste)',
           userId: user.id,
           userEmail: user.email,
           amount: VALOR_TOTAL,
           interval: 'year',
+          parcelas: parcelas,
         })
       })
 
       const data = await response.json()
-
-      if (!data.success) {
-        throw new Error(data.error || 'Erro ao criar checkout')
-      }
-
-      console.log('🔗 Redirecionando para:', data.url)
+      if (!data.success) throw new Error(data.error || 'Erro ao criar checkout')
       window.location.href = data.url
 
     } catch (error: any) {
@@ -97,8 +93,8 @@ export default function PlanosPage() {
     }
   }
 
-  // 🔥 FUNÇÃO PARA PIX (Mercado Pago) - CORRIGIDA
-  const handleAssinarPix = async () => {
+  // 🔥 PIX (Mercado Pago)
+  const handlePix = async () => {
     setProcessing(true)
     setQrCode(null)
     setCodigoPix(null)
@@ -108,7 +104,7 @@ export default function PlanosPage() {
     try {
       const payload = {
         planId: 2,
-        planName: 'Anual',
+        planName: 'Anual (Teste)',
         price: VALOR_PARCELA,
         totalPrice: VALOR_TOTAL,
         interval: 'year',
@@ -118,8 +114,6 @@ export default function PlanosPage() {
         parcelas: 1
       }
 
-      console.log('📤 Gerando PIX no Mercado Pago...', payload)
-
       const response = await fetch('/api/assinatura/criar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,19 +122,20 @@ export default function PlanosPage() {
 
       const data = await response.json()
 
-      console.log('📥 Resposta do PIX:', data)
-
       if (!data.success) {
         throw new Error(data.error || 'Erro ao gerar PIX')
       }
 
-      setQrCode(data.qrCode)
-      setCodigoPix(data.codigoPix)
-      setPaymentId(data.paymentId)
-      setShowPix(true)
-      setProcessing(false)
-      
-      verificarPagamentoAutomatico(data.paymentId)
+      if (data.paymentMethod === 'pix') {
+        setQrCode(data.qrCode)
+        setCodigoPix(data.codigoPix)
+        setPaymentId(data.paymentId)
+        setShowPix(true)
+        setProcessing(false)
+        verificarPagamentoAutomatico(data.paymentId)
+      } else {
+        throw new Error('Erro ao gerar PIX')
+      }
 
     } catch (error: any) {
       console.error('❌ Erro no PIX:', error)
@@ -149,14 +144,11 @@ export default function PlanosPage() {
     }
   }
 
-  // 🔥 FUNÇÃO PRINCIPAL - CORRIGIDA
   const handleAssinar = async () => {
     if (paymentMethod === 'stripe') {
-      await handleAssinarStripe()
-    } else if (paymentMethod === 'pix') {
-      await handleAssinarPix()
+      await handleStripe()
     } else {
-      setErrorMessage('Método de pagamento não selecionado')
+      await handlePix()
     }
   }
 
@@ -281,24 +273,35 @@ export default function PlanosPage() {
       <div className="max-w-6xl mx-auto px-4">
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold text-gray-900">
-            Plano Anual
+            Plano Anual (Teste)
           </h1>
           <p className="text-gray-500 mt-2">
-            Acesso completo por 1 ano
+            🧪 Valores reduzidos para teste
           </p>
+          <div className="mt-2 inline-block bg-yellow-100 text-yellow-800 text-xs px-3 py-1 rounded-full">
+            Modo de Teste
+          </div>
         </div>
 
         <div className="max-w-md mx-auto">
           <div className="bg-white rounded-2xl border-2 border-[#FFB800] p-8 shadow-lg">
             <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900">Anual</h3>
+              <h3 className="text-xl font-bold text-gray-900">Anual (Teste)</h3>
               <p className="text-sm text-gray-500 mt-1">Acesso completo por 1 ano</p>
               
               <div className="mt-4">
-                <span className="text-3xl font-bold text-[#FFB800]">
-                  {formatPrice(VALOR_TOTAL)}
-                </span>
-                <span className="text-sm text-gray-400 ml-1">/ano</span>
+                {parcelas > 1 ? (
+                  <>
+                    <span className="text-3xl font-bold text-[#FFB800]">
+                      {parcelas}x de {formatPrice(VALOR_PARCELA)}
+                    </span>
+                    <p className="text-xs text-gray-400 mt-1">Total: {formatPrice(VALOR_TOTAL)}</p>
+                  </>
+                ) : (
+                  <span className="text-3xl font-bold text-[#FFB800]">
+                    {formatPrice(VALOR_TOTAL)}
+                  </span>
+                )}
               </div>
 
               <ul className="mt-6 space-y-2 text-left">
@@ -333,10 +336,19 @@ export default function PlanosPage() {
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 max-w-lg mx-auto mt-8">
           <div className="text-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Anual</h2>
-            <p className="text-3xl font-bold text-[#FFB800] mt-2">
-              {formatPrice(VALOR_TOTAL)}
-            </p>
+            <h2 className="text-xl font-bold text-gray-900">Anual (Teste)</h2>
+            {parcelas > 1 ? (
+              <>
+                <p className="text-3xl font-bold text-[#FFB800] mt-2">
+                  {parcelas}x de {formatPrice(VALOR_PARCELA)}
+                </p>
+                <p className="text-sm text-gray-400">Total: {formatPrice(VALOR_TOTAL)}</p>
+              </>
+            ) : (
+              <p className="text-3xl font-bold text-[#FFB800] mt-2">
+                {formatPrice(VALOR_TOTAL)}
+              </p>
+            )}
           </div>
 
           <div className="border-t border-gray-200 my-6" />
@@ -344,7 +356,7 @@ export default function PlanosPage() {
           <div className="space-y-4 mb-6">
             <p className="text-sm font-medium text-gray-700">Escolha a forma de pagamento:</p>
             
-            {/* 🔥 STRIPE - CARTÃO E BOLETO */}
+            {/* 🔥 STRIPE - CARTÃO COM PARCELAMENTO */}
             <button
               onClick={() => setPaymentMethod('stripe')}
               className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
@@ -353,13 +365,31 @@ export default function PlanosPage() {
             >
               <CreditCard size={20} className={paymentMethod === 'stripe' ? 'text-[#FFB800]' : 'text-gray-400'} />
               <div className="text-left">
-                <p className="font-medium text-sm">Cartão de Crédito / Boleto</p>
-                <p className="text-xs text-gray-400">Parcelamento disponível / Vencimento em 3 dias</p>
+                <p className="font-medium text-sm">Cartão de Crédito</p>
+                <p className="text-xs text-gray-400">Até {PARCELAS_MAX}x sem juros</p>
               </div>
               {paymentMethod === 'stripe' && <Check size={18} className="ml-auto text-[#FFB800]" />}
             </button>
 
-            {/* 🔥 PIX */}
+            {paymentMethod === 'stripe' && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-500 block mb-1">Parcelas:</p>
+                <select
+                  value={parcelas}
+                  onChange={(e) => setParcelas(parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800]"
+                >
+                  <option value="1">1x de {formatPrice(VALOR_TOTAL)}</option>
+                  {Array.from({ length: PARCELAS_MAX - 1 }, (_, i) => i + 2).map((n) => (
+                    <option key={n} value={n}>
+                      {n}x de {formatPrice(VALOR_PARCELA)} (Total: {formatPrice(VALOR_TOTAL)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* 🔥 PIX - À VISTA */}
             <button
               onClick={() => setPaymentMethod('pix')}
               className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
@@ -374,7 +404,7 @@ export default function PlanosPage() {
               />
               <div className="text-left">
                 <p className="font-medium text-sm">PIX</p>
-                <p className="text-xs text-gray-400">Pagamento à vista</p>
+                <p className="text-xs text-gray-400">{formatPrice(VALOR_TOTAL)} à vista</p>
               </div>
               {paymentMethod === 'pix' && <Check size={18} className="ml-auto text-[#FFB800]" />}
             </button>
@@ -424,8 +454,7 @@ export default function PlanosPage() {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          Ao assinar, você concorda com nossos termos de uso.
-          Cancele a qualquer momento.
+          🧪 Valores reduzidos para teste em produção
         </p>
       </div>
     </div>
