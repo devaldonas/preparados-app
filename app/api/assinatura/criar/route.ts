@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabaseClient'
 
 // 🔥 USAR TOKEN DE PRODUÇÃO
 const MERCADO_PAGO_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN
-const IS_SANDBOX = false // 🔥 PRODUÇÃO
+const IS_SANDBOX = false
 
 console.log(`🚀 Usando token de PRODUÇÃO`)
 
@@ -41,10 +41,10 @@ export async function POST(request: Request) {
       )
     }
 
-    // 🔥 Buscar dados COMPLETOS do usuário
+    // 🔥 Buscar dados do usuário
     const { data: profile, error: profileError } = await (supabase
       .from('profiles') as any)
-      .select('full_name, email, cnpj, phone, street, number, complement, neighborhood, city, state, cep')
+      .select('full_name, email')
       .eq('id', userId)
       .single()
 
@@ -52,33 +52,84 @@ export async function POST(request: Request) {
       console.warn('⚠️ Erro ao buscar perfil:', profileError.message)
     }
 
-    // 🔥 Dados COMPLETOS do cliente
-    const userProfile = {
-      full_name: profile?.full_name || 'Cliente Teste',
-      email: userEmail || profile?.email || 'cliente@email.com',
-      // 🔥 CPF REAL (substitua pelo CPF do seu cartão)
-      document: '12345678909',
-      phone: profile?.phone || '11999999999',
-      cep: profile?.cep || '01001000',
-      street: profile?.street || 'Praça da Sé',
-      number: profile?.number || '100',
-      neighborhood: profile?.neighborhood || 'Sé',
-      city: profile?.city || 'São Paulo',
-      state: profile?.state || 'SP'
+    const userProfile = profile || { 
+      full_name: 'Cliente', 
+      email: userEmail || 'cliente@email.com' 
     }
 
-    console.log('👤 Perfil:', { ...userProfile, document: '***' })
-
-    // 🔥 VALOR DE TESTE - R$ 10,00
-    const valorTotal = Number(totalPrice || 10.00)
-    const valorParcela = Number(price || 10.00)
-
-    // 🔥 SE FOR PIX
+    // 🔥 SE FOR PIX - CORRIGIDO
     if (paymentMethod === 'pix') {
-      // ... código PIX existente
+      console.log('💳 Gerando PIX...')
+
+      const valorTotal = Number(totalPrice || 476.28)
+
+      const pixData = {
+        transaction_amount: valorTotal,
+        description: `Plano ${planName} - PREPARADO`,
+        payment_method_id: 'pix',
+        payer: {
+          email: userProfile.email,
+          first_name: userProfile.full_name?.split(' ')[0] || 'Cliente',
+          identification: {
+            type: 'CPF',
+            number: '12345678909'
+          }
+        },
+        metadata: {
+          plan_id: planId,
+          plan_name: planName,
+          user_id: userId,
+          payment_type: 'pix'
+        },
+        notification_url: `${APP_URL}/api/mercadopago/webhook`
+      }
+
+      console.log('📤 Enviando PIX:', JSON.stringify(pixData, null, 2))
+
+      const response = await fetch('https://api.mercadopago.com/v1/payments', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${MERCADO_PAGO_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': `${userId}-${Date.now()}`
+        },
+        body: JSON.stringify(pixData)
+      })
+
+      const data = await response.json()
+      console.log('📥 Status:', response.status)
+
+      if (!response.ok) {
+        console.error('❌ Erro PIX:', JSON.stringify(data, null, 2))
+        return NextResponse.json(
+          { success: false, error: data.message || 'Erro ao gerar PIX' },
+          { status: response.status }
+        )
+      }
+
+      let qrCode = null
+      let codigoPix = null
+
+      if (data.point_of_interaction?.transaction_data?.qr_code_base64) {
+        qrCode = `data:image/png;base64,${data.point_of_interaction.transaction_data.qr_code_base64}`
+      }
+      codigoPix = data.point_of_interaction?.transaction_data?.qr_code || null
+
+      console.log('✅ PIX gerado com sucesso! Payment ID:', data.id)
+
+      return NextResponse.json({
+        success: true,
+        paymentMethod: 'pix',  // 🔥 CORRIGIDO: agora retorna 'pix'
+        qrCode: qrCode,
+        codigoPix: codigoPix,
+        paymentId: data.id
+      })
     }
 
     // 🔥 SE FOR CARTÃO - CHECKOUT PRO
+    // (manter o código existente para cartão)
+    const valorTotal = Number(totalPrice || 476.28)
+
     const preferenceData = {
       items: [{
         id: `plan-${planId}`,
@@ -90,22 +141,7 @@ export async function POST(request: Request) {
       }],
       payer: {
         email: userProfile.email,
-        name: userProfile.full_name || 'Cliente',
-        phone: {
-          number: userProfile.phone
-        },
-        address: {
-          zip_code: userProfile.cep,
-          street_name: userProfile.street,
-          street_number: userProfile.number,
-          neighborhood: userProfile.neighborhood,
-          city: userProfile.city,
-          federal_unit: userProfile.state
-        },
-        identification: {
-          type: 'CPF',
-          number: userProfile.document
-        }
+        name: userProfile.full_name || 'Cliente'
       },
       payment_methods: {
         installments: parcelas || 12,
@@ -127,7 +163,7 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log('📤 Criando preferência...')
+    console.log('📤 Criando preferência para cartão...')
 
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
