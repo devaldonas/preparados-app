@@ -62,7 +62,7 @@ export default function PlanosPage() {
     }
   }
 
-  // 🔥 PAGAMENTO COM STRIPE (Cartão + Boleto)
+  // 🔥 PAGAMENTO COM STRIPE
   const handleAssinarStripe = async () => {
     setProcessing(true)
     setErrorMessage(null)
@@ -90,7 +90,6 @@ export default function PlanosPage() {
         throw new Error(data.error || 'Erro ao criar checkout')
       }
 
-      // 🔥 Redirecionar para o Stripe Checkout
       console.log('🔗 Redirecionando para:', data.url)
       window.location.href = data.url
 
@@ -151,7 +150,7 @@ export default function PlanosPage() {
     }
   }
 
-  // 🔥 FUNÇÃO PRINCIPAL - chama o método correto
+  // 🔥 FUNÇÃO PRINCIPAL
   const handleAssinar = async () => {
     if (paymentMethod === 'stripe') {
       await handleAssinarStripe()
@@ -344,7 +343,7 @@ export default function PlanosPage() {
           <div className="space-y-4 mb-6">
             <p className="text-sm font-medium text-gray-700">Escolha a forma de pagamento:</p>
             
-            {/* 🔥 STRIPE - CARTÃO E BOLETO */}
+            {/* 🔥 STRIPE - CARTÃO (agora apenas CARTÃO) */}
             <button
               onClick={() => setPaymentMethod('stripe')}
               className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
@@ -359,8 +358,11 @@ export default function PlanosPage() {
               {paymentMethod === 'stripe' && <Check size={18} className="ml-auto text-[#FFB800]" />}
             </button>
 
+            {/* 🔥 STRIPE - BOLETO (agora separado, com seu próprio método) */}
             <button
-              onClick={() => setPaymentMethod('stripe')}
+              onClick={() => {
+                setPaymentMethod('stripe')
+              }}
               className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
                 paymentMethod === 'stripe' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
               }`}
