@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {})
 
 export async function POST(request: Request) {
   try {
     const { planId, userId, userEmail, planName, amount, interval, parcelas } = await request.json()
 
-    console.log('📥 Criando checkout:', { planId, userId, amount, interval })
+    console.log('📥 Criando checkout no Stripe:', { planId, userId, amount, interval })
 
     // 🔥 Criar a sessão de checkout
     const session = await stripe.checkout.sessions.create({
@@ -22,7 +21,7 @@ export async function POST(request: Request) {
               name: `Plano ${planName} - PREPARADO`,
               description: `Assinatura ${interval} - Acesso completo`,
             },
-            unit_amount: Math.round(amount * 100), // Stripe usa centavos
+            unit_amount: Math.round(amount * 100),
             recurring: {
               interval: interval === 'year' ? 'year' : 'month',
             },
@@ -34,12 +33,14 @@ export async function POST(request: Request) {
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/planos?canceled=true`,
       customer_email: userEmail,
       metadata: {
-        plan_id: planId,
+        plan_id: String(planId || 2),
         user_id: userId,
       },
-      payment_intent_data: {
+      // 🔥 CORREÇÃO: Remover 'payment_intent_data' que causa erro
+      // Usar 'subscription_data' para assinaturas
+      subscription_data: {
         metadata: {
-          plan_id: planId,
+          plan_id: String(planId || 2),
           user_id: userId,
         },
       },
@@ -58,10 +59,10 @@ export async function POST(request: Request) {
       url: session.url,
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao criar checkout:', error)
     return NextResponse.json(
-      { success: false, error: String(error) },
+      { success: false, error: error.message || 'Erro ao criar checkout' },
       { status: 500 }
     )
   }
