@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { Loader2, Check, CreditCard, Copy } from 'lucide-react'
+import { Loader2, Check, CreditCard, Copy, Barcode } from 'lucide-react'
 
-// 🔥 VALOR REAL DA ASSINATURA
+// 🔥 VALOR DA ASSINATURA
 const VALOR_TOTAL = 476.28
 const VALOR_PARCELA = 39.69
 const PARCELAS_MAX = 12
@@ -17,7 +17,7 @@ export default function PlanosPage() {
   const [user, setUser] = useState<any>(null)
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [codigoPix, setCodigoPix] = useState<string | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>('card')
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'mercadopago'>('stripe')
   const [showPix, setShowPix] = useState(false)
   const [paymentId, setPaymentId] = useState<string | null>(null)
   const [checkingPayment, setCheckingPayment] = useState(false)
@@ -62,7 +62,47 @@ export default function PlanosPage() {
     }
   }
 
-  const handleAssinar = async () => {
+  // 🔥 PAGAMENTO COM STRIPE (Cartão + Boleto)
+  const handleAssinarStripe = async () => {
+    setProcessing(true)
+    setErrorMessage(null)
+
+    try {
+      console.log('📤 Criando checkout no Stripe...')
+
+      const response = await fetch('/api/stripe/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId: 2,
+          planName: 'Anual',
+          userId: user.id,
+          userEmail: user.email,
+          amount: VALOR_TOTAL,
+          interval: 'year',
+          parcelas: parcelas,
+        })
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Erro ao criar checkout')
+      }
+
+      // 🔥 Redirecionar para o Stripe Checkout
+      console.log('🔗 Redirecionando para:', data.url)
+      window.location.href = data.url
+
+    } catch (error: any) {
+      console.error('❌ Erro no Stripe:', error)
+      setErrorMessage(error.message || 'Erro ao processar pagamento')
+      setProcessing(false)
+    }
+  }
+
+  // 🔥 PAGAMENTO COM MERCADO PAGO (PIX)
+  const handleAssinarMercadoPago = async () => {
     setProcessing(true)
     setQrCode(null)
     setCodigoPix(null)
@@ -78,11 +118,11 @@ export default function PlanosPage() {
         interval: 'year',
         userId: user.id,
         userEmail: user.email,
-        paymentMethod: paymentMethod,
-        parcelas: parcelas
+        paymentMethod: 'pix',
+        parcelas: 1
       }
 
-      console.log('📤 Enviando para API:', payload)
+      console.log('📤 Gerando PIX no Mercado Pago...')
 
       const response = await fetch('/api/assinatura/criar', {
         method: 'POST',
@@ -93,43 +133,31 @@ export default function PlanosPage() {
       const data = await response.json()
 
       if (!data.success) {
-        throw new Error(data.error || 'Erro ao processar pagamento')
+        throw new Error(data.error || 'Erro ao gerar PIX')
       }
 
-      // 🔥 PIX
-      if (data.paymentMethod === 'pix') {
-        console.log('✅ PIX gerado com sucesso!')
-        setQrCode(data.qrCode)
-        setCodigoPix(data.codigoPix)
-        setPaymentId(data.paymentId)
-        setShowPix(true)
-        setProcessing(false)
-        
-        verificarPagamentoAutomatico(data.paymentId)
-        return
-      }
-
-      // 🔥 CARTÃO
-      if (data.initPoint) {
-        console.log('🔗 Redirecionando para:', data.initPoint)
-        window.location.href = data.initPoint
-        return
-      } else {
-        throw new Error('Não foi possível gerar o link de pagamento')
-      }
+      setQrCode(data.qrCode)
+      setCodigoPix(data.codigoPix)
+      setPaymentId(data.paymentId)
+      setShowPix(true)
+      setProcessing(false)
+      
+      verificarPagamentoAutomatico(data.paymentId)
 
     } catch (error: any) {
-      console.error('❌ Erro ao assinar:', error)
-      setErrorMessage(error.message || 'Erro ao processar pagamento. Tente novamente.')
+      console.error('❌ Erro no PIX:', error)
+      setErrorMessage(error.message || 'Erro ao gerar PIX')
       setProcessing(false)
     }
   }
 
-  const handleGerarPix = async () => {
-    setPaymentMethod('pix')
-    setTimeout(() => {
-      handleAssinar()
-    }, 100)
+  // 🔥 FUNÇÃO PRINCIPAL - chama o método correto
+  const handleAssinar = async () => {
+    if (paymentMethod === 'stripe') {
+      await handleAssinarStripe()
+    } else {
+      await handleAssinarMercadoPago()
+    }
   }
 
   const verificarPagamentoAutomatico = async (paymentId: string) => {
@@ -180,11 +208,6 @@ export default function PlanosPage() {
       style: 'currency',
       currency: 'BRL'
     }).format(price)
-  }
-
-  const getValorParcela = (parcelas: number) => {
-    if (parcelas === 1) return VALOR_TOTAL
-    return VALOR_PARCELA
   }
 
   if (loading) {
@@ -272,22 +295,10 @@ export default function PlanosPage() {
               <p className="text-sm text-gray-500 mt-1">Acesso completo por 1 ano</p>
               
               <div className="mt-4">
-                {parcelas > 1 ? (
-                  <>
-                    <span className="text-3xl font-bold text-[#FFB800]">
-                      {parcelas}x de {formatPrice(VALOR_PARCELA)}
-                    </span>
-                    <span className="text-sm text-gray-400 ml-1">/ano</span>
-                    <p className="text-xs text-gray-400 mt-1">Total: {formatPrice(VALOR_TOTAL)}</p>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-3xl font-bold text-[#FFB800]">
-                      {formatPrice(VALOR_TOTAL)}
-                    </span>
-                    <span className="text-sm text-gray-400 ml-1">/ano</span>
-                  </>
-                )}
+                <span className="text-3xl font-bold text-[#FFB800]">
+                  {formatPrice(VALOR_TOTAL)}
+                </span>
+                <span className="text-sm text-gray-400 ml-1">/ano</span>
               </div>
 
               <ul className="mt-6 space-y-2 text-left">
@@ -323,18 +334,9 @@ export default function PlanosPage() {
         <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 max-w-lg mx-auto mt-8">
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold text-gray-900">Anual</h2>
-            {parcelas > 1 ? (
-              <>
-                <p className="text-3xl font-bold text-[#FFB800] mt-2">
-                  {parcelas}x de {formatPrice(VALOR_PARCELA)}
-                </p>
-                <p className="text-sm text-gray-400">Total: {formatPrice(VALOR_TOTAL)}</p>
-              </>
-            ) : (
-              <p className="text-3xl font-bold text-[#FFB800] mt-2">
-                {formatPrice(VALOR_TOTAL)}
-              </p>
-            )}
+            <p className="text-3xl font-bold text-[#FFB800] mt-2">
+              {formatPrice(VALOR_TOTAL)}
+            </p>
           </div>
 
           <div className="border-t border-gray-200 my-6" />
@@ -342,42 +344,40 @@ export default function PlanosPage() {
           <div className="space-y-4 mb-6">
             <p className="text-sm font-medium text-gray-700">Escolha a forma de pagamento:</p>
             
+            {/* 🔥 STRIPE - CARTÃO E BOLETO */}
             <button
-              onClick={() => setPaymentMethod('card')}
+              onClick={() => setPaymentMethod('stripe')}
               className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
-                paymentMethod === 'card' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
+                paymentMethod === 'stripe' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
               }`}
             >
-              <CreditCard size={20} className={paymentMethod === 'card' ? 'text-[#FFB800]' : 'text-gray-400'} />
+              <CreditCard size={20} className={paymentMethod === 'stripe' ? 'text-[#FFB800]' : 'text-gray-400'} />
               <div className="text-left">
                 <p className="font-medium text-sm">Cartão de Crédito</p>
-                <p className="text-xs text-gray-400">Em até {PARCELAS_MAX}x</p>
+                <p className="text-xs text-gray-400">Parcelamento disponível</p>
               </div>
-              {paymentMethod === 'card' && <Check size={18} className="ml-auto text-[#FFB800]" />}
+              {paymentMethod === 'stripe' && <Check size={18} className="ml-auto text-[#FFB800]" />}
             </button>
 
-            {paymentMethod === 'card' && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-xs text-gray-500 block mb-1">Parcelas:</p>
-                <select
-                  value={parcelas}
-                  onChange={(e) => setParcelas(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800]"
-                >
-                  <option value="1">1x de {formatPrice(VALOR_TOTAL)}</option>
-                  {Array.from({ length: PARCELAS_MAX - 1 }, (_, i) => i + 2).map((n) => (
-                    <option key={n} value={n}>
-                      {n}x de {formatPrice(VALOR_PARCELA)} (Total: {formatPrice(VALOR_TOTAL)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             <button
-              onClick={handleGerarPix}
+              onClick={() => setPaymentMethod('stripe')}
               className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
-                paymentMethod === 'pix' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
+                paymentMethod === 'stripe' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
+              }`}
+            >
+              <Barcode size={20} className={paymentMethod === 'stripe' ? 'text-[#FFB800]' : 'text-gray-400'} />
+              <div className="text-left">
+                <p className="font-medium text-sm">Boleto Bancário</p>
+                <p className="text-xs text-gray-400">Vencimento em 3 dias</p>
+              </div>
+              {paymentMethod === 'stripe' && <Check size={18} className="ml-auto text-[#FFB800]" />}
+            </button>
+
+            {/* 🔥 MERCADO PAGO - PIX */}
+            <button
+              onClick={() => setPaymentMethod('mercadopago')}
+              className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
+                paymentMethod === 'mercadopago' ? 'border-[#FFB800] bg-[#FFB800]/5' : 'border-gray-200'
               }`}
             >
               <img 
@@ -388,9 +388,9 @@ export default function PlanosPage() {
               />
               <div className="text-left">
                 <p className="font-medium text-sm">PIX</p>
-                <p className="text-xs text-gray-400">{formatPrice(VALOR_TOTAL)} à vista</p>
+                <p className="text-xs text-gray-400">Pagamento à vista</p>
               </div>
-              <Check size={18} className={`ml-auto ${paymentMethod === 'pix' ? 'text-[#FFB800]' : 'text-transparent'}`} />
+              {paymentMethod === 'mercadopago' && <Check size={18} className="ml-auto text-[#FFB800]" />}
             </button>
           </div>
 
@@ -410,7 +410,7 @@ export default function PlanosPage() {
                 <Loader2 size={24} className="animate-spin" />
                 Processando...
               </>
-            ) : paymentMethod === 'pix' ? (
+            ) : paymentMethod === 'mercadopago' ? (
               <>
                 <img src="/images/pix-icon-amarelo.svg" alt="PIX" className="w-5 h-5" onError={(e) => { e.currentTarget.style.display = 'none' }} />
                 Gerar PIX
@@ -418,13 +418,13 @@ export default function PlanosPage() {
             ) : (
               <>
                 <CreditCard size={20} />
-                Assinar agora
+                Assinar Agora
               </>
             )}
           </button>
 
           <p className="text-xs text-gray-400 text-center mt-4">
-            🔒 Pagamento seguro via Mercado Pago
+            🔒 Pagamento seguro via Stripe
           </p>
 
           <div className="mt-6 flex items-center justify-center gap-4 text-xs text-gray-400">
