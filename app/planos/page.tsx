@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabaseClient'
 import { Loader2, Check, CreditCard, Copy } from 'lucide-react'
 import { CardForm } from '@/components/CardForm'
 
-// 🔥 VALOR DO PLANO
 const VALOR_TOTAL = 44.28
 const VALOR_PARCELA = 3.69
 
@@ -30,38 +29,53 @@ export default function PlanosPage() {
 
   const carregarDados = async () => {
     try {
+      console.log('🔍 Carregando dados da página de planos...')
+      
       const { data: { user } } = await supabase.auth.getUser()
+      console.log('👤 Usuário:', user?.id)
+      
       if (!user) {
+        console.log('❌ Sem usuário, redirecionando para login')
         router.push('/auth/login')
         return
       }
       setUser(user)
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('acesso_gratuito_ate, subscription_status')
         .eq('id', user.id)
         .single()
 
+      console.log('📊 Perfil:', profile)
+      console.log('📊 Erro:', profileError)
+      console.log('📊 acesso_gratuito_ate:', profile?.acesso_gratuito_ate)
+      console.log('📊 subscription_status:', profile?.subscription_status)
+
+      // 🔥 VERIFICAÇÃO 1: ACESSO GRATUITO
       if (profile?.acesso_gratuito_ate && new Date(profile.acesso_gratuito_ate) > new Date()) {
+        console.log('⚠️ Usuário tem acesso gratuito ativo, redirecionando para dashboard')
         setUsuarioTemAcessoGratuito(true)
         router.push('/dashboard')
         return
       }
 
+      // 🔥 VERIFICAÇÃO 2: ASSINATURA ATIVA
       if (profile?.subscription_status === 'active') {
+        console.log('⚠️ Usuário tem assinatura ativa, redirecionando para dashboard')
         router.push('/dashboard')
         return
       }
 
+      console.log('✅ Nenhum redirecionamento necessário, mostrando página de planos')
+
     } catch (error) {
-      console.error('Erro ao carregar dados:', error)
+      console.error('❌ Erro ao carregar dados:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  // 🔥 PIX (Mercado Pago)
   const handlePix = async () => {
     setProcessing(true)
     setQrCode(null)
@@ -298,7 +312,6 @@ export default function PlanosPage() {
           <div className="space-y-4 mb-6">
             <p className="text-sm font-medium text-gray-700">Escolha a forma de pagamento:</p>
 
-            {/* 🔥 CARTÃO */}
             <button
               onClick={() => setPaymentMethod('card')}
               className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
@@ -313,7 +326,6 @@ export default function PlanosPage() {
               {paymentMethod === 'card' && <Check size={18} className="ml-auto text-[#FFB800]" />}
             </button>
 
-            {/* 🔥 PIX */}
             <button
               onClick={() => setPaymentMethod('pix')}
               className={`w-full flex items-center gap-3 p-3 rounded-lg border-2 transition ${
@@ -340,7 +352,6 @@ export default function PlanosPage() {
             </div>
           )}
 
-          {/* 🔥 CARD FORM */}
           {paymentMethod === 'card' && user && (
             <CardForm
               userId={user.id}
@@ -350,7 +361,6 @@ export default function PlanosPage() {
             />
           )}
 
-          {/* 🔥 BOTÃO PIX */}
           {paymentMethod === 'pix' && (
             <button
               onClick={handlePix}
