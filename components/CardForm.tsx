@@ -17,9 +17,6 @@ interface CardFormProps {
 
 export function CardForm({ userId, userEmail, onSuccess, onError }: CardFormProps) {
   const [processing, setProcessing] = useState(false)
-  const [cardNumber, setCardNumber] = useState('')
-  const [expirationDate, setExpirationDate] = useState('')
-  const [securityCode, setSecurityCode] = useState('')
   const [cardholderName, setCardholderName] = useState('')
   const [cpf, setCpf] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -30,15 +27,7 @@ export function CardForm({ userId, userEmail, onSuccess, onError }: CardFormProp
     setError(null)
 
     try {
-      if (!cardNumber || cardNumber.replace(/\s/g, '').length < 16) {
-        throw new Error('Número do cartão inválido')
-      }
-      if (!expirationDate || expirationDate.length < 5) {
-        throw new Error('Data de validade inválida')
-      }
-      if (!securityCode || securityCode.length < 3) {
-        throw new Error('Código de segurança inválido')
-      }
+      // 🔥 Validações dos campos do titular (os dados do cartão são validados pelo próprio SDK)
       if (!cardholderName || cardholderName.length < 3) {
         throw new Error('Nome no cartão inválido')
       }
@@ -46,21 +35,20 @@ export function CardForm({ userId, userEmail, onSuccess, onError }: CardFormProp
         throw new Error('CPF inválido')
       }
 
-      console.log('📝 Gerando token do cartão...')
+      console.log('📝 Gerando token do cartão (Secure Fields)...')
 
+      // 🔥 USAR O MODO SECURE FIELDS
+      // O SDK coleta os dados dos campos visuais (CardNumber, ExpirationDate, SecurityCode)
+      // e só precisamos passar os dados do titular.
       const token = await createCardToken({
-        cardNumber: cardNumber.replace(/\s/g, ''),
-        expirationDate: expirationDate,
-        securityCode: securityCode,
         cardholderName: cardholderName,
-        identification: {
-          type: 'CPF',
-          number: cpf.replace(/\D/g, '')
-        }
+        identificationType: 'CPF',
+        identificationNumber: cpf.replace(/\D/g, ''),
       })
 
       console.log('✅ Token gerado:', token.id)
 
+      // 🔥 Enviar para o backend
       const response = await fetch('/api/mercadopago/assinatura', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,7 +81,7 @@ export function CardForm({ userId, userEmail, onSuccess, onError }: CardFormProp
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="text-xs text-gray-500 block mb-1">Número do cartão</label>
-        <CardNumber onChange={(e) => setCardNumber(e.value)} />
+        <CardNumber placeholder="0000 0000 0000 0000" />
       </div>
 
       <div>
@@ -110,11 +98,11 @@ export function CardForm({ userId, userEmail, onSuccess, onError }: CardFormProp
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-gray-500 block mb-1">Validade</label>
-          <ExpirationDate onChange={(e) => setExpirationDate(e.value)} />
+          <ExpirationDate placeholder="MM/AA" />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">CVV</label>
-          <SecurityCode onChange={(e) => setSecurityCode(e.value)} />
+          <SecurityCode placeholder="123" />
         </div>
       </div>
 
