@@ -2,14 +2,13 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { 
   Shield, 
-  MapPin, 
-  Store, 
   Users, 
   Mail, 
   Phone, 
-  MapPinned
+  MapPin,
+  Globe
 } from 'lucide-react'
-import { FaInstagram, FaYoutube } from 'react-icons/fa'
+import { FaInstagram, FaYoutube, FaWhatsapp } from 'react-icons/fa'
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
@@ -64,28 +63,13 @@ export function Footer() {
             <h3 className="text-white font-semibold mb-4">Links Rápidos</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/dashboard" className="hover:text-yellow-500 transition-colors flex items-center gap-2">
-                  <span>🏠</span> Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link href="/loja" className="hover:text-yellow-500 transition-colors flex items-center gap-2">
-                  <Store className="h-4 w-4" /> Loja
-                </Link>
-              </li>
-              <li>
-                <Link href="/catastrofes" className="hover:text-yellow-500 transition-colors flex items-center gap-2">
-                  <MapPin className="h-4 w-4" /> Catástrofes
-                </Link>
-              </li>
-              <li>
-                <Link href="/guia" className="hover:text-yellow-500 transition-colors flex items-center gap-2">
-                  <Shield className="h-4 w-4" /> Guia de Preparação
-                </Link>
-              </li>
-              <li>
                 <Link href="/parceiro" className="hover:text-yellow-500 transition-colors flex items-center gap-2">
                   <Users className="h-4 w-4" /> Seja um Parceiro
+                </Link>
+              </li>
+              <li>
+                <Link href="/indicar" className="hover:text-yellow-500 transition-colors flex items-center gap-2">
+                  <Users className="h-4 w-4" /> Indique um Amigo
                 </Link>
               </li>
             </ul>
@@ -114,15 +98,29 @@ export function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-3">
                 <Mail className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                <span>devaldo.nas@gmail.com</span>
+                <span>contato@preparado.eco.br</span>
               </li>
               <li className="flex items-start gap-3">
-                <Phone className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                <span>(11) 9 1234-5678</span>
+                <FaWhatsapp className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                <span>(67) 99670-1851</span>
               </li>
               <li className="flex items-start gap-3">
-                <MapPinned className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                <span>São Paulo, SP - Brasil</span>
+                <MapPin className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                <span>Campo Grande - MS</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Globe className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                <div className="flex flex-col">
+                  <a 
+                    href="https://sol.eco.br" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:text-yellow-500 transition-colors"
+                  >
+                    sol.eco.br
+                  </a>
+                  <span className="text-xs text-gray-500">SOL - StudioOnLine</span>
+                </div>
               </li>
             </ul>
             
