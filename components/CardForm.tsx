@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { CreditCard, Loader2 } from 'lucide-react'
 import { initMercadoPago, CardNumber, ExpirationDate, SecurityCode, createCardToken } from '@mercadopago/sdk-react'
 
-// 🔥 Inicializar com a Public Key da conta CNPJ
 const PUBLIC_KEY = process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY || 'APP_USR-4f85174a-8f85-4141-901b-2613dbd0ae7e'
 initMercadoPago(PUBLIC_KEY)
 
@@ -27,7 +26,6 @@ export function CardForm({ userId, userEmail, onSuccess, onError }: CardFormProp
     setError(null)
 
     try {
-      // 🔥 Validações dos campos do titular (os dados do cartão são validados pelo próprio SDK)
       if (!cardholderName || cardholderName.length < 3) {
         throw new Error('Nome no cartão inválido')
       }
@@ -37,18 +35,19 @@ export function CardForm({ userId, userEmail, onSuccess, onError }: CardFormProp
 
       console.log('📝 Gerando token do cartão (Secure Fields)...')
 
-      // 🔥 USAR O MODO SECURE FIELDS
-      // O SDK coleta os dados dos campos visuais (CardNumber, ExpirationDate, SecurityCode)
-      // e só precisamos passar os dados do titular.
       const token = await createCardToken({
         cardholderName: cardholderName,
         identificationType: 'CPF',
         identificationNumber: cpf.replace(/\D/g, ''),
       })
 
+      // 🔥 VERIFICAR SE O TOKEN FOI GERADO
+      if (!token || !token.id) {
+        throw new Error('Erro ao gerar token do cartão. Verifique os dados.')
+      }
+
       console.log('✅ Token gerado:', token.id)
 
-      // 🔥 Enviar para o backend
       const response = await fetch('/api/mercadopago/assinatura', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
