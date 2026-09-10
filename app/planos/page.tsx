@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { Loader2, Check, CreditCard, Copy } from 'lucide-react'
-import { CardForm } from '@/components/CardForm'
+import { CardFormWrapper } from '@/components/CardFormWrapper'
 
 const VALOR_TOTAL = 44.28
 const VALOR_PARCELA = 3.69
@@ -352,15 +352,14 @@ export default function PlanosPage() {
             </div>
           )}
 
-          {paymentMethod === 'card' && user && (
-            <CardForm
-              userId={user.id}
-              userEmail={user.email}
-              onSuccess={handleCardSuccess}
-              onError={handleCardError}
-            />
-          )}
-
+          + {paymentMethod === 'card' && user && (
+   <CardFormWrapper
+     userId={user.id}
+    userEmail={user.email}
+     onSuccess={handleCardSuccess}
+     onError={handleCardError}
+   />
+    )}
           {paymentMethod === 'pix' && (
             <button
               onClick={handlePix}
