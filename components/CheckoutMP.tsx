@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { CreditCard, Loader2 } from 'lucide-react'
-import { initMercadoPago } from '@mercadopago/sdk-react'
 import { loadMercadoPago } from '@mercadopago/sdk-js'
 
 interface CheckoutMPProps {
@@ -24,6 +23,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
   const [cpf, setCpf] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [mp, setMp] = useState<any>(null)
+  const [sdkReady, setSdkReady] = useState(false)
 
   // 🔥 Carregar SDK JS pura e criar os campos seguros
   useEffect(() => {
@@ -37,19 +37,20 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
         setMp(mpInstance)
 
         // 🔥 Criar os campos seguros do cartão
-        const cardNumberElement = mpInstance.fields.create('cardNumber', {
+        mpInstance.fields.create('cardNumber', {
           placeholder: '0000 0000 0000 0000',
         }).mount('cardNumber')
 
-        const expirationDateElement = mpInstance.fields.create('expirationDate', {
+        mpInstance.fields.create('expirationDate', {
           placeholder: 'MM/AA',
         }).mount('expirationDate')
 
-        const securityCodeElement = mpInstance.fields.create('securityCode', {
+        mpInstance.fields.create('securityCode', {
           placeholder: '123',
         }).mount('securityCode')
 
         console.log('✅ Campos seguros do Mercado Pago criados')
+        setSdkReady(true)
       } catch (err) {
         console.error('❌ Erro ao carregar SDK:', err)
         setError('Erro ao carregar formulário de pagamento')
@@ -80,7 +81,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
       if (!cpf || cpf.replace(/\D/g, '').length !== 11) {
         throw new Error('CPF inválido')
       }
-      if (!mp) {
+      if (!mp || !sdkReady) {
         throw new Error('SDK não está pronta. Aguarde um momento.')
       }
 
@@ -127,7 +128,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
     }
   }
 
-  if (!mp) {
+  if (!sdkReady) {
     return (
       <div className="p-8 text-center">
         <Loader2 className="animate-spin mx-auto text-[#FFB800]" size={32} />
