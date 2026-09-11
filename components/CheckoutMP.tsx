@@ -41,7 +41,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
 
         if (!mounted) return
 
-        // 🔥 CRIAR OS CAMPOS SEGUROS
+        // 🔥 CRIAR OS CAMPOS SEGUROS (obrigatório para o createCardToken funcionar)
         mpInstance.fields.create('cardNumber', {
           placeholder: '0000 0000 0000 0000',
         }).mount('cardNumber')
