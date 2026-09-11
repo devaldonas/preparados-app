@@ -25,7 +25,6 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
   const [error, setError] = useState<string | null>(null)
   const [mp, setMp] = useState<any>(null)
   const [sdkReady, setSdkReady] = useState(false)
-  const [fieldsMounted, setFieldsMounted] = useState(false)
   const initialized = useRef(false)
 
   useEffect(() => {
@@ -64,15 +63,6 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
         console.log('✅ Campos seguros do Mercado Pago criados')
         setMp(mpInstance)
         setSdkReady(true)
-
-        // 🔥 Aguardar um pouco para garantir que os campos foram montados no DOM
-        setTimeout(() => {
-          const cardNumberDiv = document.getElementById('cardNumber')
-          const hasIframe = cardNumberDiv?.querySelector('iframe')
-          console.log('🔍 Campo cardNumber tem iframe?', !!hasIframe)
-          setFieldsMounted(true)
-        }, 1000)
-
       } catch (err) {
         console.error('❌ Erro ao carregar SDK:', err)
         if (mounted) setError('Erro ao carregar formulário de pagamento')
@@ -109,9 +99,6 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
       }
       if (!mp || !sdkReady) {
         throw new Error('SDK não está pronta. Aguarde um momento.')
-      }
-      if (!fieldsMounted) {
-        throw new Error('Campos do cartão ainda não estão prontos. Aguarde um instante.')
       }
 
       console.log('📝 Gerando token do cartão (Secure Fields)...')
@@ -223,18 +210,13 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
 
       <button
         type="submit"
-        disabled={processing || !fieldsMounted}
+        disabled={processing}
         className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {processing ? (
           <>
             <Loader2 size={24} className="animate-spin" />
             Processando...
-          </>
-        ) : !fieldsMounted ? (
-          <>
-            <Loader2 size={24} className="animate-spin" />
-            Preparando campos...
           </>
         ) : (
           <>
