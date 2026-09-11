@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import ClientLayout from '@/components/ClientLayout'
-import { CheckoutContainer } from '@/components/CheckoutContainer'
 
 export const metadata: Metadata = {
   title: 'PREPARADO - Sua preparação para emergências',
@@ -40,7 +39,6 @@ export default function RootLayout({
       </head>
       <body className="bg-gray-50 text-gray-900 h-full">
         <ClientLayout>{children}</ClientLayout>
-        <CheckoutContainer />
       </body>
     </html>
   )
