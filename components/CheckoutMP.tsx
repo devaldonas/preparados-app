@@ -4,6 +4,13 @@ import { useState, useEffect, useRef } from 'react'
 import { CreditCard, Loader2 } from 'lucide-react'
 import { loadMercadoPago } from '@mercadopago/sdk-js'
 
+// 🔥 Declarar MercadoPago no window
+declare global {
+  interface Window {
+    MercadoPago: any
+  }
+}
+
 interface CheckoutMPProps {
   userId: string
   userEmail: string
