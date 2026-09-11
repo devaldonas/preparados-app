@@ -27,16 +27,21 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
 
   // 🔥 Carregar SDK JS pura e criar os campos seguros
   useEffect(() => {
+    let mounted = true
+
     const initSDK = async () => {
       try {
         await loadMercadoPago()
+
         const mpInstance = new window.MercadoPago(
-          process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY || 'APP_USR-4f85174a-8f85-4141-901b-2613dbd0ae7e',
+          process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY ||
+            'APP_USR-4f85174a-8f85-4141-901b-2613dbd0ae7e',
           { locale: 'pt-BR' }
         )
-        setMp(mpInstance)
 
-        // 🔥 Criar os campos seguros do cartão
+        if (!mounted) return
+
+        // 🔥 CRIAR OS CAMPOS SEGUROS
         mpInstance.fields.create('cardNumber', {
           placeholder: '0000 0000 0000 0000',
         }).mount('cardNumber')
@@ -50,14 +55,19 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
         }).mount('securityCode')
 
         console.log('✅ Campos seguros do Mercado Pago criados')
+        setMp(mpInstance)
         setSdkReady(true)
       } catch (err) {
         console.error('❌ Erro ao carregar SDK:', err)
-        setError('Erro ao carregar formulário de pagamento')
+        if (mounted) setError('Erro ao carregar formulário de pagamento')
       }
     }
 
     initSDK()
+
+    return () => {
+      mounted = false
+    }
   }, [])
 
   const formatCPF = (value: string) => {
@@ -87,7 +97,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
 
       console.log('📝 Gerando token do cartão (Secure Fields)...')
 
-      // 🔥 O SDK coleta os dados dos campos seguros automaticamente
+      // 🔥 O SDK lê os dados dos campos seguros automaticamente
       const token = await mp.fields.createCardToken({
         cardholderName: cardholderName,
         identificationType: 'CPF',
@@ -95,7 +105,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
       })
 
       if (!token || !token.id) {
-        throw new Error('Erro ao gerar token do cartão')
+        throw new Error('Erro ao gerar token do cartão. Verifique os dados.')
       }
 
       console.log('✅ Token gerado:', token.id)
@@ -141,7 +151,10 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="text-xs text-gray-500 block mb-1">Número do cartão</label>
-        <div id="cardNumber" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus-within:ring-2 focus-within:ring-[#FFB800]"></div>
+        <div
+          id="cardNumber"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus-within:ring-2 focus-within:ring-[#FFB800]"
+        ></div>
       </div>
 
       <div>
@@ -158,11 +171,17 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-gray-500 block mb-1">Validade</label>
-          <div id="expirationDate" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus-within:ring-2 focus-within:ring-[#FFB800]"></div>
+          <div
+            id="expirationDate"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus-within:ring-2 focus-within:ring-[#FFB800]"
+          ></div>
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">CVV</label>
-          <div id="securityCode" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus-within:ring-2 focus-within:ring-[#FFB800]"></div>
+          <div
+            id="securityCode"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus-within:ring-2 focus-within:ring-[#FFB800]"
+          ></div>
         </div>
       </div>
 
