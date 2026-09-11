@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CreditCard, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { initMercadoPago, CardPayment } from '@mercadopago/sdk-react'
 
 // 🔥 Inicializar Mercado Pago (executar apenas uma vez)
@@ -19,6 +19,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // 🔥 O onSubmit recebe os dados já tokenizados pelo Brick
   const handleSubmit = async (formData: any) => {
     setProcessing(true)
     setError(null)
@@ -26,7 +27,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
     try {
       console.log('📝 Dados do CardPayment Brick:', formData)
 
-      // 🔥 O formData já contém o token do cartão gerado pelo Brick
+      // O formData já contém o token do cartão gerado pelo Brick
       const response = await fetch('/api/mercadopago/assinatura', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -50,7 +51,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
       const msg = err.message || 'Erro ao processar cartão'
       setError(msg)
       onError(msg)
-      throw err // O Brick precisa que o erro seja propagado para exibir o estado de erro
+      throw err // O Brick precisa do erro para exibir o estado de falha
     } finally {
       setProcessing(false)
     }
