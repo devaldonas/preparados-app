@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { CreditCard, Loader2 } from 'lucide-react'
-import { loadMercadoPago } from '@mercadopago/sdk-js'
 
-// 🔥 Declarar MercadoPago no window
 declare global {
   interface Window {
     MercadoPago: any
@@ -33,19 +31,38 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
 
     let mounted = true
 
-    const initSDK = async () => {
-      try {
-        await loadMercadoPago()
+    const initSDK = () => {
+      // 🔥 Se já foi carregada, usar
+      if (window.MercadoPago) {
+        console.log('✅ SDK já estava carregada')
+        createFields()
+        return
+      }
 
+      // 🔥 Carregar o script da SDK JS v2
+      console.log('📦 Carregando SDK JS v2 do Mercado Pago...')
+      const script = document.createElement('script')
+      script.src = 'https://sdk.mercadopago.com/js/v2'
+      script.async = true
+      script.onload = () => {
+        console.log('✅ SDK JS v2 carregada')
+        if (mounted) createFields()
+      }
+      script.onerror = () => {
+        console.error('❌ Erro ao carregar SDK JS v2')
+        if (mounted) setError('Erro ao carregar formulário de pagamento')
+      }
+      document.body.appendChild(script)
+    }
+
+    const createFields = () => {
+      try {
         const mpInstance = new window.MercadoPago(
           process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY ||
             'APP_USR-4f85174a-8f85-4141-901b-2613dbd0ae7e',
           { locale: 'pt-BR' }
         )
 
-        if (!mounted) return
-
-        // 🔥 CRIAR OS CAMPOS SEGUROS (Secure Fields)
         console.log('📦 Montando campos seguros...')
 
         mpInstance.fields.create('cardNumber', {
@@ -60,12 +77,12 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
           placeholder: '123',
         }).mount('securityCode')
 
-        console.log('✅ Campos seguros do Mercado Pago criados')
+        console.log('✅ Campos seguros montados!')
         setMp(mpInstance)
         setSdkReady(true)
       } catch (err) {
-        console.error('❌ Erro ao carregar SDK:', err)
-        if (mounted) setError('Erro ao carregar formulário de pagamento')
+        console.error('❌ Erro ao criar campos seguros:', err)
+        setError('Erro ao montar campos do cartão')
       }
     }
 
@@ -101,7 +118,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
         throw new Error('SDK não está pronta. Aguarde um momento.')
       }
 
-      console.log('📝 Gerando token do cartão (Secure Fields)...')
+      console.log('📝 Gerando token do cartão...')
 
       const token = await mp.fields.createCardToken({
         cardholderName: cardholderName,
@@ -147,7 +164,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
     return (
       <div className="p-8 text-center">
         <Loader2 className="animate-spin mx-auto text-[#FFB800]" size={32} />
-        <p className="text-sm text-gray-500 mt-2">Carregando formulário...</p>
+        <p className="text-sm text-gray-500 mt-2">Carregando formulário do Mercado Pago...</p>
       </div>
     )
   }
@@ -158,7 +175,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
         <label className="text-xs text-gray-500 block mb-1">Número do cartão</label>
         <div
           id="cardNumber"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus-within:ring-2 focus-within:ring-[#FFB800]"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
         ></div>
       </div>
 
@@ -178,14 +195,14 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
           <label className="text-xs text-gray-500 block mb-1">Validade</label>
           <div
             id="expirationDate"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus-within:ring-2 focus-within:ring-[#FFB800]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
           ></div>
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">CVV</label>
           <div
             id="securityCode"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus-within:ring-2 focus-within:ring-[#FFB800]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
           ></div>
         </div>
       </div>
