@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { CreditCard, Loader2 } from 'lucide-react'
+import Script from 'next/script'
 
 declare global {
   interface Window {
@@ -23,40 +24,20 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
   const [error, setError] = useState<string | null>(null)
   const [mp, setMp] = useState<any>(null)
   const [sdkReady, setSdkReady] = useState(false)
+  const [scriptLoaded, setScriptLoaded] = useState(false)
   const initialized = useRef(false)
 
+  // 🔥 Inicializar SDK após o script carregar
   useEffect(() => {
-    if (initialized.current) return
+    if (!scriptLoaded || initialized.current) return
     initialized.current = true
 
     let mounted = true
 
     const initSDK = () => {
-      // 🔥 Se já foi carregada, usar
-      if (window.MercadoPago) {
-        console.log('✅ SDK já estava carregada')
-        createFields()
-        return
-      }
-
-      // 🔥 Carregar o script da SDK JS v2
-      console.log('📦 Carregando SDK JS v2 do Mercado Pago...')
-      const script = document.createElement('script')
-      script.src = 'https://sdk.mercadopago.com/js/v2'
-      script.async = true
-      script.onload = () => {
-        console.log('✅ SDK JS v2 carregada')
-        if (mounted) createFields()
-      }
-      script.onerror = () => {
-        console.error('❌ Erro ao carregar SDK JS v2')
-        if (mounted) setError('Erro ao carregar formulário de pagamento')
-      }
-      document.body.appendChild(script)
-    }
-
-    const createFields = () => {
       try {
+        console.log('✅ Script do Mercado Pago carregado. Inicializando...')
+
         const mpInstance = new window.MercadoPago(
           process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY ||
             'APP_USR-4f85174a-8f85-4141-901b-2613dbd0ae7e',
@@ -78,11 +59,14 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
         }).mount('securityCode')
 
         console.log('✅ Campos seguros montados!')
-        setMp(mpInstance)
-        setSdkReady(true)
+
+        if (mounted) {
+          setMp(mpInstance)
+          setSdkReady(true)
+        }
       } catch (err) {
-        console.error('❌ Erro ao criar campos seguros:', err)
-        setError('Erro ao montar campos do cartão')
+        console.error('❌ Erro ao inicializar SDK:', err)
+        if (mounted) setError('Erro ao carregar formulário de pagamento')
       }
     }
 
@@ -91,7 +75,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
     return () => {
       mounted = false
     }
-  }, [])
+  }, [scriptLoaded])
 
   const formatCPF = (value: string) => {
     const numbers = value.replace(/\D/g, '')
@@ -162,86 +146,107 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
 
   if (!sdkReady) {
     return (
-      <div className="p-8 text-center">
-        <Loader2 className="animate-spin mx-auto text-[#FFB800]" size={32} />
-        <p className="text-sm text-gray-500 mt-2">Carregando formulário do Mercado Pago...</p>
-      </div>
+      <>
+        {/* 🔥 Carregar SDK JS v2 do Mercado Pago via next/script */}
+        <Script
+          src="https://sdk.mercadopago.com/js/v2"
+          strategy="afterInteractive"
+          onLoad={() => {
+            console.log('✅ Script do Mercado Pago carregado')
+            setScriptLoaded(true)
+          }}
+          onError={() => {
+            console.error('❌ Erro ao carregar script do Mercado Pago')
+            setError('Erro ao carregar formulário de pagamento')
+          }}
+        />
+        <div className="p-8 text-center">
+          <Loader2 className="animate-spin mx-auto text-[#FFB800]" size={32} />
+          <p className="text-sm text-gray-500 mt-2">Carregando formulário do Mercado Pago...</p>
+        </div>
+      </>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="text-xs text-gray-500 block mb-1">Número do cartão</label>
-        <div
-          id="cardNumber"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-        ></div>
-      </div>
-
-      <div>
-        <label className="text-xs text-gray-500 block mb-1">Nome no cartão</label>
-        <input
-          type="text"
-          placeholder="NOME COMO NO CARTÃO"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800] focus:border-transparent uppercase"
-          value={cardholderName}
-          onChange={(e) => setCardholderName(e.target.value.toUpperCase())}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
+    <>
+      <Script
+        src="https://sdk.mercadopago.com/js/v2"
+        strategy="afterInteractive"
+      />
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="text-xs text-gray-500 block mb-1">Validade</label>
+          <label className="text-xs text-gray-500 block mb-1">Número do cartão</label>
           <div
-            id="expirationDate"
+            id="cardNumber"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
           ></div>
         </div>
+
         <div>
-          <label className="text-xs text-gray-500 block mb-1">CVV</label>
-          <div
-            id="securityCode"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-          ></div>
+          <label className="text-xs text-gray-500 block mb-1">Nome no cartão</label>
+          <input
+            type="text"
+            placeholder="NOME COMO NO CARTÃO"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800] focus:border-transparent uppercase"
+            value={cardholderName}
+            onChange={(e) => setCardholderName(e.target.value.toUpperCase())}
+          />
         </div>
-      </div>
 
-      <div>
-        <label className="text-xs text-gray-500 block mb-1">CPF do titular</label>
-        <input
-          type="text"
-          placeholder="000.000.000-00"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-          value={cpf}
-          onChange={(e) => setCpf(formatCPF(e.target.value))}
-          maxLength={14}
-        />
-      </div>
-
-      {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600">{error}</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Validade</label>
+            <div
+              id="expirationDate"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            ></div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">CVV</label>
+            <div
+              id="securityCode"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            ></div>
+          </div>
         </div>
-      )}
 
-      <button
-        type="submit"
-        disabled={processing}
-        className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {processing ? (
-          <>
-            <Loader2 size={24} className="animate-spin" />
-            Processando...
-          </>
-        ) : (
-          <>
-            <CreditCard size={20} />
-            Assinar com Cartão
-          </>
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">CPF do titular</label>
+          <input
+            type="text"
+            placeholder="000.000.000-00"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
+            value={cpf}
+            onChange={(e) => setCpf(formatCPF(e.target.value))}
+            maxLength={14}
+          />
+        </div>
+
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
         )}
-      </button>
-    </form>
+
+        <button
+          type="submit"
+          disabled={processing}
+          className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {processing ? (
+            <>
+              <Loader2 size={24} className="animate-spin" />
+              Processando...
+            </>
+          ) : (
+            <>
+              <CreditCard size={20} />
+              Assinar com Cartão
+            </>
+          )}
+        </button>
+      </form>
+    </>
   )
 }
