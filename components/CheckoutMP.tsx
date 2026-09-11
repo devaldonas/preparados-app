@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { CreditCard, Loader2 } from 'lucide-react'
+import { loadMercadoPago } from '@mercadopago/sdk-js'
 
 interface CheckoutMPProps {
   userId: string
@@ -26,12 +27,16 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
   const [error, setError] = useState<string | null>(null)
   const [mp, setMp] = useState<any>(null)
 
+  // 🔥 Carregar SDK JS pura do Mercado Pago
   useEffect(() => {
-    const loadSDK = async () => {
+    const initSDK = async () => {
       try {
-        // Importar a SDK JS pura dinamicamente
-        const MercadoPago = (await import('@mercadopago/sdk-js')).default
-        const mpInstance = new MercadoPago(
+        // 1. Carregar o script oficial no navegador
+        await loadMercadoPago()
+        console.log('✅ Script do Mercado Pago carregado')
+
+        // 2. Instanciar usando a variável global
+        const mpInstance = new window.MercadoPago(
           process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY || 'APP_USR-4f85174a-8f85-4141-901b-2613dbd0ae7e',
           { locale: 'pt-BR' }
         )
@@ -43,10 +48,10 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
       }
     }
 
-    loadSDK()
+    initSDK()
   }, [])
 
-  // Formatações
+  // 🔥 Formatações
   const formatCardNumber = (value: string) => {
     const numbers = value.replace(/\D/g, '')
     const groups = numbers.match(/.{1,4}/g)
@@ -100,7 +105,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
 
       const [mes, ano] = expirationDate.split('/')
 
-      // 🔥 USAR O MÉTODO DA SDK JS PURA
+      // 🔥 Usar o método da SDK JS pura
       const token = await mp.createCardToken({
         cardNumber: cardNumber.replace(/\s/g, ''),
         cardholderName: cardholderName,
@@ -117,6 +122,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
 
       console.log('✅ Token gerado:', token.id)
 
+      // Enviar para o backend
       const response = await fetch('/api/mercadopago/assinatura', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
