@@ -6,8 +6,8 @@ import { supabase } from '@/lib/supabaseClient'
 import { Loader2, Check, CreditCard, Copy } from 'lucide-react'
 import { CardFormWrapper } from '@/components/CardFormWrapper'
 
-const VALOR_TOTAL = 44.28
-const VALOR_PARCELA = 3.69
+const VALOR_TOTAL = 12.00
+const VALOR_PARCELA = 1.00
 
 export default function PlanosPage() {
   const router = useRouter()

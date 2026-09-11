@@ -58,7 +58,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
   return (
     <div className="space-y-4">
       <CardPayment
-        initialization={{ amount: 44.28 }}
+        initialization={{ amount: 12.00 }}
         onSubmit={handleSubmit}
         onError={(err) => {
           console.error('❌ Erro no Brick:', err)
