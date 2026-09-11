@@ -10,7 +10,6 @@ interface CheckoutMPProps {
   onError: (error: string) => void
 }
 
-// 🔥 Declarar MercadoPago no window
 declare global {
   interface Window {
     MercadoPago: any
@@ -25,45 +24,29 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
   const [cardholderName, setCardholderName] = useState('')
   const [cpf, setCpf] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [mpInstance, setMpInstance] = useState<any>(null)
+  const [mp, setMp] = useState<any>(null)
 
-  // 🔥 Carregar SDK JS do Mercado Pago
   useEffect(() => {
-    const loadSDK = () => {
-      // Se já foi carregada, usar
-      if (window.MercadoPago) {
-        const mp = new window.MercadoPago(
+    const loadSDK = async () => {
+      try {
+        // Importar a SDK JS pura dinamicamente
+        const MercadoPago = (await import('@mercadopago/sdk-js')).default
+        const mpInstance = new MercadoPago(
           process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY || 'APP_USR-4f85174a-8f85-4141-901b-2613dbd0ae7e',
           { locale: 'pt-BR' }
         )
-        setMpInstance(mp)
+        setMp(mpInstance)
         console.log('✅ SDK JS do Mercado Pago inicializada')
-        return
-      }
-
-      // Carregar o script
-      const script = document.createElement('script')
-      script.src = 'https://sdk.mercadopago.com/js/v2'
-      script.async = true
-      script.onload = () => {
-        const mp = new window.MercadoPago(
-          process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY || 'APP_USR-4f85174a-8f85-4141-901b-2613dbd0ae7e',
-          { locale: 'pt-BR' }
-        )
-        setMpInstance(mp)
-        console.log('✅ SDK JS do Mercado Pago carregada')
-      }
-      script.onerror = () => {
-        console.error('❌ Erro ao carregar SDK JS do Mercado Pago')
+      } catch (err) {
+        console.error('❌ Erro ao carregar SDK:', err)
         setError('Erro ao carregar formulário de pagamento')
       }
-      document.body.appendChild(script)
     }
 
     loadSDK()
   }, [])
 
-  // 🔥 Formatações
+  // Formatações
   const formatCardNumber = (value: string) => {
     const numbers = value.replace(/\D/g, '')
     const groups = numbers.match(/.{1,4}/g)
@@ -109,7 +92,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
       if (!cpf || cpf.replace(/\D/g, '').length !== 11) {
         throw new Error('CPF inválido')
       }
-      if (!mpInstance) {
+      if (!mp) {
         throw new Error('SDK não está pronta. Aguarde um momento.')
       }
 
@@ -117,8 +100,8 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
 
       const [mes, ano] = expirationDate.split('/')
 
-      // 🔥 Usar o método da SDK JS pura
-      const token = await mpInstance.createCardToken({
+      // 🔥 USAR O MÉTODO DA SDK JS PURA
+      const token = await mp.createCardToken({
         cardNumber: cardNumber.replace(/\s/g, ''),
         cardholderName: cardholderName,
         cardExpirationMonth: mes,
@@ -134,7 +117,6 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
 
       console.log('✅ Token gerado:', token.id)
 
-      // Enviar para o backend
       const response = await fetch('/api/mercadopago/assinatura', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -163,7 +145,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
     }
   }
 
-  if (!mpInstance) {
+  if (!mp) {
     return (
       <div className="p-8 text-center">
         <Loader2 className="animate-spin mx-auto text-[#FFB800]" size={32} />
