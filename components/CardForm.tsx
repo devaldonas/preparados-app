@@ -80,9 +80,6 @@ export function CardForm({ userId, userEmail, onSuccess, onError }: CardFormProp
       await new Promise(resolve => setTimeout(resolve, 500))
 
       const token = await createCardToken({
-        cardNumber: cardNumber.replace(/\s/g, ''),
-        expirationDate: expirationDate,
-        securityCode: securityCode,
         cardholderName: cardholderName,
         identificationType: 'CPF',
         identificationNumber: cpf.replace(/\D/g, ''),
