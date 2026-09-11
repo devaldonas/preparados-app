@@ -352,7 +352,7 @@ export default function PlanosPage() {
             </div>
           )}
 
-          + {paymentMethod === 'card' && user && (
+          {paymentMethod === 'card' && user && (
    <CardFormWrapper
      userId={user.id}
     userEmail={user.email}
