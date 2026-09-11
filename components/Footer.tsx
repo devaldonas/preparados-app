@@ -2,9 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { 
   Shield, 
-  Users, 
   Mail, 
-  Phone, 
   MapPin,
   Globe
 } from 'lucide-react'
@@ -18,7 +16,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         
         {/* Grid principal */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           
           {/* Coluna 1 - Sobre */}
           <div>
@@ -58,24 +56,7 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Coluna 2 - Links Rápidos */}
-          <div>
-            <h3 className="text-white font-semibold mb-4">Links Rápidos</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link href="/parceiro" className="hover:text-yellow-500 transition-colors flex items-center gap-2">
-                  <Users className="h-4 w-4" /> Seja um Parceiro
-                </Link>
-              </li>
-              <li>
-                <Link href="/indicar" className="hover:text-yellow-500 transition-colors flex items-center gap-2">
-                  <Users className="h-4 w-4" /> Indique um Amigo
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Coluna 3 - Suporte */}
+          {/* Coluna 2 - Suporte */}
           <div>
             <h3 className="text-white font-semibold mb-4">Suporte</h3>
             <ul className="space-y-2 text-sm">
@@ -92,7 +73,7 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Coluna 4 - Contato */}
+          {/* Coluna 3 - Contato */}
           <div>
             <h3 className="text-white font-semibold mb-4">Contato</h3>
             <ul className="space-y-3 text-sm">
