@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { CreditCard, Loader2 } from 'lucide-react'
+import { initMercadoPago } from '@mercadopago/sdk-react'
 import { loadMercadoPago } from '@mercadopago/sdk-js'
 
 interface CheckoutMPProps {
@@ -19,29 +20,36 @@ declare global {
 
 export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMPProps) {
   const [processing, setProcessing] = useState(false)
-  const [cardNumber, setCardNumber] = useState('')
-  const [expirationDate, setExpirationDate] = useState('')
-  const [securityCode, setSecurityCode] = useState('')
   const [cardholderName, setCardholderName] = useState('')
   const [cpf, setCpf] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [mp, setMp] = useState<any>(null)
 
-  // 🔥 Carregar SDK JS pura do Mercado Pago
+  // 🔥 Carregar SDK JS pura e criar os campos seguros
   useEffect(() => {
     const initSDK = async () => {
       try {
-        // 1. Carregar o script oficial no navegador
         await loadMercadoPago()
-        console.log('✅ Script do Mercado Pago carregado')
-
-        // 2. Instanciar usando a variável global
         const mpInstance = new window.MercadoPago(
           process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY || 'APP_USR-4f85174a-8f85-4141-901b-2613dbd0ae7e',
           { locale: 'pt-BR' }
         )
         setMp(mpInstance)
-        console.log('✅ SDK JS do Mercado Pago inicializada')
+
+        // 🔥 Criar os campos seguros do cartão
+        const cardNumberElement = mpInstance.fields.create('cardNumber', {
+          placeholder: '0000 0000 0000 0000',
+        }).mount('cardNumber')
+
+        const expirationDateElement = mpInstance.fields.create('expirationDate', {
+          placeholder: 'MM/AA',
+        }).mount('expirationDate')
+
+        const securityCodeElement = mpInstance.fields.create('securityCode', {
+          placeholder: '123',
+        }).mount('securityCode')
+
+        console.log('✅ Campos seguros do Mercado Pago criados')
       } catch (err) {
         console.error('❌ Erro ao carregar SDK:', err)
         setError('Erro ao carregar formulário de pagamento')
@@ -50,21 +58,6 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
 
     initSDK()
   }, [])
-
-  // 🔥 Formatações
-  const formatCardNumber = (value: string) => {
-    const numbers = value.replace(/\D/g, '')
-    const groups = numbers.match(/.{1,4}/g)
-    return groups ? groups.join(' ').substr(0, 19) : ''
-  }
-
-  const formatExpiration = (value: string) => {
-    const numbers = value.replace(/\D/g, '')
-    if (numbers.length >= 2) {
-      return numbers.substr(0, 2) + '/' + numbers.substr(2, 2)
-    }
-    return numbers
-  }
 
   const formatCPF = (value: string) => {
     const numbers = value.replace(/\D/g, '')
@@ -81,16 +74,6 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
     setError(null)
 
     try {
-      // Validações
-      if (!cardNumber || cardNumber.replace(/\s/g, '').length < 16) {
-        throw new Error('Número do cartão inválido')
-      }
-      if (!expirationDate || expirationDate.length < 5) {
-        throw new Error('Data de validade inválida')
-      }
-      if (!securityCode || securityCode.length < 3) {
-        throw new Error('Código de segurança inválido')
-      }
       if (!cardholderName || cardholderName.length < 3) {
         throw new Error('Nome no cartão inválido')
       }
@@ -101,17 +84,11 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
         throw new Error('SDK não está pronta. Aguarde um momento.')
       }
 
-      console.log('📝 Gerando token do cartão...')
+      console.log('📝 Gerando token do cartão (Secure Fields)...')
 
-      const [mes, ano] = expirationDate.split('/')
-
-      // 🔥 Usar o método da SDK JS pura
-      const token = await mp.createCardToken({
-        cardNumber: cardNumber.replace(/\s/g, ''),
+      // 🔥 O SDK coleta os dados dos campos seguros automaticamente
+      const token = await mp.fields.createCardToken({
         cardholderName: cardholderName,
-        cardExpirationMonth: mes,
-        cardExpirationYear: ano,
-        securityCode: securityCode,
         identificationType: 'CPF',
         identificationNumber: cpf.replace(/\D/g, ''),
       })
@@ -122,7 +99,6 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
 
       console.log('✅ Token gerado:', token.id)
 
-      // Enviar para o backend
       const response = await fetch('/api/mercadopago/assinatura', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -164,14 +140,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="text-xs text-gray-500 block mb-1">Número do cartão</label>
-        <input
-          type="text"
-          placeholder="0000 0000 0000 0000"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-          value={cardNumber}
-          onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-          maxLength={19}
-        />
+        <div id="cardNumber" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus-within:ring-2 focus-within:ring-[#FFB800]"></div>
       </div>
 
       <div>
@@ -188,25 +157,11 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-gray-500 block mb-1">Validade</label>
-          <input
-            type="text"
-            placeholder="MM/AA"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-            value={expirationDate}
-            onChange={(e) => setExpirationDate(formatExpiration(e.target.value))}
-            maxLength={5}
-          />
+          <div id="expirationDate" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus-within:ring-2 focus-within:ring-[#FFB800]"></div>
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">CVV</label>
-          <input
-            type="text"
-            placeholder="123"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#FFB800] focus:border-transparent"
-            value={securityCode}
-            onChange={(e) => setSecurityCode(e.target.value.replace(/\D/g, ''))}
-            maxLength={4}
-          />
+          <div id="securityCode" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus-within:ring-2 focus-within:ring-[#FFB800]"></div>
         </div>
       </div>
 
