@@ -339,43 +339,55 @@ function CadastroForm() {
         
         let groupId = null
 
-        if (latitude && longitude) {
-          try {
-            const cidadeNome = cidade || 'Localização do Usuário'
-            
-            const { data: existingGroup } = await (supabase
-              .from('groups') as any)
-              .select('id')
-              .eq('city_name', cidadeNome)
-              .maybeSingle()
+if (latitude && longitude && cidade) {
+  try {
+    const cidadeNome = cidade.trim()
+    const estadoUF = estado.trim()
+    
+    console.log('🏙️ Buscando grupo para:', cidadeNome, estadoUF)
 
-            if (existingGroup) {
-              groupId = existingGroup.id
-            } else {
-              const { data: newGroup, error: groupError } = await (supabase
-                .from('groups') as any)
-                .insert([{
-                  name: `Grupo ${cidadeNome}`,
-                  city_name: cidadeNome,
-                  center_latitude: latitude || 0,
-                  center_longitude: longitude || 0,
-                  member_count: 1,
-                  is_active: true,
-                  created_at: new Date().toISOString()
-                }])
-                .select('id')
-                .single()
-              
-              if (groupError) {
-                console.error('❌ Erro ao criar grupo:', groupError)
-              } else if (newGroup) {
-                groupId = newGroup.id
-              }
-            }
-          } catch (groupErr) {
-            console.error('❌ Erro ao processar grupo:', groupErr)
-          }
-        }
+    // 🔥 BUSCAR GRUPO EXISTENTE POR CIDADE
+    const { data: existingGroup } = await (supabase
+      .from('groups') as any)
+      .select('id, name, city_name')
+      .eq('city_name', cidadeNome)
+      .maybeSingle()
+
+    if (existingGroup) {
+      // ✅ GRUPO JÁ EXISTE - USAR O EXISTENTE
+      groupId = existingGroup.id
+      console.log('✅ Usuário inserido no grupo existente:', existingGroup.name)
+    } else {
+      // 🔥 CRIAR NOVO GRUPO COM NOME DA CIDADE
+      console.log('🆕 Criando novo grupo para:', cidadeNome)
+      
+      const { data: newGroup, error: groupError } = await (supabase
+        .from('groups') as any)
+        .insert([{
+          name: cidadeNome,  // 🔥 NOME = CIDADE (não "Grupo X")
+          city_name: cidadeNome,
+          center_latitude: latitude || 0,
+          center_longitude: longitude || 0,
+          member_count: 1,
+          is_active: true,
+          created_at: new Date().toISOString()
+        }])
+        .select('id, name, city_name')
+        .single()
+      
+      if (groupError) {
+        console.error('❌ Erro ao criar grupo:', groupError)
+      } else if (newGroup) {
+        groupId = newGroup.id
+        console.log('✅ Novo grupo criado:', newGroup.name)
+      }
+    }
+  } catch (groupErr) {
+    console.error('❌ Erro ao processar grupo:', groupErr)
+  }
+} else {
+  console.warn('⚠️ Cidade não informada, grupo não será criado')
+}
 
         let indicadorId = null
         if (codigoFinal) {
