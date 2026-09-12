@@ -108,6 +108,7 @@ export default function NavBar({
   const navLinks = getNavLinks()
   const isTrial = userProfile?.subscription_status === 'trial'
   const isAdmin = userProfile?.role === 'admin'
+  const isPartner = userProfile?.role === 'partner'
 
   return (
     <div className="bg-white border-b border-gray-100 sticky top-0 z-50">
@@ -302,6 +303,21 @@ export default function NavBar({
                 <User size={18} />
                 Meu Perfil
               </Link>
+
+              {/* 🔥 BOTÃO SEJA UM PARCEIRO */}
+              {!isPartner && !isAdmin && (
+                <Link
+                  href="/parceiro/seja-parceiro"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
+                >
+                  <Store size={18} />
+                  Seja um Parceiro
+                  <span className="ml-auto text-[0.5rem] bg-[#FFB800] text-black px-1.5 py-0.5 rounded-full font-bold">
+                    NOVO
+                  </span>
+                </Link>
+              )}
 
               <Link
                 href="/loja/carrinho"
