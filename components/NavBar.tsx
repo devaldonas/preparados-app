@@ -37,7 +37,7 @@ export default function NavBar({
 }: NavBarProps) {
   const router = useRouter()
   
-  // 🔥 CORREÇÃO CRÍTICA: usar selector para reagir a mudanças
+  // 🔥 Selector reativo do Zustand
   const cartCount = useCart(state => 
     state.items.reduce((sum, item) => sum + item.quantity, 0)
   )
@@ -47,7 +47,6 @@ export default function NavBar({
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
-  // 🔥 CORREÇÃO: só mostrar o cartCount após montar (evita hidratação)
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -97,10 +96,13 @@ export default function NavBar({
       { href: '/loja', label: 'Loja', icon: Store }
     ]
 
-    if (userProfile?.role === 'partner') {
-      links.push({ href: '/parceiro/dashboard', label: 'Dashboard', icon: LayoutDashboard })
-    } else if (user) {
-      links.push({ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard })
+    // Só adiciona o Dashboard se NÃO estiver em trial
+    if (!isTrial) {
+      if (userProfile?.role === 'partner') {
+        links.push({ href: '/parceiro/dashboard', label: 'Dashboard', icon: LayoutDashboard })
+      } else if (user) {
+        links.push({ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard })
+      }
     }
 
     return links
@@ -110,6 +112,7 @@ export default function NavBar({
   const isTrial = userProfile?.subscription_status === 'trial'
   const isAdmin = userProfile?.role === 'admin'
   const isPartner = userProfile?.role === 'partner'
+  const hasFullAccess = !isTrial
 
   return (
     <div className="bg-white border-b border-gray-100 sticky top-0 z-50">
@@ -128,7 +131,7 @@ export default function NavBar({
               <div className="lg:hidden w-8" />
             )}
             
-            <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2">
+            <Link href={hasFullAccess ? '/dashboard' : '/planos'} className="flex items-center gap-2">
               <img 
                 src="/logo.svg" 
                 alt="PREPARADO" 
@@ -166,7 +169,6 @@ export default function NavBar({
                 className="relative p-2 hover:bg-gray-100 rounded-lg transition"
               >
                 <ShoppingBag size={20} className="text-gray-700" />
-                {/* 🔥 CORRIGIDO: só mostrar se mounted E cartCount > 0 */}
                 {mounted && cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-[#FFB800] text-black text-[0.55rem] font-bold rounded-full w-5 h-5 flex items-center justify-center">
                     {cartCount}
@@ -216,23 +218,47 @@ export default function NavBar({
                 </div>
               </div>
 
-              {!hideNavLinks && user && (
-                <div className="lg:hidden">
-                  {navLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                    >
-                      <link.icon size={18} />
-                      {link.label}
-                    </Link>
-                  ))}
-                  <div className="border-t border-gray-100 my-1" />
-                </div>
+              {/* 🔥 LOJA - sempre visível */}
+              <Link
+                href="/loja"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+              >
+                <Store size={18} />
+                Loja
+              </Link>
+
+              {/* 🔥 DASHBOARD - só se NÃO for trial */}
+              {hasFullAccess && !hideNavLinks && user && (
+                <Link
+                  href={userProfile?.role === 'partner' ? '/parceiro/dashboard' : '/dashboard'}
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                >
+                  <LayoutDashboard size={18} />
+                  Dashboard
+                </Link>
               )}
 
+              {/* 🔥 TRIAL - CTA de assinar */}
+              {isTrial && (
+                <>
+                  <Link
+                    href="/planos"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
+                  >
+                    <Crown size={18} />
+                    Assinar Premium
+                    <span className="ml-auto text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full font-bold">
+                      Oferta
+                    </span>
+                  </Link>
+                  <div className="border-t border-gray-100 my-1" />
+                </>
+              )}
+
+              {/* 🔥 ADMIN */}
               {isAdmin && (
                 <>
                   <Link
@@ -261,41 +287,30 @@ export default function NavBar({
                 </>
               )}
 
-              {isTrial && (
+              {/* 🔥 MENU COMPLETO - só se NÃO for trial (ou se for admin) */}
+              {(hasFullAccess || isAdmin) && (
                 <>
                   <Link
-                    href="/planos"
+                    href="/carteira"
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
                   >
-                    <Crown size={18} />
-                    Assinar Premium
-                    <span className="ml-auto text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full font-bold">
-                      Oferta
-                    </span>
+                    <Wallet size={18} />
+                    Minha Carteira
                   </Link>
-                  <div className="border-t border-gray-100 my-1" />
+
+                  <Link
+                    href="/loja/pedidos"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    <Package size={18} />
+                    Meus Pedidos
+                  </Link>
                 </>
               )}
-
-              <Link
-                href="/carteira"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-              >
-                <Wallet size={18} />
-                Minha Carteira
-              </Link>
-
-              <Link
-                href="/loja/pedidos"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-              >
-                <Package size={18} />
-                Meus Pedidos
-              </Link>
               
+              {/* 🔥 MEU PERFIL - sempre visível */}
               <Link
                 href="/perfil"
                 onClick={() => setIsMenuOpen(false)}
@@ -305,6 +320,7 @@ export default function NavBar({
                 Meu Perfil
               </Link>
 
+              {/* 🔥 SEJA UM PARCEIRO - para TODOS, exceto parceiros e admins */}
               {!isPartner && !isAdmin && (
                 <Link
                   href="/parceiro/seja-parceiro"
@@ -319,6 +335,7 @@ export default function NavBar({
                 </Link>
               )}
 
+              {/* 🔥 CARRINHO - sempre visível */}
               <Link
                 href="/loja/carrinho"
                 onClick={() => setIsMenuOpen(false)}
