@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useCart } from '@/lib/store/cart'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
-import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft } from 'lucide-react'
+import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, Loader2 } from 'lucide-react'
 
 export default function Carrinho() {
   const router = useRouter()
@@ -65,8 +65,8 @@ export default function Carrinho() {
       setSaldoCarteira(saldo)
       setValorCreditos(saldo)
       
-      // 🔥 BUSCAR PEDIDO PENDENTE
-      await buscarPedidoPendente(user.id)
+      // 🔥 CARREGAR CARRINHO DO SUPABASE
+      await carregarCarrinhoDoSupabase(user.id)
       
     } catch (error) {
       console.error('Erro ao carregar usuário:', error)
@@ -76,51 +76,121 @@ export default function Carrinho() {
     }
   }
 
-  // 🔥 NOVA FUNÇÃO: Buscar pedido pendente e restaurar carrinho
-  const buscarPedidoPendente = async (userId: string) => {
+  // 🔥 NOVA FUNÇÃO: Carregar carrinho do Supabase
+  const carregarCarrinhoDoSupabase = async (userId: string) => {
     try {
-      const { data: pedido, error } = await supabase
-        .from('orders')
-        .select('*, items:order_items(*, product:products(*))')
+      const { data, error } = await supabase
+        .from('cart_items')
+        .select(`
+          id,
+          product_id,
+          quantity,
+          product:products(*)
+        `)
         .eq('user_id', userId)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(1)
 
       if (error) {
-        console.error('Erro ao buscar pedido pendente:', error)
+        console.error('❌ Erro ao carregar carrinho:', error)
         return
       }
 
-      if (pedido && pedido.length > 0 && pedido[0].items) {
-        // Se o carrinho local está vazio, restaurar do pedido pendente
-        if (items.length === 0) {
-          const itensRestaurados = pedido[0].items.map((item: any) => ({
-            product_id: String(item.product_id),
-            name: item.product?.name || 'Produto',
-            price: item.price,
-            image: item.product?.image_url || '/images/placeholder.jpg',
-            quantity: item.quantity,
-            max_stock: 999,
-            is_digital: item.product?.is_digital || false,
-            free_shipping: item.product?.free_shipping || false
-          }))
-          
-          // Restaurar itens no carrinho
-          itensRestaurados.forEach((item: any) => {
-            // Verificar se já existe no carrinho para não duplicar
-            const existe = items.some(i => i.product_id === item.product_id)
-            if (!existe) {
-              // Adicionar via setItems para não perder o estado
-              setItems([...items, item])
-            }
-          })
-          
-          console.log('🔄 Itens restaurados do pedido pendente:', itensRestaurados.length)
+      if (data && data.length > 0) {
+        const itensDoBanco = data.map((item: any) => ({
+          product_id: String(item.product_id),
+          name: item.product?.name || 'Produto',
+          price: item.product?.price || 0,
+          image: item.product?.image_url || '/images/placeholder.jpg',
+          quantity: item.quantity,
+          max_stock: item.product?.stock || 999,
+          is_digital: item.product?.is_digital || false,
+          free_shipping: item.product?.free_shipping || false
+        }))
+
+        setItems(itensDoBanco)
+        console.log('✅ Carrinho carregado do Supabase:', itensDoBanco.length)
+      } else {
+        // Se não tem itens no Supabase, limpar o Zustand
+        setItems([])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar carrinho:', error)
+    }
+  }
+
+  // 🔥 FUNÇÃO PARA REMOVER ITEM (Zustand + Supabase)
+  const handleRemoveItem = async (productId: string) => {
+    try {
+      // 1. Remover do Zustand
+      removeItem(productId)
+
+      // 2. Remover do Supabase
+      if (user) {
+        const { error } = await supabase
+          .from('cart_items')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('product_id', productId)
+
+        if (error) {
+          console.error('❌ Erro ao remover do Supabase:', error)
+        } else {
+          console.log('✅ Item removido do Supabase:', productId)
         }
       }
     } catch (error) {
-      console.error('Erro ao buscar pedido pendente:', error)
+      console.error('Erro ao remover item:', error)
+    }
+  }
+
+  // 🔥 FUNÇÃO PARA ATUALIZAR QUANTIDADE (Zustand + Supabase)
+  const handleUpdateQuantity = async (productId: string, quantity: number) => {
+    try {
+      // 1. Atualizar no Zustand
+      updateQuantity(productId, quantity)
+
+      // 2. Atualizar no Supabase
+      if (user) {
+        const { error } = await supabase
+          .from('cart_items')
+          .update({ quantity })
+          .eq('user_id', user.id)
+          .eq('product_id', productId)
+
+        if (error) {
+          console.error('❌ Erro ao atualizar quantidade:', error)
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar quantidade:', error)
+    }
+  }
+
+  // 🔥 FUNÇÃO PARA LIMPAR CARRINHO (Zustand + Supabase)
+  const handleClearCart = async () => {
+    try {
+      // 1. Limpar Zustand
+      clearCart()
+
+      // 2. Limpar Supabase
+      if (user) {
+        const { error } = await supabase
+          .from('cart_items')
+          .delete()
+          .eq('user_id', user.id)
+
+        if (error) {
+          console.error('❌ Erro ao limpar carrinho:', error)
+        }
+
+        // 3. Cancelar pedido pendente
+        await supabase
+          .from('orders')
+          .update({ status: 'cancelled' })
+          .eq('user_id', user.id)
+          .eq('status', 'pending')
+      }
+    } catch (error) {
+      console.error('Erro ao limpar carrinho:', error)
     }
   }
 
@@ -170,7 +240,6 @@ export default function Carrinho() {
         state: profile.state || ''
       }
 
-      // Debitar créditos
       let creditosUtilizados = 0
       if (usarCreditos && descontoCreditos > 0) {
         creditosUtilizados = descontoCreditos
@@ -203,8 +272,6 @@ export default function Carrinho() {
         shipping_address: JSON.stringify(shippingAddress)
       }
 
-      console.log('📦 Dados do pedido:', orderData)
-
       const { data: order, error: orderError } = await (supabase
         .from('orders') as any)
         .insert([orderData])
@@ -218,7 +285,6 @@ export default function Carrinho() {
         return
       }
 
-      // Inserir itens
       for (const item of items) {
         const { error: itemError } = await (supabase
           .from('order_items') as any)
@@ -234,7 +300,6 @@ export default function Carrinho() {
         }
       }
 
-      // Limpar notificações de carrinho abandonado
       await supabase
         .from('notificacoes')
         .update({ lida: true })
@@ -242,10 +307,6 @@ export default function Carrinho() {
         .eq('titulo', 'Carrinho aguardando pagamento')
         .eq('tipo', 'info')
 
-      // 🔥 NÃO LIMPAR O CARRINHO AQUI - DEIXAR PARA O CHECKOUT
-      // clearCart() - REMOVIDO
-
-      // Redirecionar para checkout
       window.location.href = `/loja/checkout?order=${order.id}`
       
     } catch (error) {
@@ -265,7 +326,7 @@ export default function Carrinho() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
+        <Loader2 className="animate-spin text-[#FFB800]" size={48} />
       </div>
     )
   }
@@ -337,7 +398,7 @@ export default function Carrinho() {
                       <div className="flex items-center gap-2">
                         <div className="flex items-center border border-gray-200 rounded-lg">
                           <button
-                            onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                            onClick={() => handleUpdateQuantity(item.product_id, item.quantity - 1)}
                             className="px-2 py-1 hover:bg-gray-50 transition rounded-l-lg"
                           >
                             <Minus size={14} />
@@ -346,14 +407,14 @@ export default function Carrinho() {
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                            onClick={() => handleUpdateQuantity(item.product_id, item.quantity + 1)}
                             className="px-2 py-1 hover:bg-gray-50 transition rounded-r-lg"
                           >
                             <Plus size={14} />
                           </button>
                         </div>
                         <button
-                          onClick={() => removeItem(item.product_id)}
+                          onClick={() => handleRemoveItem(item.product_id)}
                           className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
                         >
                           <Trash2 size={18} />
@@ -366,18 +427,7 @@ export default function Carrinho() {
 
               <div className="flex justify-between items-center mb-4">
                 <button
-                  onClick={() => {
-                    clearCart()
-                    // Também cancelar pedido pendente no banco
-                    if (user) {
-                      supabase
-                        .from('orders')
-                        .update({ status: 'cancelled' })
-                        .eq('user_id', user.id)
-                        .eq('status', 'pending')
-                        .then(() => console.log('Pedido pendente cancelado'))
-                    }
-                  }}
+                  onClick={handleClearCart}
                   className="text-sm text-gray-500 hover:text-red-500 transition"
                 >
                   Limpar Carrinho

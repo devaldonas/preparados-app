@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Package, DollarSign, Calendar, ShoppingCart, Truck } from 'lucide-react'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
+import { useCart } from '@/lib/store/cart' // 🔥 IMPORT DO STORE
 
 interface Product {
   id: number
@@ -36,6 +37,9 @@ export default function ProdutoDetalhes({ params }: { params: Promise<{ id: stri
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const router = useRouter()
 
+  // 🔥 STORE DO CARRINHO
+  const { addItem } = useCart()
+
   useEffect(() => {
     const carregarDados = async () => {
       try {
@@ -50,7 +54,7 @@ export default function ProdutoDetalhes({ params }: { params: Promise<{ id: stri
 
         if (productError) throw productError
         setProduct(productData)
-        
+
         if (productData?.image_url) {
           setSelectedImage(productData.image_url)
         } else if (productData?.images && productData.images.length > 0) {
@@ -82,13 +86,25 @@ export default function ProdutoDetalhes({ params }: { params: Promise<{ id: stri
 
     try {
       setAddingToCart(true)
-      
+
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/auth/login')
         return
       }
 
+      // 🔥 1. ATUALIZAR O STORE ZUSTAND (para o ícone do carrinho)
+      addItem({
+        product_id: String(product.id),
+        name: product.name,
+        price: product.price,
+        image: product.image_url || '/images/placeholder.jpg',
+        max_stock: product.stock,
+        is_digital: false,
+        free_shipping: product.free_shipping,
+      }, 1)
+
+      // 🔥 2. ATUALIZAR O SUPABASE (para persistir no servidor)
       const { data: existingItem } = await supabase
         .from('cart_items')
         .select('id, quantity')
@@ -175,7 +191,7 @@ export default function ProdutoDetalhes({ params }: { params: Promise<{ id: stri
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        
+
         <div className="mb-6">
           <Link
             href="/loja"
@@ -201,7 +217,11 @@ export default function ProdutoDetalhes({ params }: { params: Promise<{ id: stri
             }`}
           >
             <ShoppingCart size={18} />
-            {product.stock > 0 ? `Comprar - ${formatarMoeda(product.price)}` : 'Esgotado'}
+            {addingToCart
+              ? 'Adicionando...'
+              : product.stock > 0
+                ? `Comprar - ${formatarMoeda(product.price)}`
+                : 'Esgotado'}
           </button>
         </div>
 
@@ -211,12 +231,12 @@ export default function ProdutoDetalhes({ params }: { params: Promise<{ id: stri
               src={selectedImage || todasImagens[0]}
               alt={product.name}
               className="w-full max-w-md mx-auto h-64 object-contain rounded-lg"
-              onError={(e) => { 
+              onError={(e) => {
                 e.currentTarget.src = '/images/placeholder.jpg'
               }}
             />
           </div>
-          
+
           {todasImagens.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-2 justify-center">
               {todasImagens.map((img, index) => (
@@ -224,8 +244,8 @@ export default function ProdutoDetalhes({ params }: { params: Promise<{ id: stri
                   key={index}
                   onClick={() => setSelectedImage(img)}
                   className={`flex-shrink-0 w-16 h-16 rounded-lg border-2 overflow-hidden transition ${
-                    selectedImage === img 
-                      ? 'border-[#FFB800]' 
+                    selectedImage === img
+                      ? 'border-[#FFB800]'
                       : 'border-gray-200 hover:border-gray-400'
                   }`}
                 >
@@ -233,7 +253,7 @@ export default function ProdutoDetalhes({ params }: { params: Promise<{ id: stri
                     src={img}
                     alt={`${product.name} - ${index + 1}`}
                     className="w-full h-full object-cover"
-                    onError={(e) => { 
+                    onError={(e) => {
                       e.currentTarget.src = '/images/placeholder.jpg'
                     }}
                   />
