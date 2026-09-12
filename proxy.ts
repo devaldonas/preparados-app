@@ -3,8 +3,8 @@ import type { NextRequest } from 'next/server'
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
-  
-  // Rotas públicas
+
+  // Rotas públicas (não exigem autenticação)
   const publicRoutes = [
     '/',
     '/auth/login',
@@ -16,12 +16,21 @@ export function proxy(request: NextRequest) {
     '/api',
     '/loja',
     '/planos',
+    '/termos',
+    '/privacidade',
+    '/contato',
   ]
-  
+
+  // Rotas que exigem autenticação, mas NÃO exigem role específico
+  const authenticatedRoutes = [
+    '/parceiro/seja-parceiro',  // 🔥 QUALQUER usuário logado pode acessar
+  ]
+
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
-  
+  const isAuthenticatedRoute = authenticatedRoutes.some(route => pathname.startsWith(route))
+
   // Verificar se tem sessão (Supabase)
-  const hasSession = request.cookies.has('sb-access-token') || 
+  const hasSession = request.cookies.has('sb-access-token') ||
                      request.cookies.has('sb-refresh-token')
 
   // Se não tiver sessão e tentar acessar rota privada
@@ -39,7 +48,6 @@ export function proxy(request: NextRequest) {
   return NextResponse.next()
 }
 
-// 🔥 MATCHER ATUALIZADO (mesmo do middleware)
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|images/|logo.svg|logo1.svg|.*\\.png|.*\\.jpg|.*\\.jpeg).*)',
