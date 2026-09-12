@@ -2,7 +2,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import Link from 'next/link'
 
@@ -14,6 +14,19 @@ export default function ParceiroLayout({
   const [loading, setLoading] = useState(true)
   const [isPartner, setIsPartner] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
+
+  // 🔥 ROTAS QUE NÃO EXIGEM SER PARCEIRO
+  const publicPartnerRoutes = [
+    '/parceiro/seja-parceiro',
+    '/parceiro/cadastro',
+    '/parceiro/aguardando-aprovacao',
+    '/parceiro/rejeitado',
+  ]
+
+  const isPublicPartnerRoute = publicPartnerRoutes.some(route => 
+    pathname?.startsWith(route)
+  )
 
   useEffect(() => {
     const verificarAcesso = async () => {
@@ -37,29 +50,39 @@ export default function ParceiroLayout({
           .eq('user_id', user.id)
           .maybeSingle()
 
-        if (profile?.role === 'partner' || partner?.status === 'approved') {
+        if (profile?.role === 'partner' || profile?.role === 'admin' || partner?.status === 'approved') {
           setIsPartner(true)
         } else if (partner?.status === 'pending') {
-          router.push('/parceiro/aguardando-aprovacao')
-          return
+          // Se estiver em rota pública, não redireciona
+          if (!isPublicPartnerRoute) {
+            router.push('/parceiro/aguardando-aprovacao')
+            return
+          }
         } else if (partner?.status === 'rejected') {
-          router.push('/parceiro/rejeitado')
-          return
+          if (!isPublicPartnerRoute) {
+            router.push('/parceiro/rejeitado')
+            return
+          }
         } else {
-          router.push('/dashboard')
-          return
+          // Se NÃO for parceiro e estiver em rota privada, redireciona
+          if (!isPublicPartnerRoute) {
+            router.push('/dashboard')
+            return
+          }
         }
 
       } catch (error) {
         console.error('Erro ao verificar acesso:', error)
-        router.push('/dashboard')
+        if (!isPublicPartnerRoute) {
+          router.push('/dashboard')
+        }
       } finally {
         setLoading(false)
       }
     }
 
     verificarAcesso()
-  }, [router])
+  }, [router, pathname, isPublicPartnerRoute])
 
   if (loading) {
     return (
@@ -67,6 +90,11 @@ export default function ParceiroLayout({
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
       </div>
     )
+  }
+
+  // 🔥 Se for rota pública (como seja-parceiro), mostra o conteúdo normalmente
+  if (isPublicPartnerRoute) {
+    return <>{children}</>
   }
 
   if (!isPartner) {
