@@ -91,12 +91,17 @@ export default function NavBar({
     router.push('/auth/login')
   }
 
+  // 🔥 DECLARAR AS VARIÁVEIS ANTES DE USAR
+  const isTrial = userProfile?.subscription_status === 'trial'
+  const isAdmin = userProfile?.role === 'admin'
+  const isPartner = userProfile?.role === 'partner'
+  const hasFullAccess = !isTrial
+
   const getNavLinks = () => {
     const links = [
       { href: '/loja', label: 'Loja', icon: Store }
     ]
 
-    // Só adiciona o Dashboard se NÃO estiver em trial
     if (!isTrial) {
       if (userProfile?.role === 'partner') {
         links.push({ href: '/parceiro/dashboard', label: 'Dashboard', icon: LayoutDashboard })
@@ -109,10 +114,6 @@ export default function NavBar({
   }
 
   const navLinks = getNavLinks()
-  const isTrial = userProfile?.subscription_status === 'trial'
-  const isAdmin = userProfile?.role === 'admin'
-  const isPartner = userProfile?.role === 'partner'
-  const hasFullAccess = !isTrial
 
   return (
     <div className="bg-white border-b border-gray-100 sticky top-0 z-50">
