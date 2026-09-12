@@ -1,6 +1,8 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
+import { useEffect } from 'react'
+import { supabase } from '@/lib/supabaseClient'
 import NavBar from '@/components/NavBar'
 import { Footer } from '@/components/Footer'
 
@@ -10,6 +12,26 @@ export default function ClientLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+
+  // 🔥 Sempre que o app carregar, atualizar o cookie de assinatura
+  useEffect(() => {
+    const atualizarCookieAssinatura = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        await fetch('/api/auth/set-subscription-cookie', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id })
+        })
+      } catch (error) {
+        console.error('Erro ao atualizar cookie de assinatura:', error)
+      }
+    }
+
+    atualizarCookieAssinatura()
+  }, [pathname])
 
   // 🔥 Páginas onde NÃO deve aparecer o NavBar
   const hideNavBarPaths = [

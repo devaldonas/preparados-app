@@ -160,9 +160,11 @@ export default function NavBar({
               </div>
             )}
 
+            {!isTrial && (
             <div className="flex items-center gap-2">
-              <Notificacoes />
+            <Notificacoes />
             </div>
+            )}
             
             {showCart && (
               <Link
