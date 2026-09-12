@@ -3,7 +3,6 @@
 import dynamic from 'next/dynamic'
 import { Loader2 } from 'lucide-react'
 
-// 🔥 Carregar o CheckoutMP APENAS no cliente (sem SSR)
 const CheckoutMP = dynamic(
   () => import('./CheckoutMP').then((mod) => mod.CheckoutMP),
   {
@@ -11,7 +10,7 @@ const CheckoutMP = dynamic(
     loading: () => (
       <div className="p-8 text-center">
         <Loader2 className="animate-spin mx-auto text-[#FFB800]" size={32} />
-        <p className="text-sm text-gray-500 mt-2">Carregando formulário do Mercado Pago...</p>
+        <p className="text-sm text-gray-500 mt-2">Carregando formulário...</p>
       </div>
     ),
   }

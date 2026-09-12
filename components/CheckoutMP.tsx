@@ -1,12 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2 } from 'lucide-react'
-import { initMercadoPago, CardPayment } from '@mercadopago/sdk-react'
-
-// 🔥 Inicializar Mercado Pago
-const PUBLIC_KEY = process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY || 'APP_USR-4f85174a-8f85-4141-901b-2613dbd0ae7e'
-initMercadoPago(PUBLIC_KEY)
+import { CreditCard, Loader2 } from 'lucide-react'
 
 interface CheckoutMPProps {
   userId: string
@@ -19,53 +14,60 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (formData: any) => {
+  const handleCheckout = async () => {
     setProcessing(true)
     setError(null)
 
     try {
-      console.log('📝 Dados do CardPayment:', formData)
-
-      const response = await fetch('/api/mercadopago/assinatura', {
+      const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          planId: 2,
+          planName: 'Anual',
           userId,
           userEmail,
-          cardTokenId: formData.token,
+          amount: 44.28,
+          interval: 'year',
         }),
       })
 
       const data = await response.json()
 
       if (!data.success) {
-        throw new Error(data.error || 'Erro ao criar assinatura')
+        throw new Error(data.error || 'Erro ao criar checkout')
       }
 
-      console.log('✅ Assinatura criada:', data.subscriptionId)
-      onSuccess(data.subscriptionId)
+      // Redirecionar para o Stripe Checkout
+      window.location.href = data.url
     } catch (err: any) {
       console.error('❌ Erro:', err)
-      const msg = err.message || 'Erro ao processar cartão'
+      const msg = err.message || 'Erro ao processar pagamento'
       setError(msg)
       onError(msg)
-      throw err // 🔥 OBRIGATÓRIO para o Brick exibir o erro
-    } finally {
       setProcessing(false)
     }
   }
 
   return (
     <div className="space-y-4">
-      <CardPayment
-        initialization={{ amount: 12.00 }}
-        onSubmit={handleSubmit}
-        onError={(err) => {
-          console.error('❌ Erro no Brick:', err)
-          setError(err.message || 'Erro ao processar pagamento')
-          onError(err.message || 'Erro ao processar pagamento')
-        }}
-      />
+      <button
+        onClick={handleCheckout}
+        disabled={processing}
+        className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-bold py-4 rounded-lg transition flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {processing ? (
+          <>
+            <Loader2 size={24} className="animate-spin" />
+            Processando...
+          </>
+        ) : (
+          <>
+            <CreditCard size={20} />
+            Assinar com Cartão
+          </>
+        )}
+      </button>
 
       {error && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -73,12 +75,9 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
         </div>
       )}
 
-      {processing && (
-        <div className="text-center py-2">
-          <Loader2 className="animate-spin mx-auto text-[#FFB800]" size={24} />
-          <p className="text-sm text-gray-500 mt-1">Processando assinatura...</p>
-        </div>
-      )}
+      <p className="text-xs text-gray-400 text-center">
+        🔒 Pagamento seguro via Stripe
+      </p>
     </div>
   )
 }
