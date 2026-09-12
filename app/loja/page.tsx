@@ -1,3 +1,4 @@
+///home/devaldo/AutoDev/preparado-app/app/loja/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -90,9 +91,11 @@ export default function Loja() {
     }
   }
 
-  const adicionarAoCarrinho = (product: Product) => {
-    if (!user) return
+  const adicionarAoCarrinho = async (product: Product) => {
+  if (!user) return
 
+  try {
+    // 🔥 1. ATUALIZAR O STORE ZUSTAND (para o ícone)
     addItem({
       product_id: product.id,
       name: product.name,
@@ -103,6 +106,30 @@ export default function Loja() {
       free_shipping: product.free_shipping || false,
     }, 1)
 
+    // 🔥 2. ATUALIZAR O SUPABASE (para persistir no carrinho)
+    const { data: existingItem } = await supabase
+      .from('cart_items')
+      .select('id, quantity')
+      .eq('user_id', user.id)
+      .eq('product_id', product.id)
+      .maybeSingle()
+
+    if (existingItem) {
+      await supabase
+        .from('cart_items')
+        .update({ quantity: existingItem.quantity + 1 })
+        .eq('id', existingItem.id)
+    } else {
+      await supabase
+        .from('cart_items')
+        .insert({
+          user_id: user.id,
+          product_id: product.id,
+          quantity: 1
+        })
+    }
+
+    // 🔥 3. FEEDBACK VISUAL NO BOTÃO
     const btn = document.getElementById(`btn-${product.id}`)
     if (btn) {
       const originalText = btn.textContent
@@ -117,7 +144,11 @@ export default function Loja() {
         }`
       }, 2000)
     }
+  } catch (error) {
+    console.error('❌ Erro ao adicionar ao carrinho:', error)
+    alert('Erro ao adicionar produto ao carrinho')
   }
+}
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
