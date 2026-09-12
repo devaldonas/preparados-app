@@ -288,7 +288,7 @@ export default function PlanosPage() {
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-600">
                   <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
-                  <span>Dicas diárias</span>
+                  <span>Mentorias Semanais</span>
                 </li>
               </ul>
 
