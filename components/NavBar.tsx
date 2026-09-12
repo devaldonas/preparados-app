@@ -11,8 +11,6 @@ import {
   Package, 
   User, 
   LogOut, 
-  Menu, 
-  X, 
   LayoutDashboard, 
   Store, 
   ChevronDown,
@@ -38,18 +36,21 @@ export default function NavBar({
   hideNavLinks = false
 }: NavBarProps) {
   const router = useRouter()
-  const { getTotalItems } = useCart()
+  
+  // 🔥 CORREÇÃO CRÍTICA: usar selector para reagir a mudanças
+  const cartCount = useCart(state => 
+    state.items.reduce((sum, item) => sum + item.quantity, 0)
+  )
+  
   const [user, setUser] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [cartCount, setCartCount] = useState(0)
   const [mounted, setMounted] = useState(false)
 
-  // 🔥 CORRIGIDO: só atualizar o cartCount no cliente
+  // 🔥 CORREÇÃO: só mostrar o cartCount após montar (evita hidratação)
   useEffect(() => {
     setMounted(true)
-    setCartCount(getTotalItems())
-  }, [getTotalItems])
+  }, [])
 
   useEffect(() => {
     carregarUsuario()
@@ -165,7 +166,7 @@ export default function NavBar({
                 className="relative p-2 hover:bg-gray-100 rounded-lg transition"
               >
                 <ShoppingBag size={20} className="text-gray-700" />
-                {/* 🔥 CORRIGIDO: só mostrar se mounted */}
+                {/* 🔥 CORRIGIDO: só mostrar se mounted E cartCount > 0 */}
                 {mounted && cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-[#FFB800] text-black text-[0.55rem] font-bold rounded-full w-5 h-5 flex items-center justify-center">
                     {cartCount}
@@ -304,18 +305,19 @@ export default function NavBar({
                 Meu Perfil
               </Link>
 
-             {/* 🔥 BOTÃO SEJA UM PARCEIRO */}
-<Link
-  href="/parceiro/seja-parceiro"
-  onClick={() => setIsMenuOpen(false)}
-  className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
->
-  <Store size={18} />
-  Seja um Parceiro
-  <span className="ml-auto text-[0.5rem] bg-[#FFB800] text-black px-1.5 py-0.5 rounded-full font-bold">
-    NOVO
-  </span>
-</Link>
+              {!isPartner && !isAdmin && (
+                <Link
+                  href="/parceiro/seja-parceiro"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
+                >
+                  <Store size={18} />
+                  Seja um Parceiro
+                  <span className="ml-auto text-[0.5rem] bg-[#FFB800] text-black px-1.5 py-0.5 rounded-full font-bold">
+                    NOVO
+                  </span>
+                </Link>
+              )}
 
               <Link
                 href="/loja/carrinho"
