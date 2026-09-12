@@ -28,3 +28,4 @@ public/images/comunicador/Backup/
 h para o GitHub
 taging
 scripts/check-profile-schema.js
+scripts/delete-users.js
