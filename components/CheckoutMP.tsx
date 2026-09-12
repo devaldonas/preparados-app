@@ -27,8 +27,8 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
           planName: 'Anual',
           userId,
           userEmail,
-          amount: 44.28,
-          interval: 'year',
+          amount: 12.00, // 🔥 VALOR DE TESTE: R$ 12,00/mês
+          interval: 'month',
         }),
       })
 
@@ -38,7 +38,6 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
         throw new Error(data.error || 'Erro ao criar checkout')
       }
 
-      // Redirecionar para o Stripe Checkout
       window.location.href = data.url
     } catch (err: any) {
       console.error('❌ Erro:', err)

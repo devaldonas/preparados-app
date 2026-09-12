@@ -5,15 +5,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {})
 
 export async function POST(request: Request) {
   try {
-    const { planId, userId, userEmail, planName, amount, interval, parcelas } = await request.json()
+    const { planId, userId, userEmail, planName, amount, interval } = await request.json()
 
-    console.log('📥 Criando checkout no Stripe:', { planId, userId, amount, interval, parcelas })
+    console.log('📥 Criando checkout no Stripe:', { planId, userId, amount, interval })
 
-    // 🔥 Calcular valor da parcela
-    const valorParcela = amount / (parcelas || 1)
-    const valorEmCentavos = Math.round(valorParcela * 100)
+    const valorTotal = Number(amount || 12.00)
 
-    // 🔥 Criar a sessão de checkout
+    // 🔥 Criar a sessão de checkout (modo assinatura mensal)
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -23,9 +21,9 @@ export async function POST(request: Request) {
             currency: 'brl',
             product_data: {
               name: `Plano ${planName} - PREPARADO`,
-              description: `${parcelas}x de R$ ${valorParcela.toFixed(2)} - Total: R$ ${amount.toFixed(2)}`,
+              description: `Assinatura mensal - Acesso completo`,
             },
-            unit_amount: valorEmCentavos,
+            unit_amount: Math.round(valorTotal * 100), // Stripe usa centavos
             recurring: {
               interval: 'month',
               interval_count: 1,
@@ -40,14 +38,11 @@ export async function POST(request: Request) {
       metadata: {
         plan_id: String(planId || 2),
         user_id: userId,
-        parcelas: String(parcelas || 1),
-        valor_total: String(amount),
       },
       subscription_data: {
         metadata: {
           plan_id: String(planId || 2),
           user_id: userId,
-          parcelas: String(parcelas || 1),
         },
       },
     })
