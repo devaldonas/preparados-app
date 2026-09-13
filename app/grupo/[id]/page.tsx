@@ -25,13 +25,12 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
   const [user, setUser] = useState<any>(null)
   const router = useRouter()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const channelRef = useRef<any>(null)
 
-  // 🔥 CORRIGIDO: Verificar se precisa subtrair ou adicionar
   const formatarDataHora = (data: string) => {
     if (!data) return ''
     try {
       const date = new Date(data)
-      // 🔥 SUBTRAIR 3 HORAS (o banco está adiantado)
       date.setHours(date.getHours() - 3)
       
       const dia = String(date.getDate()).padStart(2, '0')
@@ -78,14 +77,6 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
         }
 
         await carregarMensagens(idNum)
-
-        const interval = setInterval(() => {
-          carregarMensagens(idNum)
-        }, 5000)
-
-        return () => {
-          clearInterval(interval)
-        }
       } catch (error) {
         console.error('Erro ao carregar grupo:', error)
         router.push('/pessoas')
@@ -96,6 +87,52 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
 
     carregarGrupo()
   }, [params, router])
+
+  // 🔥 REALTIME: Escutar novas mensagens
+  useEffect(() => {
+    if (!grupoId) return
+
+    console.log('📡 Iniciando realtime para o grupo:', grupoId)
+
+    const channel = supabase
+      .channel(`grupo-${grupoId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'group_messages',
+          filter: `group_id=eq.${grupoId}`
+        },
+        (payload: any) => {
+          console.log('🔔 Nova mensagem recebida:', payload.new)
+          const novaMensagem = payload.new as Message
+          
+          setMessages((prev) => {
+            // Evitar duplicatas
+            if (prev.some(m => m.id === novaMensagem.id)) {
+              return prev
+            }
+            return [...prev, novaMensagem]
+          })
+          
+          scrollToBottom()
+        }
+      )
+      .subscribe((status: string) => {
+        console.log('📡 Status do realtime:', status)
+      })
+
+    channelRef.current = channel
+
+    return () => {
+      console.log('📡 Removendo canal realtime')
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+        channelRef.current = null
+      }
+    }
+  }, [grupoId])
 
   const carregarMensagens = async (idNum: number) => {
     try {
@@ -125,7 +162,7 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
 
     setSending(true)
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('group_messages')
         .insert({
           group_id: grupoId,
@@ -133,13 +170,11 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
           user_name: user.user_metadata?.full_name || 'Usuário',
           content: newMessage.trim()
         })
-        .select()
-        .single()
 
       if (error) throw error
 
       setNewMessage('')
-      await carregarMensagens(grupoId)
+      // 🔥 NÃO precisa recarregar - o realtime vai adicionar a mensagem
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error)
       alert('Erro ao enviar mensagem')
