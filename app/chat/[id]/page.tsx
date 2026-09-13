@@ -15,13 +15,6 @@ interface Message {
   read: boolean
 }
 
-// Tipo para o payload do Realtime
-interface RealtimePayload {
-  new: Message
-  old: Message
-  eventType: string
-}
-
 export default function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -31,6 +24,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const [sending, setSending] = useState(false)
   const [otherUserId, setOtherUserId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const channelRef = useRef<any>(null)
   const router = useRouter()
 
   const formatarDataHora = (data: string) => {
@@ -51,12 +45,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     }
   }
 
+  // 🔥 1. CARREGAR DADOS INICIAIS
   useEffect(() => {
     const carregarChat = async () => {
       try {
         const resolvedParams = await params
-        const otherUserId = resolvedParams.id
-        setOtherUserId(otherUserId)
+        const otherId = resolvedParams.id
+        setOtherUserId(otherId)
 
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
@@ -68,7 +63,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name')
-          .eq('id', otherUserId)
+          .eq('id', otherId)
           .single()
         setOtherUser(profile)
 
@@ -76,7 +71,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           .from('messages')
           .select('*')
           .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-          .or(`sender_id.eq.${otherUserId},receiver_id.eq.${otherUserId}`)
+          .or(`sender_id.eq.${otherId},receiver_id.eq.${otherId}`)
           .order('created_at', { ascending: true })
 
         if (messagesData) {
@@ -87,27 +82,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           .from('messages')
           .update({ read: true })
           .eq('receiver_id', user.id)
-          .eq('sender_id', otherUserId)
+          .eq('sender_id', otherId)
 
-        const channel = supabase
-          .channel('chat-realtime')
-          .on('postgres_changes', 
-            { 
-              event: 'INSERT', 
-              schema: 'public', 
-              table: 'messages',
-              filter: `sender_id=eq.${otherUserId}`
-            }, 
-            (payload: RealtimePayload) => {
-              const newMsg = payload.new as Message
-              setMessages(prev => [...prev, newMsg])
-            }
-          )
-          .subscribe()
-
-        return () => {
-          channel.unsubscribe()
-        }
       } catch (error) {
         console.error('Erro ao carregar chat:', error)
       } finally {
@@ -117,6 +93,47 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
     carregarChat()
   }, [params, router])
+
+  // 🔥 2. REALTIME (separado do carregamento)
+  useEffect(() => {
+    if (!otherUserId) return
+
+    console.log('📡 Iniciando realtime do chat com:', otherUserId)
+
+    const channel = supabase
+      .channel(`chat-${otherUserId}-${Date.now()}`) // 🔥 Nome único para evitar conflito
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_id=eq.${otherUserId}`
+        },
+        (payload: any) => {
+          console.log('🔔 Nova mensagem recebida:', payload.new)
+          const newMsg = payload.new as Message
+          setMessages((prev) => {
+            // Evitar duplicatas
+            if (prev.some(m => m.id === newMsg.id)) return prev
+            return [...prev, newMsg]
+          })
+        }
+      )
+      .subscribe((status: string) => {
+        console.log('📡 Chat status:', status)
+      })
+
+    channelRef.current = channel
+
+    return () => {
+      console.log('📡 Removendo canal do chat')
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+        channelRef.current = null
+      }
+    }
+  }, [otherUserId])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -141,7 +158,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
       if (error) throw error
 
-      setMessages(prev => [...prev, data])
+      setMessages(prev => {
+        if (prev.some(m => m.id === data.id)) return prev
+        return [...prev, data]
+      })
       setNewMessage('')
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error)
@@ -188,8 +208,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
                 className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}
               >
                 <div className={`max-w-[70%] p-3 rounded-lg ${
-                  isOwn 
-                    ? 'bg-[#FFB800] text-black rounded-br-none' 
+                  isOwn
+                    ? 'bg-[#FFB800] text-black rounded-br-none'
                     : 'bg-white text-gray-900 border border-gray-200 rounded-bl-none'
                 }`}>
                   <p className="text-sm break-words">{msg.content}</p>
