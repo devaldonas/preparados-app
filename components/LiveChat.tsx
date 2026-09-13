@@ -29,12 +29,13 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-      
+
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -71,17 +72,50 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
     };
 
     fetchMensagens();
-
-    // Polling a cada 5 segundos
-    const interval = setInterval(fetchMensagens, 5000);
-
-    return () => clearInterval(interval);
   }, [liveId]);
 
-  // CORRIGIDO: Scroll APENAS dentro do container do chat
+  // 🔥 REALTIME: Escutar novas mensagens
+  useEffect(() => {
+    if (!liveId) return;
+
+    console.log('📡 Iniciando realtime do LiveChat:', liveId);
+
+    const channel = supabase
+      .channel(`live-chat-${liveId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'live_chat_messages',
+          filter: `live_id=eq.${liveId}`
+        },
+        (payload: any) => {
+          console.log('🔔 Nova mensagem no LiveChat:', payload.new);
+          const nova = payload.new as Mensagem;
+          setMensagens((prev) => {
+            if (prev.some(m => m.id === nova.id)) return prev;
+            return [...prev, nova];
+          });
+        }
+      )
+      .subscribe((status: string) => {
+        console.log('📡 LiveChat status:', status);
+      });
+
+    channelRef.current = channel;
+
+    return () => {
+      console.log('📡 Removendo canal do LiveChat');
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [liveId]);
+
   useEffect(() => {
     if (messagesEndRef.current && chatContainerRef.current) {
-      // Scroll apenas dentro do container do chat
       const container = chatContainerRef.current;
       container.scrollTop = container.scrollHeight;
     }
@@ -89,11 +123,11 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
 
   const enviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!novaMensagem.trim() || !user || !liveId) return;
-    
+
     setEnviando(true);
-    
+
     try {
       const payload = {
         live_id: liveId,
@@ -107,14 +141,7 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
         .insert([payload]);
 
       if (error) throw error;
-      
-      const mensagemLocal: Mensagem = {
-        id: `local-${Date.now()}`,
-        ...payload,
-        created_at: new Date().toISOString()
-      };
-      setMensagens(prev => [...prev, mensagemLocal]);
-      
+
       setNovaMensagem('');
       inputRef.current?.focus();
     } catch (error) {
@@ -127,9 +154,9 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
 
   const formatarHora = (data: string) => {
     try {
-      return new Date(data).toLocaleTimeString('pt-BR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      return new Date(data).toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
       });
     } catch {
       return '';
@@ -148,7 +175,7 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
     return (
       <div className="bg-red-50 rounded-lg p-6 text-center border border-red-200">
         <p className="text-red-600 text-sm">⚠️ {error}</p>
-        <button 
+        <button
           onClick={() => window.location.reload()}
           className="mt-2 text-sm text-blue-600 hover:text-blue-800"
         >
@@ -175,8 +202,7 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
         </div>
       </div>
 
-      {/* Container do chat com scroll APENAS AQUI */}
-      <div 
+      <div
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-3 bg-white"
         style={{ overflowY: 'auto' }}
@@ -192,17 +218,17 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
         ) : (
           mensagens.map((msg) => {
             const isOwnMessage = msg.usuario_id === user?.id;
-            
+
             return (
-              <div 
-                key={msg.id} 
+              <div
+                key={msg.id}
                 className={`flex items-start gap-3 ${
                   isOwnMessage ? 'flex-row-reverse' : ''
                 }`}
               >
                 <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                  isOwnMessage 
-                    ? 'bg-[#FFB800] text-black' 
+                  isOwnMessage
+                    ? 'bg-[#FFB800] text-black'
                     : 'bg-gray-700 text-white'
                 }`}>
                   {msg.usuario_nome?.charAt(0)?.toUpperCase() || '?'}
@@ -211,8 +237,8 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
                   isOwnMessage ? 'items-end' : 'items-start'
                 }`}>
                   <div className={`px-3 py-2 rounded-lg ${
-                    isOwnMessage 
-                      ? 'bg-[#FFB800] text-black rounded-br-none' 
+                    isOwnMessage
+                      ? 'bg-[#FFB800] text-black rounded-br-none'
                       : 'bg-gray-100 text-gray-800 rounded-bl-none'
                   }`}>
                     <p className="text-sm break-words">{msg.mensagem}</p>
@@ -225,7 +251,6 @@ export default function LiveChat({ liveId, isLive }: LiveChatProps) {
             );
           })
         )}
-        {/* Ref para scroll dentro do container */}
         <div ref={messagesEndRef} />
       </div>
 
