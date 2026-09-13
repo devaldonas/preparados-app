@@ -14,6 +14,11 @@ interface Transacao {
   created_at: string;
 }
 
+// Tipo específico para o select parcial de estatísticas
+interface TransacaoValor {
+  valor: number | string | null;
+}
+
 export default function Carteira() {
   const [user, setUser] = useState<any>(null);
   const [saldo, setSaldo] = useState<number>(0);
@@ -26,13 +31,13 @@ export default function Carteira() {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-      
+
       if (user) {
         await carregarDados(user.id);
         await carregarEstatisticas(user.id);
       }
     };
-    
+
     getUser();
   }, []);
 
@@ -78,12 +83,17 @@ export default function Carteira() {
         .eq('tipo', 'indicacao');
 
       if (error) throw error;
-      
-      const total = transacoesIndicacao?.length || 0;
-      setTotalIndicados(total);
-      
-      // CORRIGIDO: Tipagem explícita no reduce
-      const totalBonus = transacoesIndicacao?.reduce((sum: number, t: Transacao) => sum + parseFloat(t.valor as any), 0) || 0;
+
+      const lista: TransacaoValor[] = (transacoesIndicacao as TransacaoValor[]) || [];
+
+      setTotalIndicados(lista.length);
+
+      // valor pode vir como string (numeric do Postgres) ou number
+      const totalBonus = lista.reduce((sum, t) => {
+        const v = typeof t.valor === 'string' ? parseFloat(t.valor) : Number(t.valor ?? 0);
+        return sum + (isNaN(v) ? 0 : v);
+      }, 0);
+
       setBonusTotal(totalBonus);
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);

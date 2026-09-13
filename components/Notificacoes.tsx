@@ -37,9 +37,9 @@ export default function Notificacoes() {
         .eq('usuario_id', userId)
         .order('created_at', { ascending: false })
         .limit(50);
-      
+
       if (error) throw error;
-      
+
       setNotificacoes(data || []);
       const naoLidas = data?.filter((n: Notificacao) => !n.lida).length || 0;
       setNotificacoesNaoLidas(naoLidas);
@@ -61,81 +61,110 @@ export default function Notificacoes() {
     }
   };
 
+  // 🔥 Efeito principal: carrega user + notificações + realtime
   useEffect(() => {
-    const getUser = async () => {
+    let isMounted = true;
+    let localChannel: any = null;
+    let localPolling: NodeJS.Timeout | null = null;
+
+    const setup = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+
+      if (!isMounted) return;
       setUser(user);
-      
-      if (user) {
-        await fetchNotificacoes(user.id);
-        
+
+      if (!user) return;
+
+      await fetchNotificacoes(user.id);
+
+      // Áudio de notificação
+      if (isMounted) {
         audioRef.current = new Audio('/sounds/notificacao.mp3');
         audioRef.current.load();
-        
-        if (channelRef.current) {
-          channelRef.current.unsubscribe();
-        }
-        
-        // CORRIGIDO: Criar channel e .on() ANTES do .subscribe()
-        const channel = supabase
-          .channel('notificacoes-realtime')
-          .on('postgres_changes', 
-            { 
-              event: 'INSERT', 
-              schema: 'public', 
-              table: 'notificacoes',
-              filter: `usuario_id=eq.${user.id}`
-            }, 
-            (payload: any) => {
-              const novaNotificacao = payload.new as Notificacao;
-              console.log('🔔 Nova notificação (Realtime):', novaNotificacao);
-              setNotificacoes(prev => [novaNotificacao, ...prev]);
-              setNotificacoesNaoLidas(prev => prev + 1);
-              tocarSomNotificacao();
-            }
-          )
-          .subscribe((status: string) => {
-            console.log('📡 Notificações status:', status);
-            setRealtimeStatus(status);
-          });
-        
-        channelRef.current = channel;
-        
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-        }
-        pollingIntervalRef.current = setInterval(() => {
-          if (user) {
-            fetchNotificacoes(user.id);
-          }
-        }, 5000);
-        
-        return () => {
-          if (channelRef.current) {
-            channelRef.current.unsubscribe();
-          }
-          if (pollingIntervalRef.current) {
-            clearInterval(pollingIntervalRef.current);
-          }
-          if (audioRef.current) {
-            audioRef.current = null;
-          }
-        };
       }
+
+      // 🔥 Canal com nome ÚNICO por instância/montagem (evita reuso do cache)
+      const channelName = `notificacoes-${user.id}-${Date.now()}`;
+
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notificacoes',
+            filter: `usuario_id=eq.${user.id}`
+          },
+          (payload: any) => {
+            const novaNotificacao = payload.new as Notificacao;
+            console.log('🔔 Nova notificação (Realtime):', novaNotificacao);
+
+            // Evita duplicatas (caso polling + realtime se sobreponham)
+            setNotificacoes(prev => {
+              if (prev.some(n => n.id === novaNotificacao.id)) return prev;
+              return [novaNotificacao, ...prev];
+            });
+            setNotificacoesNaoLidas(prev => prev + 1);
+            tocarSomNotificacao();
+          }
+        )
+        .subscribe((status: string) => {
+          console.log('📡 Notificações status:', status);
+          if (isMounted) setRealtimeStatus(status);
+
+          // Fallback: se realtime falhar, ativa polling de 60s
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn('⚠️ Realtime caiu — ativando polling fallback (60s)');
+            if (!localPolling) {
+              localPolling = setInterval(() => {
+                if (isMounted) fetchNotificacoes(user.id);
+              }, 60000);
+              pollingIntervalRef.current = localPolling;
+            }
+          }
+
+          if (status === 'SUBSCRIBED' && localPolling) {
+            clearInterval(localPolling);
+            localPolling = null;
+            pollingIntervalRef.current = null;
+          }
+        });
+
+      localChannel = channel;
+      channelRef.current = channel;
     };
-    
-    getUser();
+
+    setup();
+
+    return () => {
+      isMounted = false;
+
+      // 🔥 Usa removeChannel (não unsubscribe) — remove do cache do Supabase
+      if (localChannel) {
+        supabase.removeChannel(localChannel);
+        localChannel = null;
+      }
+      channelRef.current = null;
+
+      if (localPolling) {
+        clearInterval(localPolling);
+        localPolling = null;
+      }
+      pollingIntervalRef.current = null;
+
+      audioRef.current = null;
+    };
   }, []);
 
-  // ... resto do código (marcarComoLida, marcarTodasComoLidas, removerLidas, etc)
   const marcarComoLida = async (id: string) => {
     try {
       await supabase
         .from('notificacoes')
         .update({ lida: true })
         .eq('id', id);
-      
-      setNotificacoes(prev => 
+
+      setNotificacoes(prev =>
         prev.map((n: Notificacao) => n.id === id ? { ...n, lida: true } : n)
       );
       setNotificacoesNaoLidas(prev => Math.max(0, prev - 1));
@@ -152,8 +181,8 @@ export default function Notificacoes() {
         .update({ lida: true })
         .eq('usuario_id', user.id)
         .eq('lida', false);
-      
-      setNotificacoes(prev => 
+
+      setNotificacoes(prev =>
         prev.map((n: Notificacao) => ({ ...n, lida: true }))
       );
       setNotificacoesNaoLidas(0);
@@ -165,16 +194,16 @@ export default function Notificacoes() {
   const removerLidas = async () => {
     if (!user) return;
     const idsLidas = notificacoes.filter((n: Notificacao) => n.lida).map((n: Notificacao) => n.id);
-    
+
     if (idsLidas.length === 0) return;
-    
+
     try {
       await supabase
         .from('notificacoes')
         .delete()
         .eq('usuario_id', user.id)
         .in('id', idsLidas);
-      
+
       setNotificacoes(prev => prev.filter((n: Notificacao) => !n.lida));
     } catch (error) {
       console.error('Erro ao remover notificações lidas:', error);
@@ -193,7 +222,7 @@ export default function Notificacoes() {
     const now = new Date();
     const date = new Date(data);
     const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
+
     if (diff < 60) return 'Agora pouco';
     if (diff < 3600) return `${Math.floor(diff / 60)}min`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
@@ -205,17 +234,17 @@ export default function Notificacoes() {
       const rect = buttonRef.current.getBoundingClientRect();
       const windowWidth = window.innerWidth;
       const dropdownWidth = 360;
-      
+
       let left = rect.right - dropdownWidth;
-      
+
       if (left < 10) {
         left = 10;
       }
-      
+
       if (left + dropdownWidth > windowWidth - 10) {
         left = windowWidth - dropdownWidth - 10;
       }
-      
+
       setDropdownPosition({
         top: rect.bottom + 8,
         left: left
@@ -258,12 +287,12 @@ export default function Notificacoes() {
 
       {mostrarNotificacoes && (
         <>
-          <div 
+          <div
             className="fixed inset-0 z-40"
             onClick={() => setMostrarNotificacoes(false)}
           />
-          
-          <div 
+
+          <div
             className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden"
             style={{
               top: `${dropdownPosition.top}px`,
@@ -277,8 +306,8 @@ export default function Notificacoes() {
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-semibold text-gray-900">Notificações</h3>
                 <span className={`text-[0.5rem] px-2 py-0.5 rounded-full ${
-                  realtimeStatus === 'SUBSCRIBED' 
-                    ? 'bg-green-100 text-green-600' 
+                  realtimeStatus === 'SUBSCRIBED'
+                    ? 'bg-green-100 text-green-600'
                     : 'bg-yellow-100 text-yellow-600'
                 }`}>
                   {realtimeStatus === 'SUBSCRIBED' ? '🔴 Ao vivo' : '🔄 Atualizando...'}
@@ -310,7 +339,7 @@ export default function Notificacoes() {
                 )}
               </div>
             </div>
-            
+
             <div className="overflow-y-auto" style={{ maxHeight: 'calc(60vh - 80px)' }}>
               {notificacoes.length === 0 ? (
                 <div className="p-4 text-center text-gray-400 text-sm">
@@ -349,7 +378,7 @@ export default function Notificacoes() {
 
             <div className="p-2 border-t border-gray-100 bg-gray-50 text-center sticky bottom-0">
               <p className="text-[0.5rem] text-gray-400">
-                {notificacoes.filter((n: Notificacao) => !n.lida).length} não lidas • 
+                {notificacoes.filter((n: Notificacao) => !n.lida).length} não lidas •
                 {notificacoes.filter((n: Notificacao) => n.lida).length} lidas
               </p>
             </div>
