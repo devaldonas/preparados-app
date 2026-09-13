@@ -67,14 +67,19 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           .single()
         setOtherUser(profile)
 
-        const { data: messagesData } = await supabase
+        // ✅ Query corrigida: apenas mensagens entre os dois usuários
+        const { data: messagesData, error: messagesError } = await supabase
           .from('messages')
           .select('*')
-          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-          .or(`sender_id.eq.${otherId},receiver_id.eq.${otherId}`)
+          .or(
+            `and(sender_id.eq.${user.id},receiver_id.eq.${otherId}),` +
+            `and(sender_id.eq.${otherId},receiver_id.eq.${user.id})`
+          )
           .order('created_at', { ascending: true })
 
-        if (messagesData) {
+        if (messagesError) {
+          console.error('Erro ao carregar mensagens:', messagesError)
+        } else if (messagesData) {
           setMessages(messagesData)
         }
 
@@ -94,46 +99,64 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     carregarChat()
   }, [params, router])
 
-  // 🔥 2. REALTIME (separado do carregamento)
+  // 🔥 2. REALTIME (corrigido: sem filter, nome de canal estável)
   useEffect(() => {
-    if (!otherUserId) return
+    if (!otherUserId || !user?.id) return
 
     console.log('📡 Iniciando realtime do chat com:', otherUserId)
 
     const channel = supabase
-      .channel(`chat-${otherUserId}-${Date.now()}`) // 🔥 Nome único para evitar conflito
+      .channel(`chat-${user.id}-${otherUserId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'messages',
-          filter: `sender_id=eq.${otherUserId}`
+          table: 'messages'
+          // ⚠️ SEM filter — filtramos no client para evitar bloqueio de RLS
         },
         (payload: any) => {
-          console.log('🔔 Nova mensagem recebida:', payload.new)
           const newMsg = payload.new as Message
+
+          // Filtra somente mensagens entre eu e o outro usuário
+          const isRelevant =
+            (newMsg.sender_id === otherUserId && newMsg.receiver_id === user.id) ||
+            (newMsg.sender_id === user.id && newMsg.receiver_id === otherUserId)
+
+          if (!isRelevant) return
+
+          console.log('🔔 Nova mensagem recebida:', newMsg)
+
           setMessages((prev) => {
-            // Evitar duplicatas
             if (prev.some(m => m.id === newMsg.id)) return prev
             return [...prev, newMsg]
           })
+
+          // Marca como lida se for mensagem recebida
+          if (newMsg.receiver_id === user.id) {
+            supabase
+              .from('messages')
+              .update({ read: true })
+              .eq('id', newMsg.id)
+              .then(() => {})
+          }
         }
       )
-      .subscribe((status: string) => {
-        console.log('📡 Chat status:', status)
+      .subscribe((status: string, err?: Error) => {
+        console.log('📡 Chat status:', status, err || '')
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('❌ Erro no canal realtime:', err)
+        }
       })
 
     channelRef.current = channel
 
     return () => {
       console.log('📡 Removendo canal do chat')
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
-        channelRef.current = null
-      }
+      supabase.removeChannel(channel)
+      channelRef.current = null
     }
-  }, [otherUserId])
+  }, [otherUserId, user?.id])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
