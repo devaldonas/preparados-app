@@ -29,3 +29,9 @@ h para o GitHub
 taging
 scripts/check-profile-schema.js
 scripts/delete-users.js
+
+# Backups locais
+*.bak
+
+# Scripts locais de limpeza (não versionar)
+scripts/delete-*.js

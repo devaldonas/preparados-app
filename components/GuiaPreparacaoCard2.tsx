@@ -286,7 +286,7 @@ export default function GuiaPreparacaoCard() {
             <span className="text-blue-600">⚖️</span> Distribuição do peso
           </h4>
           <p className="text-sm text-gray-600">
-            Lembrando: menos peso = deslocamento mais rápido, mais peso = deslocamento mais longe. 
+            Lembrando: menos peso = deslocamento mais rápido, mais peso = deslocamento mais demorado. 
             A distribuição do peso de maneira uniforme é muito importante...
           </p>
         </div>

@@ -1,3 +1,4 @@
+//home/devaldo/AutoDev/preparado-app/app/pessoas/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -92,7 +93,7 @@ export default function PessoasProximas() {
       }
 
       if (data && data.length > 0) {
-        setUserLocations(data.map((p: any) => ({
+        const mappedLocations = data.map((p: any) => ({
           userId: p.id,
           userName: p.full_name,
           latitude: p.latitude,
@@ -102,8 +103,11 @@ export default function PessoasProximas() {
           mochila_tipo: p.mochila_tipo || 'BOB',
           city: p.city || null,
           state: p.state || null
-        })))
+        }))
+
+        setUserLocations(mappedLocations)
       } else {
+        console.log('⚠️ Nenhum usuário com localização encontrado')
         setUserLocations([])
       }
     } catch (error) {

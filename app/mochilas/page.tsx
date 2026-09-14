@@ -155,6 +155,14 @@ export default function MinhasMochilas() {
             >
               <span>+</span> Adicionar Mochila
             </button>
+
+          <Link
+          href="/check-in"
+          className="bg-[#FFB800] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition flex items-center gap-2"
+          >
+           Preparômetro
+          </Link>
+
           </div>
           <p className="text-gray-500 text-sm mt-2">Gerencie todas as suas mochilas de preparação</p>
         </div>

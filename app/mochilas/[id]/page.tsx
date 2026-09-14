@@ -221,19 +221,7 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
                'Tipo desconhecido'}
             </p>
           </div>
-          {/* 🔥 BOTÃO SALVAR */}
-          <button
-            onClick={salvarProgresso}
-            disabled={saving || !hasChanges()}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
-              hasChanges() && !saving
-                ? 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            <Save size={18} />
-            {saving ? 'Salvando...' : 'Salvar Progresso'}
-          </button>
+         
         </div>
 
         {/* Progresso */}
@@ -325,6 +313,20 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
             )
           })}
         </div>
+
+          {/*BOTÃO SALVAR */}
+          <button
+            onClick={salvarProgresso}
+            disabled={saving || !hasChanges()}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
+              hasChanges() && !saving
+                ? 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            <Save size={18} />
+            {saving ? 'Salvando...' : 'Salvar Progresso'}
+          </button>
 
         <div className="mt-8 space-y-4">
           <Link
