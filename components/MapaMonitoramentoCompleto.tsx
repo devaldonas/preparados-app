@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import 'leaflet/dist/leaflet.css'
+import WindyEmbed from './WindyEmbed'
 
 // 🔥 IMPORTS DINÂMICOS (SSR: false)
 const MapContainer = dynamic(
@@ -44,6 +45,18 @@ interface DisasterEvent {
   region: string
   source: string
 }
+
+// 🔥 TIPO DO MODO DE VISUALIZAÇÃO
+type ViewMode = 'disasters' | 'temp' | 'wind' | 'rain' | 'clouds' | 'pressure'
+
+// 🔥 CAMADAS DO WINDY
+const windyLayers: { value: ViewMode; label: string; overlay: any }[] = [
+  { value: 'temp', label: '🌡️ Temperatura', overlay: 'temp' },
+  { value: 'wind', label: '💨 Vento', overlay: 'wind' },
+  { value: 'rain', label: '🌧️ Chuva', overlay: 'rain' },
+  { value: 'clouds', label: '☁️ Nuvens', overlay: 'clouds' },
+  { value: 'pressure', label: '📊 Pressão', overlay: 'pressure' },
+]
 
 // 🔥 CORES POR NÍVEL DE ALERTA
 const alertColors: Record<string, string> = {
@@ -128,6 +141,9 @@ export default function MapaMonitoramentoCompleto() {
   const [stats, setStats] = useState({ total: 0, red: 0, orange: 0, green: 0 })
   const [isClient, setIsClient] = useState(false)
   const [L, setL] = useState<any>(null)
+  
+  // 🔥 NOVO: modo de visualização (desastres ou camada climática)
+  const [viewMode, setViewMode] = useState<ViewMode>('disasters')
 
   const center: [number, number] = [-14.2350, -51.9253]
   const zoom = 4
@@ -243,6 +259,10 @@ export default function MapaMonitoramentoCompleto() {
     })
   }
 
+  // 🔥 VERIFICA SE ESTÁ NO MODO CLIMA
+  const isClimateMode = viewMode !== 'disasters'
+  const currentWindyOverlay = windyLayers.find(l => l.value === viewMode)?.overlay || 'temp'
+
   if (!isClient || !L || loading) {
     return (
       <div className="w-full h-[500px] rounded-xl overflow-hidden border border-gray-200 bg-gray-100 flex items-center justify-center">
@@ -287,271 +307,311 @@ export default function MapaMonitoramentoCompleto() {
         </div>
       </div>
 
-      {/* FILTROS */}
-      <div className="bg-white border-x border-gray-200 p-3 flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-600">Tipo:</span>
-          <div className="flex gap-1 flex-wrap">
-            {disasterTypes.map((type) => (
-              <button
-                key={type.value}
-                onClick={() => setFilterType(type.value)}
-                className={`px-2 py-1 rounded-full text-xs transition ${
-                  filterType === type.value
-                    ? 'bg-[#FFB800] text-black font-semibold'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {type.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 ml-auto">
-          <span className="text-xs font-medium text-gray-600">Alerta:</span>
-          <div className="flex gap-1 flex-wrap">
-            {alertLevels.map((level) => (
-              <button
-                key={level.value}
-                onClick={() => setFilterAlert(level.value)}
-                className={`px-2 py-1 rounded-full text-xs transition ${
-                  filterAlert === level.value
-                    ? 'bg-[#FFB800] text-black font-semibold'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {level.label}
-              </button>
-            ))}
-          </div>
+      {/* 🔥 BARRA DE CAMADAS CLIMÁTICAS */}
+      <div className="bg-white border-x border-gray-200 border-b border-gray-200 p-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-medium text-gray-600">Camadas:</span>
+          
+          {/* Botão Desastres */}
+          <button
+            onClick={() => setViewMode('disasters')}
+            className={`px-3 py-1.5 rounded-full text-xs transition font-medium ${
+              viewMode === 'disasters'
+                ? 'bg-[#FFB800] text-black font-semibold'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            🌍 Desastres
+          </button>
+
+          {/* Botões Windy */}
+          {windyLayers.map((layer) => (
+            <button
+              key={layer.value}
+              onClick={() => setViewMode(layer.value)}
+              className={`px-3 py-1.5 rounded-full text-xs transition font-medium ${
+                viewMode === layer.value
+                  ? 'bg-[#FFB800] text-black font-semibold'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {layer.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* MAPA */}
-      <div className="relative w-full h-[500px] overflow-hidden border border-gray-200 rounded-b-xl">
-        <MapContainer
-          center={center}
-          zoom={zoom}
-          style={{ width: '100%', height: '100%' }}
-          zoomControl={false}
-          attributionControl={false}
-        >
-          {/* 🔥 CORRIGIDO: USAR OPENSTREETMAP, NÃO CARTO DB */}
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          />
-
-          {/* CÍRCULOS E MARCADORES DOS EVENTOS */}
-          {filteredEvents.map((event) => {
-            if (!event.latitude || !event.longitude) return null
-            
-            const icon = createIcon(event.type, event.alertLevel, event.magnitude)
-            if (!icon) return null
-            
-            const radius = getCircleRadius(event)
-            const color = alertColors[event.alertLevel] || '#888888'
-            
-            return (
-              <div key={event.id}>
-                {/* CÍRCULO DE RAIO */}
-                <Circle
-                  center={[event.latitude, event.longitude]}
-                  radius={radius * 1000}
-                  pathOptions={{
-                    color: color,
-                    fillColor: color,
-                    fillOpacity: 0.15,
-                    weight: 2,
-                    opacity: 0.6,
-                    dashArray: '5, 5'
-                  }}
-                />
-                
-                {/* MARCADOR */}
-                <Marker
-                  position={[event.latitude, event.longitude]}
-                  icon={icon}
+      {/* FILTROS DE DESASTRES (só aparecem no modo desastres) */}
+      {!isClimateMode && (
+        <div className="bg-white border-x border-gray-200 p-3 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-600">Tipo:</span>
+            <div className="flex gap-1 flex-wrap">
+              {disasterTypes.map((type) => (
+                <button
+                  key={type.value}
+                  onClick={() => setFilterType(type.value)}
+                  className={`px-2 py-1 rounded-full text-xs transition ${
+                    filterType === type.value
+                      ? 'bg-[#FFB800] text-black font-semibold'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
                 >
-                  <Popup>
-                    <div className="p-2 min-w-[220px] max-w-[280px]">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div>
-                          <p className="font-bold text-gray-900 text-sm">{event.title}</p>
-                          <p className="text-xs text-gray-500">{event.type}</p>
-                        </div>
-                      </div>
-                      
-                      {/* INFORMAÇÕES DO EVENTO */}
-                      <div className="bg-gray-50 rounded-lg p-2 mb-2 border border-gray-200">
-                        {event.type === 'Terremoto' ? (
-                          <>
-                            {event.magnitude ? (
-                              <>
-                                <div className="flex items-center justify-between text-xs">
-                                  <span className="font-medium text-gray-700">Magnitude Richter:</span>
-                                  <span className="font-bold text-red-600">
-                                    {event.magnitude.toFixed(1)}
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-between text-xs mt-1">
-                                  <span className="text-gray-500">Classificação:</span>
-                                  <span className="font-medium text-gray-700">
-                                    {getMagnitudeRichter(event.magnitude)}
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-between text-xs mt-1">
-                                  <span className="text-gray-500">Intensidade:</span>
-                                  <span className="font-medium text-gray-700">
-                                    {getIntensityLabel(event.magnitude)}
-                                  </span>
-                                </div>
-                              </>
-                            ) : (
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-gray-500">Magnitude:</span>
-                                <span className="font-medium text-gray-700">Não informada</span>
-                              </div>
-                            )}
-                            {event.depth && (
-                              <div className="flex items-center justify-between text-xs mt-1">
-                                <span className="text-gray-500">Profundidade:</span>
-                                <span className="font-medium text-gray-700">{event.depth} km</span>
-                              </div>
-                            )}
-                          </>
-                        ) : event.type === 'Ciclone' ? (
-                          <>
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="font-medium text-gray-700">Categoria:</span>
-                              <span className="font-bold text-purple-600">
-                                {event.alertLevel === 'red' ? '3+' : 
-                                 event.alertLevel === 'orange' ? '2' : '1'}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs mt-1">
-                              <span className="text-gray-500">Ventos:</span>
-                              <span className="font-medium text-gray-700">
-                                {event.alertLevel === 'red' ? '> 200 km/h' : 
-                                 event.alertLevel === 'orange' ? '150-200 km/h' : '100-150 km/h'}
-                              </span>
-                            </div>
-                          </>
-                        ) : event.type === 'Incêndio' ? (
-                          <>
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="font-medium text-gray-700">Porte:</span>
-                              <span className="font-bold text-orange-600">
-                                {event.alertLevel === 'red' ? 'Grande' : 
-                                 event.alertLevel === 'orange' ? 'Médio' : 'Pequeno'}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs mt-1">
-                              <span className="text-gray-500">Área estimada:</span>
-                              <span className="font-medium text-gray-700">
-                                {event.alertLevel === 'red' ? '> 100 ha' : 
-                                 event.alertLevel === 'orange' ? '50-100 ha' : '< 50 ha'}
-                              </span>
-                            </div>
-                          </>
-                        ) : event.type === 'Vulcão' ? (
-                          <>
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="font-medium text-gray-700">Atividade:</span>
-                              <span className="font-bold text-red-600">
-                                {event.alertLevel === 'red' ? 'Erupção em andamento' : 
-                                 event.alertLevel === 'orange' ? 'Atividade elevada' : 'Monitoramento'}
-                              </span>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="font-medium text-gray-700">Severidade:</span>
-                              <span className={`font-bold ${
-                                event.alertLevel === 'red' ? 'text-red-600' :
-                                event.alertLevel === 'orange' ? 'text-orange-500' :
-                                'text-green-600'
-                              }`}>
-                                {event.alertLevel === 'red' ? 'Severo' : 
-                                 event.alertLevel === 'orange' ? 'Moderado' : 'Leve'}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                        
-                        <div className="flex items-center justify-between text-xs mt-1 pt-1 border-t border-gray-200">
-                          <span className="text-gray-500">Raio de abrangência:</span>
-                          <span className="font-medium text-gray-700">{radius} km</span>
-                        </div>
-                      </div>
-                      
-                      {/* STATUS DO ALERTA */}
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`inline-block w-2 h-2 rounded-full ${
-                          event.alertLevel === 'red' ? 'bg-red-500' :
-                          event.alertLevel === 'orange' ? 'bg-orange-500' :
-                          'bg-green-500'
-                        }`} />
-                        <span className="text-xs font-medium">
-                          {event.alertLevelLabel}
-                        </span>
-                        {event.alertLevel === 'red' && (
-                          <span className="text-[0.55rem] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">
-                            ATENÇÃO
-                          </span>
-                        )}
-                      </div>
-                      
-                      {event.country && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          {event.country}{event.region ? ` - ${event.region}` : ''}
-                        </p>
-                      )}
-                      
-                      <p className="text-xs text-gray-400 mt-1">
-                        {formatDate(event.date)}
-                      </p>
-                      
-                      {event.description && (
-                        <p className="text-xs text-gray-600 mt-2 border-t border-gray-100 pt-2">
-                          {event.description}
-                        </p>
-                      )}
-                    </div>
-                  </Popup>
-                </Marker>
-              </div>
-            )
-          })}
-
-          {/* LEGENDA */}
-          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-3 text-xs z-10 border border-gray-200">
-            <p className="font-semibold text-gray-800 mb-1">Legenda</p>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-red-500" />
-                <span className="text-gray-600">Crítico</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-orange-500" />
-                <span className="text-gray-600">Alerta</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="text-gray-600">Monitoramento</span>
-              </div>
-            </div>
-            <div className="border-t border-gray-200 mt-2 pt-2">
-              <p className="text-[0.55rem] text-gray-400">
-                Círculos representam a área de abrangência
-              </p>
-              <p className="text-[0.55rem] text-gray-400 mt-0.5">
-                Marcadores: T=Terremoto, I=Inundação, C=Ciclone, F=Incêndio, V=Vulcão
-              </p>
+                  {type.label}
+                </button>
+              ))}
             </div>
           </div>
-        </MapContainer>
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-xs font-medium text-gray-600">Alerta:</span>
+            <div className="flex gap-1 flex-wrap">
+              {alertLevels.map((level) => (
+                <button
+                  key={level.value}
+                  onClick={() => setFilterAlert(level.value)}
+                  className={`px-2 py-1 rounded-full text-xs transition ${
+                    filterAlert === level.value
+                      ? 'bg-[#FFB800] text-black font-semibold'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {level.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MAPA — alterna entre Leaflet (desastres) e Windy (clima) */}
+      <div className="relative w-full h-[500px] overflow-hidden border border-gray-200 rounded-b-xl">
+        {isClimateMode ? (
+          <WindyEmbed overlay={currentWindyOverlay} />
+        ) : (
+          <MapContainer
+            center={center}
+            zoom={zoom}
+            style={{ width: '100%', height: '100%' }}
+            zoomControl={false}
+            attributionControl={false}
+          >
+            {/* 🔥 CORRIGIDO: USAR OPENSTREETMAP, NÃO CARTO DB */}
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
+
+            {/* CÍRCULOS E MARCADORES DOS EVENTOS */}
+            {filteredEvents.map((event) => {
+              if (!event.latitude || !event.longitude) return null
+              
+              const icon = createIcon(event.type, event.alertLevel, event.magnitude)
+              if (!icon) return null
+              
+              const radius = getCircleRadius(event)
+              const color = alertColors[event.alertLevel] || '#888888'
+              
+              return (
+                <div key={event.id}>
+                  {/* CÍRCULO DE RAIO */}
+                  <Circle
+                    center={[event.latitude, event.longitude]}
+                    radius={radius * 1000}
+                    pathOptions={{
+                      color: color,
+                      fillColor: color,
+                      fillOpacity: 0.15,
+                      weight: 2,
+                      opacity: 0.6,
+                      dashArray: '5, 5'
+                    }}
+                  />
+                  
+                  {/* MARCADOR */}
+                  <Marker
+                    position={[event.latitude, event.longitude]}
+                    icon={icon}
+                  >
+                    <Popup>
+                      <div className="p-2 min-w-[220px] max-w-[280px]">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div>
+                            <p className="font-bold text-gray-900 text-sm">{event.title}</p>
+                            <p className="text-xs text-gray-500">{event.type}</p>
+                          </div>
+                        </div>
+                        
+                        {/* INFORMAÇÕES DO EVENTO */}
+                        <div className="bg-gray-50 rounded-lg p-2 mb-2 border border-gray-200">
+                          {event.type === 'Terremoto' ? (
+                            <>
+                              {event.magnitude ? (
+                                <>
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="font-medium text-gray-700">Magnitude Richter:</span>
+                                    <span className="font-bold text-red-600">
+                                      {event.magnitude.toFixed(1)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-xs mt-1">
+                                    <span className="text-gray-500">Classificação:</span>
+                                    <span className="font-medium text-gray-700">
+                                      {getMagnitudeRichter(event.magnitude)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-xs mt-1">
+                                    <span className="text-gray-500">Intensidade:</span>
+                                    <span className="font-medium text-gray-700">
+                                      {getIntensityLabel(event.magnitude)}
+                                    </span>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-gray-500">Magnitude:</span>
+                                  <span className="font-medium text-gray-700">Não informada</span>
+                                </div>
+                              )}
+                              {event.depth && (
+                                <div className="flex items-center justify-between text-xs mt-1">
+                                  <span className="text-gray-500">Profundidade:</span>
+                                  <span className="font-medium text-gray-700">{event.depth} km</span>
+                                </div>
+                              )}
+                            </>
+                          ) : event.type === 'Ciclone' ? (
+                            <>
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-medium text-gray-700">Categoria:</span>
+                                <span className="font-bold text-purple-600">
+                                  {event.alertLevel === 'red' ? '3+' : 
+                                   event.alertLevel === 'orange' ? '2' : '1'}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-xs mt-1">
+                                <span className="text-gray-500">Ventos:</span>
+                                <span className="font-medium text-gray-700">
+                                  {event.alertLevel === 'red' ? '> 200 km/h' : 
+                                   event.alertLevel === 'orange' ? '150-200 km/h' : '100-150 km/h'}
+                                </span>
+                              </div>
+                            </>
+                          ) : event.type === 'Incêndio' ? (
+                            <>
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-medium text-gray-700">Porte:</span>
+                                <span className="font-bold text-orange-600">
+                                  {event.alertLevel === 'red' ? 'Grande' : 
+                                   event.alertLevel === 'orange' ? 'Médio' : 'Pequeno'}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-xs mt-1">
+                                <span className="text-gray-500">Área estimada:</span>
+                                <span className="font-medium text-gray-700">
+                                  {event.alertLevel === 'red' ? '> 100 ha' : 
+                                   event.alertLevel === 'orange' ? '50-100 ha' : '< 50 ha'}
+                                </span>
+                              </div>
+                            </>
+                          ) : event.type === 'Vulcão' ? (
+                            <>
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-medium text-gray-700">Atividade:</span>
+                                <span className="font-bold text-red-600">
+                                  {event.alertLevel === 'red' ? 'Erupção em andamento' : 
+                                   event.alertLevel === 'orange' ? 'Atividade elevada' : 'Monitoramento'}
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-medium text-gray-700">Severidade:</span>
+                                <span className={`font-bold ${
+                                  event.alertLevel === 'red' ? 'text-red-600' :
+                                  event.alertLevel === 'orange' ? 'text-orange-500' :
+                                  'text-green-600'
+                                }`}>
+                                  {event.alertLevel === 'red' ? 'Severo' : 
+                                   event.alertLevel === 'orange' ? 'Moderado' : 'Leve'}
+                                </span>
+                              </div>
+                            </>
+                          )}
+                          
+                          <div className="flex items-center justify-between text-xs mt-1 pt-1 border-t border-gray-200">
+                            <span className="text-gray-500">Raio de abrangência:</span>
+                            <span className="font-medium text-gray-700">{radius} km</span>
+                          </div>
+                        </div>
+                        
+                        {/* STATUS DO ALERTA */}
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`inline-block w-2 h-2 rounded-full ${
+                            event.alertLevel === 'red' ? 'bg-red-500' :
+                            event.alertLevel === 'orange' ? 'bg-orange-500' :
+                            'bg-green-500'
+                          }`} />
+                          <span className="text-xs font-medium">
+                            {event.alertLevelLabel}
+                          </span>
+                          {event.alertLevel === 'red' && (
+                            <span className="text-[0.55rem] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">
+                              ATENÇÃO
+                            </span>
+                          )}
+                        </div>
+                        
+                        {event.country && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {event.country}{event.region ? ` - ${event.region}` : ''}
+                          </p>
+                        )}
+                        
+                        <p className="text-xs text-gray-400 mt-1">
+                          {formatDate(event.date)}
+                        </p>
+                        
+                        {event.description && (
+                          <p className="text-xs text-gray-600 mt-2 border-t border-gray-100 pt-2">
+                            {event.description}
+                          </p>
+                        )}
+                      </div>
+                    </Popup>
+                  </Marker>
+                </div>
+              )
+            })}
+
+            {/* LEGENDA */}
+            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-3 text-xs z-10 border border-gray-200">
+              <p className="font-semibold text-gray-800 mb-1">Legenda</p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-red-500" />
+                  <span className="text-gray-600">Crítico</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-orange-500" />
+                  <span className="text-gray-600">Alerta</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-green-500" />
+                  <span className="text-gray-600">Monitoramento</span>
+                </div>
+              </div>
+              <div className="border-t border-gray-200 mt-2 pt-2">
+                <p className="text-[0.55rem] text-gray-400">
+                  Círculos representam a área de abrangência
+                </p>
+                <p className="text-[0.55rem] text-gray-400 mt-0.5">
+                  Marcadores: T=Terremoto, I=Inundação, C=Ciclone, F=Incêndio, V=Vulcão
+                </p>
+              </div>
+            </div>
+          </MapContainer>
+        )}
       </div>
     </div>
   )
