@@ -54,13 +54,15 @@ export default function ClientLayout({
     '/auth/cadastro',
     '/auth/recuperar-senha',
     '/auth/nova-senha',
-    '/chat/',              // ← ADICIONADO: chat individual
+    '/chat/',              // chat individual
+    '/grupo/',             // ADICIONADO: chat de grupo
   ]
 
   // 🔥 Páginas onde o layout deve ser FULL SCREEN (sem NavBar, sem Footer)
   // e o container deve ser h-dvh (para o chat ocupar a tela toda)
   const fullScreenPaths = [
-    '/chat/',              // ← ADICIONADO: chat individual
+    '/chat/',              // chat individual
+    '/grupo/',             // ADICIONADO: chat de grupo
   ]
 
   const shouldHideNavBar = hideNavBarPaths.some(path => pathname?.startsWith(path))
