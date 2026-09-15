@@ -1,11 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import {
+  Suspense,
+  useEffect,
+  useState,
+} from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 import { Check, ArrowRight } from 'lucide-react'
 
-export default function WelcomePage() {
+function WelcomeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -25,8 +29,9 @@ export default function WelcomePage() {
         /*
          * RETORNO DO STRIPE
          *
-         * Nesse caso não dependemos da sessão do Supabase,
-         * pois o usuário acabou de voltar de um domínio externo.
+         * Quando o usuário volta do Stripe, não dependemos
+         * da sessão do Supabase, pois ela pode não estar
+         * disponível imediatamente após o retorno.
          */
         if (success === 'true' && sessionId) {
           console.log(
@@ -87,8 +92,8 @@ export default function WelcomePage() {
         /*
          * ACESSO NORMAL À PÁGINA
          *
-         * Se o usuário entrou diretamente na página,
-         * continuamos usando a sessão normal do Supabase.
+         * Se o usuário entrar diretamente na página,
+         * usamos a sessão normal do Supabase.
          */
         const {
           data: { user },
@@ -267,7 +272,6 @@ export default function WelcomePage() {
                 className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
               >
                 Começar a usar
-
                 <ArrowRight size={18} />
               </button>
 
@@ -277,5 +281,19 @@ export default function WelcomePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function WelcomePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
+        </div>
+      }
+    >
+      <WelcomeContent />
+    </Suspense>
   )
 }
