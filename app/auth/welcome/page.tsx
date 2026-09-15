@@ -14,11 +14,17 @@ export default function WelcomePage() {
   useEffect(() => {
     const carregarDados = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-          router.push('/auth/login')
-          return
-        }
+        const { data: { user }, error: authError } =
+  await supabase.auth.getUser()
+
+console.log('🔐 Welcome - usuário:', user)
+console.log('🔐 Welcome - erro Auth:', authError)
+
+if (!user) {
+  console.error('❌ Welcome: usuário não autenticado')
+  router.push('/auth/login')
+  return
+}
         setUser(user)
 
         const { data: profile } = await (supabase
@@ -67,7 +73,7 @@ export default function WelcomePage() {
               />
             </div>
             <h1 className="text-2xl font-bold text-black">
-              Bem-vindo(a), {userName || 'Preparado'}! 🎉
+              Bem-vindo(a), {userName || 'Preparado'}! 
             </h1>
             <p className="text-black/80 mt-1">
               Sua jornada de preparação começa agora

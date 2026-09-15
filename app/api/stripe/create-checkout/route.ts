@@ -1,64 +1,142 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {})
+const stripe = new Stripe(
+  process.env.STRIPE_SECRET_KEY!
+)
 
 export async function POST(request: Request) {
   try {
-    const { planId, userId, userEmail, planName, amount, interval } = await request.json()
+    const body = await request.json()
 
-    console.log('📥 Criando checkout no Stripe:', { planId, userId, amount, interval })
+    const {
+      plan,
+      userId,
+      userEmail,
+    } = body
 
-    const valorTotal = Number(amount || 12.00)
+    console.log('📥 Solicitação de checkout Stripe:', {
+      plan,
+      userId,
+      userEmail,
+    })
 
-    // 🔥 Criar a sessão de checkout (modo assinatura mensal)
+    // Validação básica
+    if (!plan || !['monthly', 'annual'].includes(plan)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Plano inválido.',
+        },
+        { status: 400 }
+      )
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Usuário não informado.',
+        },
+        { status: 400 }
+      )
+    }
+
+    if (!userEmail) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'E-mail do usuário não informado.',
+        },
+        { status: 400 }
+      )
+    }
+
+    // O preço é definido EXCLUSIVAMENTE no servidor.
+    const priceId =
+      plan === 'monthly'
+        ? process.env.STRIPE_PRICE_MENSAL
+        : process.env.STRIPE_PRICE_ANUAL
+
+    if (!priceId) {
+      console.error(
+        '❌ Price ID não configurado para o plano:',
+        plan
+      )
+
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Preço do plano não configurado no servidor.',
+        },
+        { status: 500 }
+      )
+    }
+
+    console.log('💰 Price ID selecionado:', priceId)
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
+
       payment_method_types: ['card'],
+
       line_items: [
         {
-          price_data: {
-            currency: 'brl',
-            product_data: {
-              name: `Plano ${planName} - PREPARADO`,
-              description: `Assinatura mensal - Acesso completo`,
-            },
-            unit_amount: Math.round(valorTotal * 100), // Stripe usa centavos
-            recurring: {
-              interval: 'month',
-              interval_count: 1,
-            },
-          },
+          price: priceId,
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/auth/welcome?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/planos?canceled=true`,
+
       customer_email: userEmail,
+
+      success_url:
+        `${process.env.NEXT_PUBLIC_APP_URL}` +
+        `/auth/welcome?success=true&session_id={CHECKOUT_SESSION_ID}`,
+
+      cancel_url:
+        `${process.env.NEXT_PUBLIC_APP_URL}` +
+        `/planos?canceled=true`,
+
       metadata: {
-        plan_id: String(planId || 2),
-        user_id: userId,
+        plan_type: plan,
+        user_id: String(userId),
       },
+
       subscription_data: {
         metadata: {
-          plan_id: String(planId || 2),
-          user_id: userId,
+          plan_type: plan,
+          user_id: String(userId),
         },
       },
     })
 
-    console.log('✅ Checkout criado:', session.id)
+    console.log(
+      '✅ Checkout Stripe criado:',
+      session.id
+    )
 
     return NextResponse.json({
       success: true,
       sessionId: session.id,
       url: session.url,
     })
+  } catch (error: unknown) {
+    console.error(
+      '❌ Erro ao criar checkout Stripe:',
+      error
+    )
 
-  } catch (error: any) {
-    console.error('❌ Erro ao criar checkout:', error)
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro ao criar checkout'
+
     return NextResponse.json(
-      { success: false, error: error.message || 'Erro ao criar checkout' },
+      {
+        success: false,
+        error: message,
+      },
       { status: 500 }
     )
   }

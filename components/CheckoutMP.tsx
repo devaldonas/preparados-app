@@ -6,11 +6,18 @@ import { CreditCard, Loader2 } from 'lucide-react'
 interface CheckoutMPProps {
   userId: string
   userEmail: string
+  plan: 'monthly' | 'annual'
   onSuccess: (subscriptionId: string) => void
   onError: (error: string) => void
 }
 
-export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMPProps) {
+export function CheckoutMP({
+  userId,
+  userEmail,
+  plan,
+  onSuccess,
+  onError,
+}: CheckoutMPProps) {
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -19,29 +26,47 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
     setError(null)
 
     try {
+      console.log('💳 Iniciando checkout Stripe:', {
+        plan,
+        userId,
+        userEmail,
+      })
+
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          planId: 2,
-          planName: 'Anual',
+          plan,
           userId,
           userEmail,
-          amount: 12.00, // 🔥 VALOR DE TESTE: R$ 12,00/mês
-          interval: 'month',
         }),
       })
 
       const data = await response.json()
 
-      if (!data.success) {
-        throw new Error(data.error || 'Erro ao criar checkout')
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.error || 'Erro ao criar checkout no Stripe'
+        )
       }
 
+      if (!data.url) {
+        throw new Error('O Stripe não retornou a URL do checkout')
+      }
+
+      console.log('✅ Checkout Stripe criado:', data.sessionId)
+
       window.location.href = data.url
-    } catch (err: any) {
-      console.error('❌ Erro:', err)
-      const msg = err.message || 'Erro ao processar pagamento'
+    } catch (err: unknown) {
+      console.error('❌ Erro no checkout Stripe:', err)
+
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Erro ao processar pagamento'
+
       setError(msg)
       onError(msg)
       setProcessing(false)
@@ -58,7 +83,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
         {processing ? (
           <>
             <Loader2 size={24} className="animate-spin" />
-            Processando...
+            Redirecionando para pagamento...
           </>
         ) : (
           <>
@@ -75,7 +100,7 @@ export function CheckoutMP({ userId, userEmail, onSuccess, onError }: CheckoutMP
       )}
 
       <p className="text-xs text-gray-400 text-center">
-        🔒 Pagamento seguro via Stripe
+        🔒 Pagamento seguro processado pelo Stripe
       </p>
     </div>
   )
