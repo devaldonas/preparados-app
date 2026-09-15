@@ -54,11 +54,30 @@ export default function ClientLayout({
     '/auth/cadastro',
     '/auth/recuperar-senha',
     '/auth/nova-senha',
+    '/chat/',              // ← ADICIONADO: chat individual
+  ]
+
+  // 🔥 Páginas onde o layout deve ser FULL SCREEN (sem NavBar, sem Footer)
+  // e o container deve ser h-dvh (para o chat ocupar a tela toda)
+  const fullScreenPaths = [
+    '/chat/',              // ← ADICIONADO: chat individual
   ]
 
   const shouldHideNavBar = hideNavBarPaths.some(path => pathname?.startsWith(path))
   const isSimpleNavBar = simpleNavBarPaths.some(path => pathname?.startsWith(path))
   const shouldHideFooter = hideFooterPaths.some(path => pathname?.startsWith(path))
+  const isFullScreen = fullScreenPaths.some(path => pathname?.startsWith(path))
+
+  // 🔥 Rota de chat: layout full screen, sem NavBar e sem Footer
+  if (isFullScreen) {
+    return (
+      <div className="h-dvh flex flex-col overflow-hidden">
+        <main className="flex-1 overflow-hidden">
+          {children}
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -74,7 +93,7 @@ export default function ClientLayout({
         {children}
       </main>
       
-      {/* 🔥 Footer - visível em todas as páginas, exceto auth */}
+      {/* 🔥 Footer - visível em todas as páginas, exceto auth e chat */}
       {!shouldHideFooter && <Footer />}
     </div>
   )

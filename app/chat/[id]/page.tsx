@@ -23,7 +23,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [otherUserId, setOtherUserId] = useState<string | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const channelRef = useRef<any>(null)
   const router = useRouter()
 
@@ -158,8 +158,14 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     }
   }, [otherUserId, user?.id])
 
+  // 🔥 3. SCROLL ISOLADO — apenas o container de mensagens rola,
+  // nunca a página inteira. Sem isso, o scrollIntoView empurrava
+  // a tela para o footer global.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const container = messagesContainerRef.current
+    if (container) {
+      container.scrollTop = container.scrollHeight
+    }
   }, [messages])
 
   const enviarMensagem = async () => {
@@ -196,15 +202,16 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="h-full flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB800]" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+    <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
+      {/* 🔥 Header do chat — fixo no topo, não rola */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
         <Link
           href="/pessoas"
           className="p-2 hover:bg-gray-100 rounded-lg transition"
@@ -217,7 +224,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      {/* 🔥 Área de mensagens — ÚNICA parte que rola */}
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto p-4 space-y-3 overscroll-contain"
+      >
         {messages.length === 0 ? (
           <div className="text-center text-gray-400 text-sm mt-8">
             Nenhuma mensagem ainda. Comece a conversa!
@@ -244,10 +255,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
             )
           })
         )}
-        <div ref={messagesEndRef} />
       </div>
 
-      <div className="bg-white border-t border-gray-200 p-3">
+      {/* 🔥 Input — fixo no rodapé, respeitando safe area do iPhone */}
+      <div
+        className="flex-shrink-0 bg-white border-t border-gray-200 p-3"
+        style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
+      >
         <div className="flex gap-2 max-w-4xl mx-auto">
           <input
             type="text"
