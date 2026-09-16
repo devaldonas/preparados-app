@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import NavBar from '@/components/NavBar'
+import Notificacoes from '@/components/Notificacoes'
 import { Footer } from '@/components/Footer'
 
 export default function ClientLayout({
@@ -54,15 +55,14 @@ export default function ClientLayout({
     '/auth/cadastro',
     '/auth/recuperar-senha',
     '/auth/nova-senha',
-    '/chat/',              // chat individual
-    '/grupo/',             // ADICIONADO: chat de grupo
+    '/chat/',
+    '/grupo/',
   ]
 
-  // 🔥 Páginas onde o layout deve ser FULL SCREEN (sem NavBar, sem Footer)
-  // e o container deve ser h-dvh (para o chat ocupar a tela toda)
+  // 🔥 Páginas onde o layout deve ser FULL SCREEN
   const fullScreenPaths = [
-    '/chat/',              // chat individual
-    '/grupo/',             // ADICIONADO: chat de grupo
+    '/chat/',
+    '/grupo/',
   ]
 
   const shouldHideNavBar = hideNavBarPaths.some(path => pathname?.startsWith(path))
@@ -70,7 +70,8 @@ export default function ClientLayout({
   const shouldHideFooter = hideFooterPaths.some(path => pathname?.startsWith(path))
   const isFullScreen = fullScreenPaths.some(path => pathname?.startsWith(path))
 
-  // 🔥 Rota de chat: layout full screen, sem NavBar e sem Footer
+  // 🔥 Rota full screen: NÃO renderiza NavBar, Notificacoes nem Footer
+  // (chat tem UI própria)
   if (isFullScreen) {
     return (
       <div className="h-screen h-dvh flex flex-col overflow-hidden">
@@ -81,21 +82,22 @@ export default function ClientLayout({
     )
   }
 
+  // 🔥 Fora do fullscreen: renderiza TUDO
+  // ⚠️ O <Notificacoes /> fica AQUI (fora do NavBar), então o canal
+  // de realtime NÃO é destruído quando o NavBar re-renderiza.
   return (
     <div className="min-h-screen flex flex-col">
-      {/* 🔥 NavBar - visível em todas as páginas, exceto auth */}
       {!shouldHideNavBar && (
         <NavBar 
           hideNavLinks={isSimpleNavBar}
+          sino={<Notificacoes />}
         />
       )}
       
-      {/* 🔥 Conteúdo principal */}
       <main className={`flex-1 ${!shouldHideNavBar ? 'bg-gray-50' : ''}`}>
         {children}
       </main>
       
-      {/* 🔥 Footer - visível em todas as páginas, exceto auth e chat */}
       {!shouldHideFooter && <Footer />}
     </div>
   )
