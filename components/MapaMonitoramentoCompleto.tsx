@@ -27,6 +27,10 @@ const Circle = dynamic(
   () => import('react-leaflet').then((mod) => mod.Circle),
   { ssr: false }
 )
+const CircleMarker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.CircleMarker),
+  { ssr: false }
+)
 
 interface DisasterEvent {
   id: string
@@ -46,10 +50,25 @@ interface DisasterEvent {
   source: string
 }
 
-// 🔥 TIPO DO MODO DE VISUALIZAÇÃO
+// 🔥 NOVO: tipo para alagamentos do GeoSampa
+interface AlagamentoFeature {
+  id: string
+  lat: number
+  lng: number
+  geometry: any
+  properties: {
+    cd_identificador: string
+    dt_ocorrencia: string
+    dc_tipo_ocorrencia: string
+    nm_distrito: string | null
+    dt_carga: string
+    nm_subprefeitura: string
+    sg_fonte_original: string
+  }
+}
+
 type ViewMode = 'disasters' | 'temp' | 'wind' | 'rain' | 'clouds' | 'pressure'
 
-// 🔥 CAMADAS DO WINDY
 const windyLayers: { value: ViewMode; label: string; overlay: any }[] = [
   { value: 'temp', label: '🌡️ Temperatura', overlay: 'temp' },
   { value: 'wind', label: '💨 Vento', overlay: 'wind' },
@@ -58,14 +77,12 @@ const windyLayers: { value: ViewMode; label: string; overlay: any }[] = [
   { value: 'pressure', label: '📊 Pressão', overlay: 'pressure' },
 ]
 
-// 🔥 CORES POR NÍVEL DE ALERTA
 const alertColors: Record<string, string> = {
   'red': '#FF0000',
   'orange': '#FF8800',
   'green': '#00CC44'
 }
 
-// 🔥 ESCALA DE MAGNITUDE RICHTER - DETALHADA
 const getMagnitudeRichter = (magnitude: number): string => {
   if (magnitude >= 9.0) return '≥ 9.0 - Catastrófico'
   if (magnitude >= 8.0) return '8.0 - 8.9 - Grande'
@@ -78,7 +95,6 @@ const getMagnitudeRichter = (magnitude: number): string => {
   return '< 2.0 - Micro'
 }
 
-// 🔥 INTENSIDADE MERCALLI MODIFICADA
 const getIntensityLabel = (magnitude: number): string => {
   if (magnitude >= 9.0) return 'Extrema'
   if (magnitude >= 8.0) return 'Severa'
@@ -90,31 +106,29 @@ const getIntensityLabel = (magnitude: number): string => {
   return 'Muito Pequena'
 }
 
-// 🔥 FUNÇÃO PARA CALCULAR RAIO DO CÍRCULO (baseado na magnitude)
 const getCircleRadius = (event: DisasterEvent): number => {
   if (event.type === 'Terremoto' && event.magnitude) {
     return Math.pow(2, event.magnitude - 3) * 5
   }
   if (event.type === 'Inundação') {
-    return event.alertLevel === 'red' ? 150 : 
+    return event.alertLevel === 'red' ? 150 :
            event.alertLevel === 'orange' ? 80 : 30
   }
   if (event.type === 'Ciclone') {
-    return event.alertLevel === 'red' ? 200 : 
+    return event.alertLevel === 'red' ? 200 :
            event.alertLevel === 'orange' ? 120 : 50
   }
   if (event.type === 'Incêndio') {
-    return event.alertLevel === 'red' ? 80 : 
+    return event.alertLevel === 'red' ? 80 :
            event.alertLevel === 'orange' ? 40 : 15
   }
   if (event.type === 'Vulcão') {
-    return event.alertLevel === 'red' ? 100 : 
+    return event.alertLevel === 'red' ? 100 :
            event.alertLevel === 'orange' ? 60 : 25
   }
   return 20
 }
 
-// 🔥 FILTROS (SEM EMOJIS)
 const disasterTypes = [
   { value: 'ALL', label: 'Todos' },
   { value: 'Terremoto', label: 'Terremotos' },
@@ -134,37 +148,39 @@ const alertLevels = [
 
 export default function MapaMonitoramentoCompleto() {
   const [events, setEvents] = useState<DisasterEvent[]>([])
+  const [alagamentos, setAlagamentos] = useState<AlagamentoFeature[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingAlagamentos, setLoadingAlagamentos] = useState(true)
   const [filterType, setFilterType] = useState('ALL')
   const [filterAlert, setFilterAlert] = useState('ALL')
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState({ total: 0, red: 0, orange: 0, green: 0 })
   const [isClient, setIsClient] = useState(false)
   const [L, setL] = useState<any>(null)
-  
-  // 🔥 NOVO: modo de visualização (desastres ou camada climática)
   const [viewMode, setViewMode] = useState<ViewMode>('disasters')
+
+  // 🔥 NOVO: toggle para mostrar/ocultar alagamentos
+  const [mostrarAlagamentos, setMostrarAlagamentos] = useState(true)
 
   const center: [number, number] = [-14.2350, -51.9253]
   const zoom = 4
 
   useEffect(() => {
     setIsClient(true)
-    
-    // 🔥 CARREGAR LEAFLET APENAS NO CLIENTE
+
     import('leaflet').then((module) => {
       const leaflet = module.default
-      
-      // 🔥 CORRIGIR ÍCONES DO LEAFLET
+
       delete (leaflet.Icon.Default.prototype as any)._getIconUrl
       leaflet.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
         iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
         shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
       })
-      
+
       setL(leaflet)
       carregarEventos()
+      carregarAlagamentos()
     })
   }, [])
 
@@ -181,7 +197,7 @@ export default function MapaMonitoramentoCompleto() {
       }
 
       setEvents(data.events || [])
-      
+
       const stats = {
         total: data.events?.length || 0,
         red: data.events?.filter((e: DisasterEvent) => e.alertLevel === 'red').length || 0,
@@ -198,12 +214,29 @@ export default function MapaMonitoramentoCompleto() {
     }
   }
 
-  // 🔥 FUNÇÃO PARA CRIAR ÍCONE
+  // 🔥 NOVO: carrega alagamentos do GeoSampa
+  const carregarAlagamentos = async () => {
+    try {
+      setLoadingAlagamentos(true)
+      const response = await fetch('/api/geosampa?layer=alagamento&count=500')
+      const data = await response.json()
+
+      if (data.success) {
+        setAlagamentos(data.features || [])
+        console.log(`🌊 ${data.total} alagamentos carregados do GeoSampa`)
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar alagamentos:', error)
+    } finally {
+      setLoadingAlagamentos(false)
+    }
+  }
+
   const createIcon = (type: string, alertLevel: string, magnitude?: number) => {
     if (!L) return null
-    
+
     const alertColor = alertColors[alertLevel] || '#888888'
-    
+
     let iconText = '⚠'
     if (type === 'Terremoto') iconText = 'M'
     else if (type === 'Inundação') iconText = 'I'
@@ -212,7 +245,7 @@ export default function MapaMonitoramentoCompleto() {
     else if (type === 'Vulcão') iconText = 'V'
     else if (type === 'Seca') iconText = 'S'
     else if (type === 'Tsunami') iconText = 'T'
-    
+
     return L.divIcon({
       className: 'custom-disaster-marker',
       html: `
@@ -259,7 +292,19 @@ export default function MapaMonitoramentoCompleto() {
     })
   }
 
-  // 🔥 VERIFICA SE ESTÁ NO MODO CLIMA
+  // 🔥 NOVO: formata data só com dia/mês/ano (GeoSampa vem só com data)
+  const formatDateOnly = (date: string) => {
+    if (!date) return '—'
+    // Formato: "2026-04-01Z"
+    const cleanDate = date.replace('Z', '')
+    const d = new Date(cleanDate + 'T12:00:00') // meio-dia para evitar problema de fuso
+    return d.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+
   const isClimateMode = viewMode !== 'disasters'
   const currentWindyOverlay = windyLayers.find(l => l.value === viewMode)?.overlay || 'temp'
 
@@ -303,16 +348,18 @@ export default function MapaMonitoramentoCompleto() {
             <span className="text-red-600">● {stats.red} crítico</span>
             <span className="text-orange-500">● {stats.orange} alerta</span>
             <span className="text-green-600">● {stats.green} monitoramento</span>
+            {alagamentos.length > 0 && (
+              <span className="text-blue-600">● {alagamentos.length} alagamentos</span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* 🔥 BARRA DE CAMADAS CLIMÁTICAS */}
+      {/* BARRA DE CAMADAS */}
       <div className="bg-white border-x border-gray-200 border-b border-gray-200 p-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-medium text-gray-600">Camadas:</span>
-          
-          {/* Botão Desastres */}
+
           <button
             onClick={() => setViewMode('disasters')}
             className={`px-3 py-1.5 rounded-full text-xs transition font-medium ${
@@ -324,7 +371,6 @@ export default function MapaMonitoramentoCompleto() {
             🌍 Desastres
           </button>
 
-          {/* Botões Windy */}
           {windyLayers.map((layer) => (
             <button
               key={layer.value}
@@ -341,7 +387,7 @@ export default function MapaMonitoramentoCompleto() {
         </div>
       </div>
 
-      {/* FILTROS DE DESASTRES (só aparecem no modo desastres) */}
+      {/* FILTROS DE DESASTRES */}
       {!isClimateMode && (
         <div className="bg-white border-x border-gray-200 p-3 flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
@@ -383,7 +429,27 @@ export default function MapaMonitoramentoCompleto() {
         </div>
       )}
 
-      {/* MAPA — alterna entre Leaflet (desastres) e Windy (clima) */}
+      {/* TOGGLE ALAGAMENTOS */}
+      {!isClimateMode && (
+        <div className="bg-white border-x border-gray-200 border-b border-gray-200 px-3 py-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={mostrarAlagamentos}
+              onChange={(e) => setMostrarAlagamentos(e.target.checked)}
+              className="w-4 h-4 accent-blue-500"
+            />
+            <span className="text-xs font-medium text-gray-700">
+              Mostrar áreas com risco de alagamentos em SP ({alagamentos.length})
+            </span>
+            {loadingAlagamentos && (
+              <span className="text-[0.6rem] text-gray-400">(carregando...)</span>
+            )}
+          </label>
+        </div>
+      )}
+
+      {/* MAPA */}
       <div className="relative w-full h-[500px] overflow-hidden border border-gray-200 rounded-b-xl">
         {isClimateMode ? (
           <WindyEmbed overlay={currentWindyOverlay} />
@@ -395,25 +461,76 @@ export default function MapaMonitoramentoCompleto() {
             zoomControl={false}
             attributionControl={false}
           >
-            {/* 🔥 CORRIGIDO: USAR OPENSTREETMAP, NÃO CARTO DB */}
             <TileLayer
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
 
-            {/* CÍRCULOS E MARCADORES DOS EVENTOS */}
+            {/* 🔥 ALAGAMENTOS DO GEOSAMPA (CircleMarker azul) */}
+            {mostrarAlagamentos && alagamentos.map((alag) => (
+              <CircleMarker
+                key={alag.id}
+                center={[alag.lat, alag.lng]}
+                radius={6}
+                pathOptions={{
+                  color: '#1E40AF',       // azul escuro (borda)
+                  fillColor: '#3B82F6',   // azul claro (preenchimento)
+                  fillOpacity: 0.7,
+                  weight: 2,
+                }}
+              >
+                <Popup>
+                  <div className="p-2 min-w-[200px]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">🌊</span>
+                      <p className="font-bold text-gray-900 text-sm">Alagamento</p>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-2 border border-blue-200 text-xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Data:</span>
+                        <span className="font-medium text-gray-800">
+                          {formatDateOnly(alag.properties.dt_ocorrencia)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Subprefeitura:</span>
+                        <span className="font-medium text-gray-800 text-right">
+                          {alag.properties.nm_subprefeitura || '—'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">ID:</span>
+                        <span className="font-mono text-gray-800">
+                          {alag.properties.cd_identificador}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-600">Fonte:</span>
+                        <span className="font-medium text-gray-800">
+                          {alag.properties.sg_fonte_original}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-[0.6rem] text-gray-400 mt-2">
+                      Histórico GeoSampa · atualização mensal
+                    </p>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            ))}
+
+            {/* EVENTOS DE DESASTRES */}
             {filteredEvents.map((event) => {
               if (!event.latitude || !event.longitude) return null
-              
+
               const icon = createIcon(event.type, event.alertLevel, event.magnitude)
               if (!icon) return null
-              
+
               const radius = getCircleRadius(event)
               const color = alertColors[event.alertLevel] || '#888888'
-              
+
               return (
                 <div key={event.id}>
-                  {/* CÍRCULO DE RAIO */}
                   <Circle
                     center={[event.latitude, event.longitude]}
                     radius={radius * 1000}
@@ -426,8 +543,7 @@ export default function MapaMonitoramentoCompleto() {
                       dashArray: '5, 5'
                     }}
                   />
-                  
-                  {/* MARCADOR */}
+
                   <Marker
                     position={[event.latitude, event.longitude]}
                     icon={icon}
@@ -440,8 +556,7 @@ export default function MapaMonitoramentoCompleto() {
                             <p className="text-xs text-gray-500">{event.type}</p>
                           </div>
                         </div>
-                        
-                        {/* INFORMAÇÕES DO EVENTO */}
+
                         <div className="bg-gray-50 rounded-lg p-2 mb-2 border border-gray-200">
                           {event.type === 'Terremoto' ? (
                             <>
@@ -484,14 +599,14 @@ export default function MapaMonitoramentoCompleto() {
                               <div className="flex items-center justify-between text-xs">
                                 <span className="font-medium text-gray-700">Categoria:</span>
                                 <span className="font-bold text-purple-600">
-                                  {event.alertLevel === 'red' ? '3+' : 
+                                  {event.alertLevel === 'red' ? '3+' :
                                    event.alertLevel === 'orange' ? '2' : '1'}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between text-xs mt-1">
                                 <span className="text-gray-500">Ventos:</span>
                                 <span className="font-medium text-gray-700">
-                                  {event.alertLevel === 'red' ? '> 200 km/h' : 
+                                  {event.alertLevel === 'red' ? '> 200 km/h' :
                                    event.alertLevel === 'orange' ? '150-200 km/h' : '100-150 km/h'}
                                 </span>
                               </div>
@@ -501,51 +616,46 @@ export default function MapaMonitoramentoCompleto() {
                               <div className="flex items-center justify-between text-xs">
                                 <span className="font-medium text-gray-700">Porte:</span>
                                 <span className="font-bold text-orange-600">
-                                  {event.alertLevel === 'red' ? 'Grande' : 
+                                  {event.alertLevel === 'red' ? 'Grande' :
                                    event.alertLevel === 'orange' ? 'Médio' : 'Pequeno'}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between text-xs mt-1">
                                 <span className="text-gray-500">Área estimada:</span>
                                 <span className="font-medium text-gray-700">
-                                  {event.alertLevel === 'red' ? '> 100 ha' : 
+                                  {event.alertLevel === 'red' ? '> 100 ha' :
                                    event.alertLevel === 'orange' ? '50-100 ha' : '< 50 ha'}
                                 </span>
                               </div>
                             </>
                           ) : event.type === 'Vulcão' ? (
-                            <>
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="font-medium text-gray-700">Atividade:</span>
-                                <span className="font-bold text-red-600">
-                                  {event.alertLevel === 'red' ? 'Erupção em andamento' : 
-                                   event.alertLevel === 'orange' ? 'Atividade elevada' : 'Monitoramento'}
-                                </span>
-                              </div>
-                            </>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-medium text-gray-700">Atividade:</span>
+                              <span className="font-bold text-red-600">
+                                {event.alertLevel === 'red' ? 'Erupção em andamento' :
+                                 event.alertLevel === 'orange' ? 'Atividade elevada' : 'Monitoramento'}
+                              </span>
+                            </div>
                           ) : (
-                            <>
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="font-medium text-gray-700">Severidade:</span>
-                                <span className={`font-bold ${
-                                  event.alertLevel === 'red' ? 'text-red-600' :
-                                  event.alertLevel === 'orange' ? 'text-orange-500' :
-                                  'text-green-600'
-                                }`}>
-                                  {event.alertLevel === 'red' ? 'Severo' : 
-                                   event.alertLevel === 'orange' ? 'Moderado' : 'Leve'}
-                                </span>
-                              </div>
-                            </>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-medium text-gray-700">Severidade:</span>
+                              <span className={`font-bold ${
+                                event.alertLevel === 'red' ? 'text-red-600' :
+                                event.alertLevel === 'orange' ? 'text-orange-500' :
+                                'text-green-600'
+                              }`}>
+                                {event.alertLevel === 'red' ? 'Severo' :
+                                 event.alertLevel === 'orange' ? 'Moderado' : 'Leve'}
+                              </span>
+                            </div>
                           )}
-                          
+
                           <div className="flex items-center justify-between text-xs mt-1 pt-1 border-t border-gray-200">
                             <span className="text-gray-500">Raio de abrangência:</span>
                             <span className="font-medium text-gray-700">{radius} km</span>
                           </div>
                         </div>
-                        
-                        {/* STATUS DO ALERTA */}
+
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`inline-block w-2 h-2 rounded-full ${
                             event.alertLevel === 'red' ? 'bg-red-500' :
@@ -561,17 +671,17 @@ export default function MapaMonitoramentoCompleto() {
                             </span>
                           )}
                         </div>
-                        
+
                         {event.country && (
                           <p className="text-xs text-gray-500 mt-1">
                             {event.country}{event.region ? ` - ${event.region}` : ''}
                           </p>
                         )}
-                        
+
                         <p className="text-xs text-gray-400 mt-1">
                           {formatDate(event.date)}
                         </p>
-                        
+
                         {event.description && (
                           <p className="text-xs text-gray-600 mt-2 border-t border-gray-100 pt-2">
                             {event.description}
@@ -600,6 +710,10 @@ export default function MapaMonitoramentoCompleto() {
                   <span className="w-3 h-3 rounded-full bg-green-500" />
                   <span className="text-gray-600">Monitoramento</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-blue-500 border-2 border-blue-800" />
+                  <span className="text-gray-600">Alagamento (SP)</span>
+                </div>
               </div>
               <div className="border-t border-gray-200 mt-2 pt-2">
                 <p className="text-[0.55rem] text-gray-400">
@@ -607,6 +721,9 @@ export default function MapaMonitoramentoCompleto() {
                 </p>
                 <p className="text-[0.55rem] text-gray-400 mt-0.5">
                   Marcadores: T=Terremoto, I=Inundação, C=Ciclone, F=Incêndio, V=Vulcão
+                </p>
+                <p className="text-[0.55rem] text-gray-400 mt-0.5">
+                  🌊 Dados GeoSampa (atualização mensal)
                 </p>
               </div>
             </div>
