@@ -35,3 +35,6 @@ scripts/delete-users.js
 
 # Scripts locais de limpeza (não versionar)
 scripts/delete-*.js
+
+# Backups locais
+*.bak*
