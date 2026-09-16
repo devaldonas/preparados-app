@@ -73,7 +73,7 @@ export default function ClientLayout({
   // 🔥 Rota de chat: layout full screen, sem NavBar e sem Footer
   if (isFullScreen) {
     return (
-      <div className="h-dvh flex flex-col overflow-hidden">
+      <div className="h-screen h-dvh flex flex-col overflow-hidden">
         <main className="flex-1 overflow-hidden">
           {children}
         </main>
