@@ -384,10 +384,10 @@ export default function Dashboard() {
         </div>
 
         <div className="mb-8">
-          <div className="bg-black rounded-xl overflow-hidden">
+          <div className="bg-white rounded-xl overflow-hidden">
             <div className="p-1 border-b border-[#FFB800]">
               <h3 className="font-semibold text-white flex items-center gap-2">
-                <span className="text-xl">📍</span> Monitoramento Global - Terremotos
+                <span className="text-xl"></span> Monitoramento Global - Terremotos
               </h3>
             </div>
             <MapaMonitoramentoCompleto />
