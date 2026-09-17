@@ -33,26 +33,6 @@ export function Footer() {
             <p className="text-sm leading-relaxed">
               Sua plataforma completa para preparação em emergências. 
             </p>
-            <div className="flex gap-3 mt-4">
-              <a 
-                href="https://www.instagram.com/eae_preparado/#" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-yellow-500 transition-colors text-xl"
-                aria-label="Instagram"
-              >
-                <FaInstagram />
-              </a>
-              <a 
-                href="https://youtube.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-yellow-500 transition-colors text-xl"
-                aria-label="YouTube"
-              >
-                <FaYoutube />
-              </a>
-            </div>
           </div>
 
           {/* Coluna 2 - Suporte */}
@@ -101,6 +81,28 @@ export function Footer() {
                   </a>
                   <span className="text-xs text-gray-500">SOL - StudioOnLine</span>
                 </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <FaInstagram className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                <a 
+                  href="https://www.instagram.com/eae_preparado/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-yellow-500 transition-colors"
+                >
+                  Instagram
+                </a>
+              </li>
+              <li className="flex items-start gap-3">
+                <FaYoutube className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                <a 
+                  href="https://youtube.com/@preparadopreparado" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-yellow-500 transition-colors"
+                >
+                  YouTube
+                </a>
               </li>
             </ul>
             
