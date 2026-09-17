@@ -38,230 +38,320 @@ export default function NavBar({
   sino
 }: NavBarProps) {
   const router = useRouter()
-  
-  // 🔥 Selector reativo do Zustand
-  const cartCount = useCart(state => 
-    state.items.reduce((sum, item) => sum + item.quantity, 0)
-  )
-  
+  const { getTotalItems } = useCart()
   const [user, setUser] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [cartCount, setCartCount] = useState(0)
   const [mounted, setMounted] = useState(false)
 
+  // 🔥 CORRIGIDO: só atualizar o cartCount no cliente
   useEffect(() => {
     setMounted(true)
-  }, [])
+    setCartCount(getTotalItems())
+  }, [getTotalItems])
 
   useEffect(() => {
-    const getUser = async () => {
+    carregarUsuario()
+  }, [])
+
+  const carregarUsuario = async () => {
+    try {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
-      
+
       if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
+        const { data: profile } = await (supabase
+          .from('profiles') as any)
+          .select('role, full_name, subscription_status')
           .eq('id', user.id)
-          .single()
+          .maybeSingle()
         
-        setUserProfile(profile)
+        if (profile) {
+          setUserProfile(profile)
+          console.log('👤 Perfil carregado:', profile)
+          console.log('🔑 Role:', profile.role)
+        }
       }
+    } catch (error) {
+      console.error('Erro ao carregar usuário:', error)
     }
-    
-    getUser()
-  }, [])
+  }
+
+  const handleGoBack = () => {
+    if (backButtonPath) {
+      router.push(backButtonPath)
+    } else {
+      router.back()
+    }
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/auth/login')
   }
 
+  const getNavLinks = () => {
+    const links = [
+      { href: '/loja', label: 'Loja', icon: Store }
+    ]
+
+    if (userProfile?.role === 'partner') {
+      links.push({ href: '/parceiro/dashboard', label: 'Dashboard', icon: LayoutDashboard })
+    } else if (user) {
+      links.push({ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard })
+    }
+
+    return links
+  }
+
+  const navLinks = getNavLinks()
   const isTrial = userProfile?.subscription_status === 'trial'
+  const isAdmin = userProfile?.role === 'admin'
+  const isPartner = userProfile?.role === 'partner'
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          
-          {/* Logo + Voltar */}
-          <div className="flex items-center gap-3">
-            {showBackButton && backButtonPath && (
-              <Link
-                href={backButtonPath}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
+    <div className="bg-white border-b border-gray-100 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 flex-1">
+            {showBackButton ? (
+              <button
+                onClick={handleGoBack}
+                className="flex items-center gap-1 text-gray-600 hover:text-gray-900 transition p-1 hover:bg-gray-100 rounded-lg"
               >
-                ←
-              </Link>
+                <span className="text-lg">←</span>
+                <span className="text-sm hidden sm:inline">Voltar</span>
+              </button>
+            ) : (
+              <div className="lg:hidden w-8" />
             )}
             
-            <Link href="/dashboard" className="flex items-center gap-2">
+            <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2">
               <img 
-                src="/logo2.svg" 
+                src="/logo.svg" 
                 alt="PREPARADO" 
-                className="h-8 w-auto"
+                className="h-10 w-auto"
               />
-              <span className="text-lg font-bold text-gray-900 hidden sm:block">
-                PREPARADO
+              <span className="font-display font-bold text-gray-900 text-base hidden sm:block">
+                {title || ''}
               </span>
             </Link>
-
-            {title && (
-              <span className="text-sm text-gray-500 hidden md:block">
-                {title}
-              </span>
-            )}
           </div>
 
-          {/* Links (desktop) */}
-          {!hideNavLinks && (
-            <div className="hidden md:flex items-center gap-1">
-              <Link
-                href="/dashboard"
-                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
-              >
-                Início
-              </Link>
-              <Link
-                href="/mochilas"
-                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
-              >
-                Mochilas
-              </Link>
-              <Link
-                href="/loja"
-                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
-              >
-                Loja
-              </Link>
-              <Link
-                href="/pessoas"
-                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
-              >
-                Pessoas
-              </Link>
-              <Link
-                href="/comunicador"
-                className="px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition"
-              >
-                Comunicador
-              </Link>
-            </div>
-          )}
-
-          {/* Ações (direita) */}
           <div className="flex items-center gap-2">
-            
+            {!hideNavLinks && user && (
+              <div className="hidden lg:flex items-center gap-1">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+                  >
+                    <link.icon size={16} />
+                    <span>{link.label}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
             {/* 🔥 SINO — vem de fora via prop */}
             {!isTrial && sino && (
               <div className="flex items-center gap-2">
                 {sino}
               </div>
             )}
-
-            {/* Carrinho */}
+            
             {showCart && (
               <Link
                 href="/loja/carrinho"
                 className="relative p-2 hover:bg-gray-100 rounded-lg transition"
               >
                 <ShoppingBag size={20} className="text-gray-700" />
+                {/* 🔥 CORRIGIDO: só mostrar se mounted */}
                 {mounted && cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-[#FFB800] text-black text-[0.55rem] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {cartCount > 9 ? '9+' : cartCount}
+                    {cartCount}
                   </span>
                 )}
               </Link>
             )}
 
-            {/* Menu do usuário */}
-            {user && (
-              <div className="relative">
-                <button
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition"
-                >
-                  <div className="w-8 h-8 rounded-full bg-[#FFB800] flex items-center justify-center">
-                    <User size={16} className="text-black" />
-                  </div>
-                  <ChevronDown size={16} className="text-gray-500 hidden sm:block" />
-                </button>
-
-                {isMenuOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setIsMenuOpen(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                      <Link
-                        href="/perfil"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                      >
-                        <User size={16} />
-                        Meu Perfil
-                      </Link>
-                      <Link
-                        href="/carteira"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                      >
-                        <Wallet size={16} />
-                        Carteira
-                      </Link>
-                      <Link
-                        href="/planos"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                      >
-                        <Crown size={16} />
-                        Assinatura
-                      </Link>
-                      {userProfile?.role === 'admin' && (
-                        <Link
-                          href="/admin"
-                          onClick={() => setIsMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                        >
-                          <LayoutDashboard size={16} />
-                          Painel Admin
-                        </Link>
-                      )}
-                      {(userProfile?.role === 'partner' || userProfile?.role === 'admin') && (
-                        <Link
-                          href="/parceiro/dashboard"
-                          onClick={() => setIsMenuOpen(false)}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                        >
-                          <Store size={16} />
-                          Painel Parceiro
-                        </Link>
-                      )}
-                      <Link
-                        href="/loja/pedidos"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                      >
-                        <Package size={16} />
-                        Meus Pedidos
-                      </Link>
-                      <div className="border-t border-gray-100 my-1" />
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition w-full text-left"
-                      >
-                        <LogOut size={16} />
-                        Sair
-                      </button>
-                    </div>
-                  </>
-                )}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition flex items-center gap-2"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#FFB800]/20 flex items-center justify-center text-[#FFB800] font-bold text-sm">
+                {user?.email?.charAt(0)?.toUpperCase() || 'U'}
               </div>
-            )}
+              <ChevronDown 
+                size={16} 
+                className={`text-gray-400 transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
           </div>
         </div>
+
+        {isMenuOpen && (
+          <>
+            <div 
+              className="fixed inset-0 z-40"
+              onClick={() => setIsMenuOpen(false)}
+            />
+            
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
+              <div className="px-4 py-3 border-b border-gray-100">
+                <p className="text-sm font-medium text-gray-900">
+                  {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'}
+                </p>
+                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="inline-block text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                    {userProfile?.role === 'admin' ? 'Administrador' : 
+                     userProfile?.role === 'partner' ? 'Parceiro' : 'Usuário'}
+                  </span>
+                  {isAdmin && (
+                    <span className="inline-block text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full font-bold">
+                      ⭐ Admin
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {!hideNavLinks && user && (
+                <div className="lg:hidden">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                    >
+                      <link.icon size={18} />
+                      {link.label}
+                    </Link>
+                  ))}
+                  <div className="border-t border-gray-100 my-1" />
+                </div>
+              )}
+
+              {isAdmin && (
+                <>
+                  <Link
+                    href="/admin"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
+                  >
+                    <Shield size={18} />
+                    Painel Admin
+                    <span className="ml-auto text-[0.5rem] bg-[#FFB800] text-black px-1.5 py-0.5 rounded-full font-bold">
+                      BETA
+                    </span>
+                  </Link>
+                  <Link
+                    href="/admin/cupons"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
+                  >
+                    <Gift size={18} />
+                    Cupons
+                    <span className="ml-auto text-[0.5rem] bg-[#FFB800] text-black px-1.5 py-0.5 rounded-full font-bold">
+                      NOVO
+                    </span>
+                  </Link>
+                  <div className="border-t border-gray-100 my-1" />
+                </>
+              )}
+
+              {isTrial && (
+                <>
+                  <Link
+                    href="/planos"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
+                  >
+                    <Crown size={18} />
+                    Assinar Premium
+                    <span className="ml-auto text-xs bg-[#FFB800] text-black px-2 py-0.5 rounded-full font-bold">
+                      Oferta
+                    </span>
+                  </Link>
+                  <div className="border-t border-gray-100 my-1" />
+                </>
+              )}
+
+              <Link
+                href="/carteira"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+              >
+                <Wallet size={18} />
+                Minha Carteira
+              </Link>
+
+              <Link
+                href="/loja/pedidos"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+              >
+                <Package size={18} />
+                Meus Pedidos
+              </Link>
+              
+              <Link
+                href="/perfil"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+              >
+                <User size={18} />
+                Meu Perfil
+              </Link>
+
+              {/* 🔥 BOTÃO SEJA UM PARCEIRO */}
+              {!isPartner && !isAdmin && (
+                <Link
+                  href="/parceiro/seja-parceiro"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-2 text-sm text-[#FFB800] hover:bg-yellow-50 transition font-medium"
+                >
+                  <Store size={18} />
+                  Seja um Parceiro
+                  <span className="ml-auto text-[0.5rem] bg-[#FFB800] text-black px-1.5 py-0.5 rounded-full font-bold">
+                    NOVO
+                  </span>
+                </Link>
+              )}
+
+              <Link
+                href="/loja/carrinho"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+              >
+                <ShoppingBag size={18} />
+                Carrinho
+                {mounted && cartCount > 0 && (
+                  <span className="ml-auto bg-[#FFB800] text-black text-[0.55rem] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+
+              <div className="border-t border-gray-100 my-1" />
+
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false)
+                  handleLogout()
+                }}
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
+              >
+                <LogOut size={18} />
+                Sair
+              </button>
+            </div>
+          </>
+        )}
       </div>
-    </nav>
+    </div>
   )
 }

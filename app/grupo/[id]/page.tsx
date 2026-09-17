@@ -250,7 +250,7 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
       {/* 🔥 Input — fixo no rodapé, com safe area */}
       <div
         className="flex-shrink-0 bg-white border-t border-gray-200 p-3"
-        style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
+        style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="flex gap-2 max-w-4xl mx-auto">
           <input

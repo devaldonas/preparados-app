@@ -74,7 +74,16 @@ export default function ClientLayout({
   // (chat tem UI própria)
   if (isFullScreen) {
     return (
-      <div className="h-screen h-dvh flex flex-col overflow-hidden">
+      <div
+        className="flex flex-col overflow-hidden"
+        style={
+          {
+            height: '100vh',
+            '--webkit-fill': '-webkit-fill-available',
+            minHeight: '100dvh',
+          } as any
+        }
+      >
         <main className="flex-1 overflow-hidden">
           {children}
         </main>

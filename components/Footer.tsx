@@ -32,11 +32,10 @@ export function Footer() {
             </div>
             <p className="text-sm leading-relaxed">
               Sua plataforma completa para preparação em emergências. 
-              Esteja pronto para qualquer situação com EDC, BOB ou BOLT.
             </p>
             <div className="flex gap-3 mt-4">
               <a 
-                href="https://instagram.com" 
+                href="https://www.instagram.com/eae_preparado/#" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-yellow-500 transition-colors text-xl"
@@ -122,7 +121,7 @@ export function Footer() {
             Todos os direitos reservados.
           </p>
           <p className="text-gray-500">
-            Feito para quem se prepara
+            Venha se preparar com a gente...
           </p>
         </div>
 
