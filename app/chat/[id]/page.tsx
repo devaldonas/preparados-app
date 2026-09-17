@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Send } from 'lucide-react'
+import { useVisualViewport } from '@/hooks/useVisualViewport'
 
 interface Message {
   id: number
@@ -26,6 +27,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const channelRef = useRef<any>(null)
   const router = useRouter()
+
+  // 🔥 Altura dinâmica que acompanha o teclado
+  const viewportHeight = useVisualViewport()
 
   const formatarDataHora = (data: string) => {
     if (!data) return ''
@@ -200,8 +204,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   }
 
   return (
-    <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
-      {/* Header — fixo no topo */}
+    <div
+      className="bg-gray-50 flex flex-col overflow-hidden"
+      style={{ height: viewportHeight }}
+    >
+      {/* Header — fixo no topo, sempre visível */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 z-10">
         <Link
           href="/pessoas"
@@ -215,11 +222,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         </div>
       </div>
 
-      {/* Área de mensagens — rola e tem padding-bottom para não ficar atrás do input fixo */}
+      {/* Área de mensagens — flex-1 + scroll interno */}
       <div
         ref={messagesContainerRef}
         className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 overscroll-contain"
-        style={{ paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}
       >
         {messages.length === 0 ? (
           <div className="text-center text-gray-400 text-sm mt-8">
@@ -249,9 +255,9 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         )}
       </div>
 
-      {/* 🔥 Input FIXO no rodapé da viewport — funciona em TODOS os dispositivos */}
+      {/* Input — dentro do flex, mas com flex-shrink-0 (fica firme no rodapé) */}
       <div
-        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 z-20"
+        className="flex-shrink-0 bg-white border-t border-gray-200 p-3"
         style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="flex gap-2 max-w-4xl mx-auto">
