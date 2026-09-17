@@ -45,7 +45,6 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
     }
   }
 
-  // 🔥 1. CARREGAR DADOS INICIAIS
   useEffect(() => {
     const carregarGrupo = async () => {
       try {
@@ -89,7 +88,6 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
     carregarGrupo()
   }, [params, router])
 
-  // 🔥 2. REALTIME: Escutar novas mensagens do grupo
   useEffect(() => {
     if (!grupoId) return
 
@@ -108,7 +106,7 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
         (payload: any) => {
           console.log('🔔 Nova mensagem recebida:', payload.new)
           const novaMensagem = payload.new as Message
-          
+
           setMessages((prev) => {
             if (prev.some(m => m.id === novaMensagem.id)) return prev
             return [...prev, novaMensagem]
@@ -147,7 +145,6 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
     }
   }
 
-  // 🔥 3. SCROLL ISOLADO — só o container de mensagens rola
   useEffect(() => {
     const container = messagesContainerRef.current
     if (container) {
@@ -172,7 +169,6 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
       if (error) throw error
 
       setNewMessage('')
-      // Realtime adiciona a mensagem automaticamente
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error)
       alert('Erro ao enviar mensagem')
@@ -191,8 +187,8 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
 
   return (
     <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
-      {/* 🔥 Header do grupo — fixo no topo */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+      {/* Header — fixo no topo */}
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 z-10">
         <Link
           href="/pessoas"
           className="p-2 hover:bg-gray-100 rounded-lg transition"
@@ -205,10 +201,11 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
         </div>
       </div>
 
-      {/* 🔥 Área de mensagens — ÚNICA parte que rola */}
+      {/* Área de mensagens */}
       <div
         ref={messagesContainerRef}
         className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 overscroll-contain"
+        style={{ paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}
       >
         {messages.length === 0 ? (
           <div className="text-center text-gray-400 text-sm mt-8">
@@ -247,9 +244,9 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
         )}
       </div>
 
-      {/* 🔥 Input — fixo no rodapé, com safe area */}
+      {/* 🔥 Input FIXO no rodapé da viewport — funciona em TODOS os dispositivos */}
       <div
-        className="flex-shrink-0 bg-white border-t border-gray-200 p-3"
+        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 z-20"
         style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="flex gap-2 max-w-4xl mx-auto">
