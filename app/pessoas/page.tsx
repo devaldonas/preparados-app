@@ -1,4 +1,3 @@
-//home/devaldo/AutoDev/preparado-app/app/pessoas/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -225,7 +224,7 @@ export default function PessoasProximas() {
             className="bg-[#FFB800] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition flex items-center gap-2"
           >
             <img 
-              src="/images/localizacao-icon.jpeg" 
+              src="/images/localizacao-icon.png" 
               alt="Localização" 
               className="w-5 h-5 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
@@ -240,10 +239,10 @@ export default function PessoasProximas() {
           {/* Card: Preparados no Mapa */}
           <Link
             href="/pessoas/usuarios"
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition"
+            className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition flex flex-col h-full min-h-[88px]"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#FFB800]/10 rounded-lg flex items-center justify-center">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-[#FFB800]/10 rounded-lg flex items-center justify-center flex-shrink-0">
                 <img 
                   src="/images/markmap.png" 
                   alt="Preparados no Mapa" 
@@ -251,9 +250,9 @@ export default function PessoasProximas() {
                   onError={(e) => { e.currentTarget.style.display = 'none' }}
                 />
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Preparados no Mapa</p>
-                <p className="text-xl font-bold text-black">{userLocations.length}</p>
+              <div className="flex-1">
+                <p className="text-sm text-gray-500 leading-tight">Preparados no Mapa</p>
+                <p className="text-xl font-bold text-black mt-1">{userLocations.length}</p>
               </div>
             </div>
           </Link>
@@ -261,20 +260,20 @@ export default function PessoasProximas() {
           {/* Card: Ver Grupos */}
           <Link
             href="/pessoas/grupos"
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition"
+            className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition flex flex-col h-full min-h-[88px]"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
                 <img 
-                  src="/images/localizacao-icon.jpeg" 
+                  src="/images/localizacao-icon.png" 
                   alt="Grupos" 
                   className="w-6 h-6 object-contain"
                   onError={(e) => { e.currentTarget.style.display = 'none' }}
                 />
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Grupos</p>
-                <p className="text-xl font-bold text-black">{groupsCount}</p>
+              <div className="flex-1">
+                <p className="text-sm text-gray-500 leading-tight">Grupos</p>
+                <p className="text-xl font-bold text-black mt-1">{groupsCount}</p>
               </div>
             </div>
           </Link>
