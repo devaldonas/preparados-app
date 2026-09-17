@@ -28,7 +28,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const channelRef = useRef<any>(null)
   const router = useRouter()
 
-  // 🔥 Altura dinâmica que acompanha o teclado
   const viewportHeight = useVisualViewport()
 
   const formatarDataHora = (data: string) => {
@@ -104,27 +103,18 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   useEffect(() => {
     if (!otherUserId || !user?.id) return
 
-    console.log('📡 Iniciando realtime do chat com:', otherUserId)
-
     const channel = supabase
       .channel(`chat-${user.id}-${otherUserId}`)
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
-        },
+        { event: 'INSERT', schema: 'public', table: 'messages' },
         (payload: any) => {
           const newMsg = payload.new as Message
-
           const isRelevant =
             (newMsg.sender_id === otherUserId && newMsg.receiver_id === user.id) ||
             (newMsg.sender_id === user.id && newMsg.receiver_id === otherUserId)
 
           if (!isRelevant) return
-
-          console.log('🔔 Nova mensagem recebida:', newMsg)
 
           setMessages((prev) => {
             if (prev.some(m => m.id === newMsg.id)) return prev
@@ -140,17 +130,10 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           }
         }
       )
-      .subscribe((status: string, err?: Error) => {
-        console.log('📡 Chat status:', status, err || '')
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('❌ Erro no canal realtime:', err)
-        }
-      })
+      .subscribe()
 
     channelRef.current = channel
-
     return () => {
-      console.log('📡 Removendo canal do chat')
       supabase.removeChannel(channel)
       channelRef.current = null
     }
@@ -205,15 +188,11 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
 
   return (
     <div
-      className="bg-gray-50 flex flex-col overflow-hidden"
+      className="fixed top-0 left-0 right-0 bottom-0 bg-gray-50 flex flex-col overflow-hidden"
       style={{ height: viewportHeight }}
     >
-      {/* Header — fixo no topo, sempre visível */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 z-10">
-        <Link
-          href="/pessoas"
-          className="p-2 hover:bg-gray-100 rounded-lg transition"
-        >
+        <Link href="/pessoas" className="p-2 hover:bg-gray-100 rounded-lg transition">
           <ArrowLeft size={20} />
         </Link>
         <div>
@@ -222,7 +201,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         </div>
       </div>
 
-      {/* Área de mensagens — flex-1 + scroll interno */}
       <div
         ref={messagesContainerRef}
         className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 overscroll-contain"
@@ -235,10 +213,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
           messages.map((msg) => {
             const isOwn = msg.sender_id === user?.id
             return (
-              <div
-                key={msg.id}
-                className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}
-              >
+              <div key={msg.id} className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
                 <div className={`max-w-[70%] p-3 rounded-lg ${
                   isOwn
                     ? 'bg-[#FFB800] text-black rounded-br-none'
@@ -255,7 +230,6 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
         )}
       </div>
 
-      {/* Input — dentro do flex, mas com flex-shrink-0 (fica firme no rodapé) */}
       <div
         className="flex-shrink-0 bg-white border-t border-gray-200 p-3"
         style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}

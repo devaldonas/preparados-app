@@ -28,7 +28,6 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const channelRef = useRef<any>(null)
 
-  // 🔥 Altura dinâmica que acompanha o teclado
   const viewportHeight = useVisualViewport()
 
   const formatarDataHora = (data: string) => {
@@ -95,8 +94,6 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
   useEffect(() => {
     if (!grupoId) return
 
-    console.log('📡 Iniciando realtime para o grupo:', grupoId)
-
     const channel = supabase
       .channel(`grupo-${grupoId}`)
       .on(
@@ -108,26 +105,17 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
           filter: `group_id=eq.${grupoId}`
         },
         (payload: any) => {
-          console.log('🔔 Nova mensagem recebida:', payload.new)
           const novaMensagem = payload.new as Message
-
           setMessages((prev) => {
             if (prev.some(m => m.id === novaMensagem.id)) return prev
             return [...prev, novaMensagem]
           })
         }
       )
-      .subscribe((status: string, err?: Error) => {
-        console.log('📡 Status do realtime:', status, err || '')
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('❌ Erro no canal realtime:', err)
-        }
-      })
+      .subscribe()
 
     channelRef.current = channel
-
     return () => {
-      console.log('📡 Removendo canal realtime')
       supabase.removeChannel(channel)
       channelRef.current = null
     }
@@ -171,7 +159,6 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
         })
 
       if (error) throw error
-
       setNewMessage('')
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error)
@@ -191,15 +178,11 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
 
   return (
     <div
-      className="bg-gray-50 flex flex-col overflow-hidden"
+      className="fixed top-0 left-0 right-0 bottom-0 bg-gray-50 flex flex-col overflow-hidden"
       style={{ height: viewportHeight }}
     >
-      {/* Header */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 z-10">
-        <Link
-          href="/pessoas"
-          className="p-2 hover:bg-gray-100 rounded-lg transition"
-        >
+        <Link href="/pessoas" className="p-2 hover:bg-gray-100 rounded-lg transition">
           <ArrowLeft size={20} />
         </Link>
         <div>
@@ -208,7 +191,6 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
         </div>
       </div>
 
-      {/* Área de mensagens */}
       <div
         ref={messagesContainerRef}
         className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 overscroll-contain"
@@ -222,10 +204,7 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
           messages.map((msg) => {
             const isOwn = msg.user_id === user?.id
             return (
-              <div
-                key={msg.id}
-                className={`flex items-start gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}
-              >
+              <div key={msg.id} className={`flex items-start gap-3 ${isOwn ? 'flex-row-reverse' : ''}`}>
                 <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                   isOwn ? 'bg-[#FFB800]' : 'bg-gray-200'
                 }`}>
@@ -250,7 +229,6 @@ export default function GrupoPage({ params }: { params: Promise<{ id: string }> 
         )}
       </div>
 
-      {/* Input — dentro do flex */}
       <div
         className="flex-shrink-0 bg-white border-t border-gray-200 p-3"
         style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
