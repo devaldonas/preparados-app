@@ -252,6 +252,50 @@ function CheckoutContent() {
     }
   }
 
+  const pagarComCartao = async () => {
+  if (!orderId) return
+  setProcessing(true)
+  setError(null)
+
+  try {
+    // Se tiver desconto de créditos, debita AGORA (antes de ir pro Stripe)
+    if (desconto > 0) {
+      const { error: debitoError } = await supabase.rpc('debitar_saldo', {
+        p_usuario_id: user.id,
+        p_valor: desconto,
+        p_descricao: 'Uso de créditos na compra - Pedido #' + orderId
+      })
+
+      if (debitoError) {
+        console.error('❌ Erro ao debitar créditos:', debitoError)
+        setError('Erro ao usar créditos. Tente novamente.')
+        setProcessing(false)
+        return
+      }
+    }
+
+    // Cria a sessão no Stripe
+    const response = await fetch('/api/stripe/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: parseInt(orderId) })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok || !data.url) {
+      throw new Error(data.error || 'Erro ao criar sessão de pagamento')
+    }
+
+    // Redireciona pro Stripe
+    window.location.href = data.url
+  } catch (error: any) {
+    console.error('❌ Erro ao pagar com cartão:', error)
+    setError(error.message || 'Erro ao processar pagamento')
+    setProcessing(false)
+  }
+}
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -462,10 +506,21 @@ function CheckoutContent() {
               )}
 
               {paymentMethod === 'cartao' && (
-                <div className="text-center py-4">
-                  <p className="text-sm text-gray-500">Em breve disponível</p>
-                </div>
-              )}
+  <button
+    onClick={pagarComCartao}
+    disabled={processing}
+    className="w-full bg-[#FFB800] text-black py-3 rounded-lg font-semibold hover:bg-[#E5A600] transition disabled:opacity-50 flex items-center justify-center gap-2"
+  >
+    {processing ? (
+      <>
+        <Loader2 size={18} className="animate-spin" />
+        Redirecionando...
+      </>
+    ) : (
+      `Pagar com Cartão - ${formatPrice(totalFinal)}`
+    )}
+  </button>
+)}
 
               {paymentMethod === 'bdm' && (
                 <div className="text-center py-4">

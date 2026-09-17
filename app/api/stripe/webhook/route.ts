@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { supabase } from '@/lib/supabaseClient'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {})
 
@@ -131,6 +132,97 @@ export async function POST(request: Request) {
      * ASSINATURA ATUALIZADA
      * ============================================================
      */
+
+    /*
+     * ============================================================
+     * CHECKOUT CONCLUÍDO - LOJA (pagamento único)
+     * ============================================================
+     */
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session
+
+      // Se for pagamento da LOJA (não de assinatura)
+      if (session.metadata?.type === 'loja') {
+        const orderId = session.metadata?.order_id
+
+        console.log('🛒 Checkout da loja concluído:', {
+          orderId,
+          sessionId: session.id,
+          paymentStatus: session.payment_status,
+        })
+
+        if (!orderId) {
+          console.error('❌ order_id não encontrado no metadata')
+          return NextResponse.json({ error: 'order_id ausente' }, { status: 400 })
+        }
+
+        // 1. Atualiza o pedido como pago
+        const { error: orderError } = await supabaseAdmin
+          .from('orders')
+          .update({
+            payment_status: 'paid',
+            status: 'paid',
+            transaction_id: session.payment_intent as string || session.id,
+            stripe_session_id: session.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', orderId)
+
+        if (orderError) {
+          console.error('❌ Erro ao atualizar pedido:', orderError)
+          return NextResponse.json({ error: 'Erro ao atualizar pedido' }, { status: 500 })
+        }
+
+        // 2. Buscar itens do pedido pra decrementar estoque
+        const { data: orderItems } = await supabaseAdmin
+          .from('order_items')
+          .select('product_id, quantity')
+          .eq('order_id', orderId)
+
+        // 3. Decrementar estoque de cada item + registrar em stock_history
+        for (const item of orderItems || []) {
+          const { data: product } = await supabaseAdmin
+            .from('products')
+            .select('stock')
+            .eq('id', item.product_id)
+            .single()
+
+          if (product) {
+            const oldStock = product.stock || 0
+            const newStock = Math.max(0, oldStock - item.quantity)
+
+            // Atualiza o produto
+            await supabaseAdmin
+              .from('products')
+              .update({ stock: newStock, updated_at: new Date().toISOString() })
+              .eq('id', item.product_id)
+
+            // Registra no histórico
+            await supabaseAdmin
+              .from('stock_history')
+              .insert({
+                product_id: item.product_id,
+                old_stock: oldStock,
+                new_stock: newStock,
+                change_type: 'venda',
+                user_id: session.metadata?.user_id || null,
+                notes: `Venda via Stripe - Pedido #${orderId}`,
+              })
+          }
+        }
+
+        // 4. Limpar carrinho do usuário
+        if (session.metadata?.user_id) {
+          await supabaseAdmin
+            .from('cart_items')
+            .delete()
+            .eq('user_id', session.metadata.user_id)
+        }
+
+        console.log('✅ Pedido da loja processado com sucesso:', orderId)
+      }
+    }
+
     if (event.type === 'customer.subscription.updated') {
       const subscription =
         event.data.object as Stripe.Subscription
