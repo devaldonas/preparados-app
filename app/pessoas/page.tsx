@@ -242,7 +242,7 @@ export default function PessoasProximas() {
             className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition flex flex-col h-full min-h-[88px]"
           >
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-[#FFB800]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
                 <img 
                   src="/images/markmap.png" 
                   alt="Preparados no Mapa" 
@@ -263,7 +263,7 @@ export default function PessoasProximas() {
             className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition flex flex-col h-full min-h-[88px]"
           >
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
                 <img 
                   src="/images/localizacao-icon.png" 
                   alt="Grupos" 
