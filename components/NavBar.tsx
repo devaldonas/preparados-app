@@ -38,18 +38,16 @@ export default function NavBar({
   sino
 }: NavBarProps) {
   const router = useRouter()
-  const { getTotalItems } = useCart()
+  const cartCount = useCart(state => state.items.reduce((sum, item) => sum + item.quantity, 0))
   const [user, setUser] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [cartCount, setCartCount] = useState(0)
   const [mounted, setMounted] = useState(false)
 
-  // 🔥 CORRIGIDO: só atualizar o cartCount no cliente
+  // 🔥 Apenas marca como montado no cliente
   useEffect(() => {
     setMounted(true)
-    setCartCount(getTotalItems())
-  }, [getTotalItems])
+  }, [])
 
   useEffect(() => {
     carregarUsuario()
