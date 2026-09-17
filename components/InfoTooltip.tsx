@@ -13,23 +13,28 @@ export default function InfoTooltip({ descricao }: InfoTooltipProps) {
   if (!descricao) return null
 
   return (
-    <div className="flex items-center">
+    <div className="flex flex-col items-end gap-2">
       <button
         onClick={() => setAberto(!aberto)}
         className="w-6 h-6 rounded-full bg-[#FFB800]/20 text-[#FFB800] flex items-center justify-center hover:bg-[#FFB800]/30 transition flex-shrink-0 hover:scale-110"
         type="button"
         aria-label="Ver descrição"
+        aria-expanded={aberto}
       >
         <Info size={14} />
       </button>
 
       {aberto && (
-        <div className="ml-3 flex-1 bg-gray-50 border border-gray-200 rounded-lg p-3">
+        <div className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-sm text-gray-700 leading-relaxed flex-1">{descricao}</p>
+            <p className="text-sm text-gray-700 leading-relaxed flex-1">
+              {descricao}
+            </p>
             <button
               onClick={() => setAberto(false)}
               className="text-gray-400 hover:text-gray-600 transition flex-shrink-0"
+              type="button"
+              aria-label="Fechar descrição"
             >
               <X size={16} />
             </button>

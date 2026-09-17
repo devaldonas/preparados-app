@@ -6,6 +6,15 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Save } from 'lucide-react'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
+import InfoTooltip from '@/components/InfoTooltip'
+import BotaoComprarProduto from '@/components/BotaoComprarProduto'
+
+interface Produto {
+  id: number
+  name: string
+  price: number
+  image_url?: string
+}
 
 interface ChecklistItem {
   id: number
@@ -14,6 +23,7 @@ interface ChecklistItem {
   description?: string
   order: number
   tipo: string[]
+  produtos?: Produto[]
 }
 
 interface Category {
@@ -48,7 +58,7 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
   const carregarDados = useCallback(async () => {
     try {
       setLoading(true)
-      
+
       const resolvedParams = await params
       const id = parseInt(resolvedParams.id)
       setBackpackId(id)
@@ -87,7 +97,49 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
         .contains('tipo', [backpack.tipo])
         .order('order', { ascending: true })
 
-      setItems(allItems || [])
+      // =====================================================
+      // 🔥 Buscar produtos mapeados pra cada item
+      // =====================================================
+      const itemIds = (allItems || []).map(i => i.id)
+
+      const produtosPorItem: Record<number, Produto[]> = {}
+
+      if (itemIds.length > 0) {
+        const { data: mapeamentos, error: mapError } = await supabase
+          .from('checklist_item_products')
+          .select(`
+            checklist_item_id,
+            ordem,
+            products (
+              id,
+              name,
+              price,
+              image_url
+            )
+          `)
+          .in('checklist_item_id', itemIds)
+          .order('ordem', { ascending: true })
+
+        if (mapError) {
+          console.error('Erro ao buscar produtos:', mapError)
+        } else if (mapeamentos) {
+          mapeamentos.forEach((m: any) => {
+            if (!m.products) return
+            if (!produtosPorItem[m.checklist_item_id]) {
+              produtosPorItem[m.checklist_item_id] = []
+            }
+            produtosPorItem[m.checklist_item_id].push(m.products)
+          })
+        }
+      }
+
+      // Enriquece os items com os produtos
+      const itemsComProdutos: ChecklistItem[] = (allItems || []).map(item => ({
+        ...item,
+        produtos: produtosPorItem[item.id] || []
+      }))
+
+      setItems(itemsComProdutos)
 
       const { data: progressData } = await supabase
         .from('user_progress')
@@ -101,7 +153,7 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
       setUserProgress(progressMap)
       setLocalProgress({ ...progressMap })
 
-      const { total, completed, percentual } = calcularProgressoTotal(allItems || [], progressMap)
+      const { total, completed, percentual } = calcularProgressoTotal(itemsComProdutos, progressMap)
       setTotalItems(total)
       setCompletedItems(completed)
       setProgress(percentual)
@@ -140,7 +192,6 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
         return
       }
 
-      // Preparar todos os itens para upsert
       const itemsToSave = items.map(item => ({
         user_id: user.id,
         backpack_id: backpackId,
@@ -149,7 +200,6 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
         updated_at: new Date().toISOString()
       }))
 
-      // 🔥 SALVAR TODOS OS ITENS DE UMA VEZ
       const { error } = await supabase
         .from('user_progress')
         .upsert(itemsToSave, {
@@ -163,16 +213,13 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
         return
       }
 
-      // Atualizar userProgress com o localProgress
       setUserProgress({ ...localProgress })
 
-      // Calcular novo progresso
       const { total, completed, percentual } = calcularProgressoTotal(items, localProgress)
       setTotalItems(total)
       setCompletedItems(completed)
       setProgress(percentual)
 
-      // Atualizar progresso no banco
       await supabase
         .from('user_backpacks')
         .update({ progress: percentual })
@@ -189,7 +236,6 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
     setSaving(false)
   }
 
-  // Verificar se houve mudanças
   const hasChanges = () => {
     return JSON.stringify(userProgress) !== JSON.stringify(localProgress)
   }
@@ -221,7 +267,6 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
                'Tipo desconhecido'}
             </p>
           </div>
-         
         </div>
 
         {/* Progresso */}
@@ -253,8 +298,8 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
             if (categoryItems.length === 0) return null
 
             const completed = categoryItems.filter(item => localProgress[item.id] === true).length
-            const categoryProgress = categoryItems.length > 0 
-              ? Math.round((completed / categoryItems.length) * 100) 
+            const categoryProgress = categoryItems.length > 0
+              ? Math.round((completed / categoryItems.length) * 100)
               : 0
 
             return (
@@ -299,12 +344,19 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
                         </div>
                       </button>
                       <div className="ml-3 flex-1">
-                        <p className={`text-sm ${localProgress[item.id] === true ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                          {item.name}
-                        </p>
-                        {item.description && (
-                          <p className="text-xs text-gray-400 mt-0.5">{item.description}</p>
-                        )}
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={`text-sm ${localProgress[item.id] === true ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                            {item.name}
+                          </p>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {item.produtos && item.produtos.length > 0 && (
+                              <BotaoComprarProduto produtos={item.produtos} />
+                            )}
+                            {item.description && (
+                              <InfoTooltip descricao={item.description} />
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -314,19 +366,19 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
           })}
         </div>
 
-          {/*BOTÃO SALVAR */}
-          <button
-            onClick={salvarProgresso}
-            disabled={saving || !hasChanges()}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
-              hasChanges() && !saving
-                ? 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            <Save size={18} />
-            {saving ? 'Salvando...' : 'Salvar Progresso'}
-          </button>
+        {/* BOTÃO SALVAR */}
+        <button
+          onClick={salvarProgresso}
+          disabled={saving || !hasChanges()}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition mt-6 ${
+            hasChanges() && !saving
+              ? 'bg-[#FFB800] text-black hover:bg-[#E5A600]'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+        >
+          <Save size={18} />
+          {saving ? 'Salvando...' : 'Salvar Progresso'}
+        </button>
 
         <div className="mt-8 space-y-4">
           <Link
