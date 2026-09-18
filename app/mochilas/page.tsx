@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ChevronRight, ListChecks } from 'lucide-react'
 import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 
 interface UserBackpack {
@@ -191,20 +192,31 @@ export default function MinhasMochilas() {
               <Link
                 key={backpack.id}
                 href={`/mochilas/${backpack.id}`}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition block"
+                className="bg-white rounded-xl shadow-sm border border-black p-5 hover:shadow-md transition block group"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div>
-                      <h3 className="font-bold text-gray-900">{backpack.name}</h3>
-                      <p className="text-xs text-gray-500">{getTipoLabel(backpack.tipo)}</p>
+                {/* Topo: nome, data e seta */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 group-hover:text-[#FFB800] transition truncate">
+                      {backpack.name}
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">{getTipoLabel(backpack.tipo)}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-xs text-gray-400 whitespace-nowrap">
+                      {new Date(backpack.created_at).toLocaleDateString('pt-BR')}
+                    </span>
+                    {/* Seta com fundo circular - amarelo cheio por padrão */}
+                    <div className="w-8 h-8 rounded-full bg-[#FFB800] group-hover:bg-[#FFB800]/15 flex items-center justify-center transition flex-shrink-0">
+                      <ChevronRight 
+                        size={16} 
+                        className="text-black group-hover:text-[#FFB800] transition" 
+                      />
                     </div>
                   </div>
-                  <span className="text-xs text-gray-400">
-                    {new Date(backpack.created_at).toLocaleDateString('pt-BR')}
-                  </span>
                 </div>
-                
+
+                {/* Progresso */}
                 <div className="mt-3">
                   <div className="flex justify-between text-xs text-gray-600 mb-1">
                     <span>Progresso</span>
@@ -217,12 +229,22 @@ export default function MinhasMochilas() {
                     />
                   </div>
                 </div>
+
+                {/* Botão "Ver itens" - amarelo cheio por padrão */}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="w-full bg-[#FFB800] group-hover:bg-[#FFB800]/10 border border-[#FFB800] group-hover:border-[#FFB800]/30 rounded-lg py-2.5 px-4 flex items-center justify-center gap-2 transition">
+                    <ListChecks size={16} className="text-black group-hover:text-[#FFB800] transition" />
+                    <span className="text-sm font-semibold text-black group-hover:text-[#FFB800] transition">
+                      Ver itens da mochila
+                    </span>
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
         )}
 
-        {/* Card Guia de Preparação - SEM ÍCONE e DEPOIS DA LISTA */}
+        {/* Card Guia de Preparação */}
         <Link
           href="/guia"
           className="block bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition mt-8"
