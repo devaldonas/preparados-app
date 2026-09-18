@@ -269,7 +269,9 @@ export default function Carrinho() {
         payment_status: 'pending',
         status: 'pending',
         transaction_id: orderNumber,
-        shipping_address: JSON.stringify(shippingAddress)
+        shipping_address: JSON.stringify(shippingAddress),
+        email: user.email,
+        customer_name: shippingAddress.name
       }
 
       const { data: order, error: orderError } = await (supabase

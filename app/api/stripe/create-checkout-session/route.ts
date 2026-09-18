@@ -51,16 +51,21 @@ export async function POST(request: Request) {
     // ============================================================
     // 2. Buscar dados do usuário (nome, email)
     // ============================================================
+    // Buscar dados do perfil (nome) e do auth (email)
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('full_name, email')
+      .select('full_name')
       .eq('id', order.user_id)
       .single()
 
-    const customerEmail = profile?.email || order.email
+    const { data: authData } = await supabaseAdmin.auth.admin.getUserById(order.user_id)
+    const authEmail = authData?.user?.email
+
+    const customerEmail = order.email || authEmail
     const customerName = profile?.full_name || order.customer_name || 'Cliente'
 
     if (!customerEmail) {
+      console.error('❌ Email não encontrado. order.email:', order.email, 'authEmail:', authEmail)
       return NextResponse.json(
         { success: false, error: 'E-mail do cliente não encontrado' },
         { status: 400 }

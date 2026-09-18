@@ -45,8 +45,12 @@ export async function POST(request: Request) {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session
 
-      const userId = session.metadata?.user_id
-      const planType = session.metadata?.plan_type
+      // 🚫 Ignora checkouts da LOJA — quem trata é o handler de loja (mais abaixo)
+      if (session.metadata?.type === 'loja') {
+        console.log('⏭️ Checkout da loja ignorado pelo handler de assinatura')
+      } else {
+        const userId = session.metadata?.user_id
+        const planType = session.metadata?.plan_type
 
       const subscriptionId =
         typeof session.subscription === 'string'
@@ -125,6 +129,7 @@ export async function POST(request: Request) {
         '✅ Assinatura ativada com sucesso para:',
         userId
       )
+      }
     }
 
     /*
