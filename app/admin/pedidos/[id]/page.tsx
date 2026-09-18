@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CreditCard, Truck, Check, X, Loader2, RefreshCw } from 'lucide-react'
+import { ArrowLeft, CreditCard, Truck, Check, X, Loader2, RefreshCw, MapPin } from 'lucide-react'
 
 interface Order {
   id: number
@@ -193,6 +193,18 @@ export default function AdminPedidoDetalhes() {
     )
   }
 
+  // Endereço (parse defensivo)
+  let endereco: any = {}
+  try {
+    endereco = typeof order.shipping_address === 'string'
+      ? JSON.parse(order.shipping_address)
+      : order.shipping_address || {}
+  } catch (e) {
+    endereco = {}
+  }
+
+  const temEndereco = endereco && (endereco.street || endereco.zip || endereco.cep)
+
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
@@ -315,6 +327,53 @@ export default function AdminPedidoDetalhes() {
           </div>
         </div>
       </div>
+
+      {/* 🆕 Endereço de Entrega */}
+      {temEndereco && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <MapPin size={18} className="text-[#FFB800]" />
+            Endereço de Entrega
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            {endereco.name && (
+              <div>
+                <span className="text-gray-500">Destinatário: </span>
+                <span className="font-medium">{endereco.name}</span>
+              </div>
+            )}
+            <div>
+              <span className="text-gray-500">CEP: </span>
+              <span className="font-medium">{endereco.zip || endereco.cep || 'Não informado'}</span>
+            </div>
+            <div className="md:col-span-2">
+              <span className="text-gray-500">Rua: </span>
+              <span className="font-medium">{endereco.street || 'Não informado'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Número: </span>
+              <span className="font-medium">{endereco.number || 'S/N'}</span>
+            </div>
+            {endereco.complement && (
+              <div>
+                <span className="text-gray-500">Complemento: </span>
+                <span className="font-medium">{endereco.complement}</span>
+              </div>
+            )}
+            <div>
+              <span className="text-gray-500">Bairro: </span>
+              <span className="font-medium">{endereco.neighborhood || 'Não informado'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Cidade: </span>
+              <span className="font-medium">
+                {endereco.city || 'Não informado'}
+                {endereco.state ? ` - ${endereco.state}` : ''}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Itens */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">

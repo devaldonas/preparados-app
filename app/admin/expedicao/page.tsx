@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Printer } from 'lucide-react'
 import AdminGuard from '@/components/AdminGuard'
 
 interface Order {
@@ -81,6 +82,165 @@ function AdminExpedicaoContent() {
       case 'delivered': return 'Entregue'
       case 'cancelled': return 'Cancelado'
       default: return status
+    }
+  }
+
+  // =====================================================
+  // IMPRIMIR ETIQUETA DOS CORREIOS
+  // =====================================================
+  const imprimirEtiquetaCorreios = (pedido: Order) => {
+    if (!pedido) return
+
+    const remetente = {
+      nome: 'Preparado Store Ltda',
+      cep: '04711130',
+      endereco: 'Avenida Doutor Chucri Zaidan',
+      numero: '1240',
+      complemento: '',
+      bairro: 'Vila Cordeiro',
+      cidade: 'São Paulo',
+      uf: 'SP'
+    }
+
+    let destinatario = {
+      nome: 'Cliente',
+      cep: '00000000',
+      endereco: 'Endereço não informado',
+      numero: 'S/N',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      uf: ''
+    }
+
+    try {
+      const addr = typeof pedido.shipping_address === 'string' 
+        ? JSON.parse(pedido.shipping_address) 
+        : pedido.shipping_address || {}
+
+      destinatario = {
+        nome: addr.name || 'Cliente',
+        cep: addr.zip || addr.cep || '00000000',
+        endereco: addr.street || 'Endereço não informado',
+        numero: addr.number || 'S/N',
+        complemento: addr.complement || '',
+        bairro: addr.neighborhood || '',
+        cidade: addr.city || '',
+        uf: addr.state || ''
+      }
+    } catch (e) {
+      console.error('Erro ao parsear endereço:', e)
+    }
+
+    const observacao = `Pedido #${pedido.id} - ${new Date(pedido.created_at).toLocaleDateString()}`.slice(0, 60)
+
+    const conteudoEtiqueta = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Etiqueta Correios - Pedido #${pedido.id}</title>
+        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Arial', sans-serif; background: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+          .etiqueta { width: 9.5cm; background: #fff; border: 1px solid #000; padding: 0.2cm; box-sizing: border-box; }
+          .bloco1 { height: 5.5cm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0.3cm; position: relative; border: none; }
+          .bloco1 .canto { position: absolute; width: 16px; height: 16px; }
+          .bloco1 .canto-superior-esquerdo { top: -2px; left: -2px; border-top: 2px solid #000; border-left: 2px solid #000; border-radius: 8px 0 0 0; }
+          .bloco1 .canto-superior-direito { top: -2px; right: -2px; border-top: 2px solid #000; border-right: 2px solid #000; border-radius: 0 8px 0 0; }
+          .bloco1 .canto-inferior-esquerdo { bottom: -2px; left: -2px; border-bottom: 2px solid #000; border-left: 2px solid #000; border-radius: 0 0 0 8px; }
+          .bloco1 .canto-inferior-direito { bottom: -2px; right: -2px; border-bottom: 2px solid #000; border-right: 2px solid #000; border-radius: 0 0 8px 0; }
+          .bloco1 .titulo { font-size: 14px; font-weight: bold; letter-spacing: 2px; }
+          .bloco1 .subtitulo { font-size: 10px; margin-top: 4px; color: #333; }
+          .bloco2 { height: 1cm; display: flex; flex-direction: column; justify-content: center; padding: 0 0.2cm; font-size: 10px; border-bottom: 1px dashed #ccc; }
+          .bloco2 .linha { display: flex; align-items: center; gap: 4px; }
+          .bloco2 .linha span { white-space: nowrap; }
+          .bloco2 .linha .linha-pontilhada { flex: 1; border-bottom: 1px dotted #000; min-width: 30px; }
+          .bloco3 { height: 1cm; border: 1px solid #000; padding: 0.1cm 0.2cm; display: flex; flex-direction: column; justify-content: center; }
+          .bloco3 .vizinho-titulo { background: #000; color: #fff; font-weight: bold; font-size: 9px; padding: 1px 4px; display: inline-block; letter-spacing: 1px; }
+          .bloco3 .vizinho-resposta { font-size: 10px; margin-top: 1px; padding-left: 2px; }
+          .bloco4 { height: 4.5cm; border: 1px solid #000; padding: 0.15cm 0.2cm; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
+          .bloco4 .logo-correios { position: absolute; top: 0.1cm; right: 0.2cm; width: 1.3cm; height: 0.4cm; font-size: 9px; font-weight: bold; color: #003399; text-align: right; }
+          .bloco4 .dest-titulo { background: #000; color: #fff; font-weight: bold; font-size: 9px; padding: 1px 4px; display: inline-block; letter-spacing: 1px; width: fit-content; }
+          .bloco4 .dest-linha { font-size: 11px; padding: 1px 0; }
+          .bloco4 .codigo-barras { display: flex; align-items: center; gap: 0.3cm; margin-top: 2px; }
+          .bloco4 .codigo-barras svg { width: 4.5cm; height: 2cm; border: none !important; }
+          .bloco4 .codigo-barras svg text { display: none !important; }
+          .bloco4 .observacao { font-size: 8px; color: #555; flex: 1; padding-left: 0.2cm; }
+          .bloco5 { height: 1.5cm; padding: 0.1cm 0.2cm; display: flex; flex-direction: column; justify-content: center; border-top: 1px dashed #ccc; }
+          .bloco5 .rem-linha { font-size: 9px; padding: 1px 0; }
+          @media print { body { padding: 0; background: #fff; } .etiqueta { border: 1px solid #000; } .no-print { display: none; } }
+        </style>
+      </head>
+      <body>
+        <div class="etiqueta">
+          <div class="bloco1">
+            <div class="canto canto-superior-esquerdo"></div>
+            <div class="canto canto-superior-direito"></div>
+            <div class="canto canto-inferior-esquerdo"></div>
+            <div class="canto canto-inferior-direito"></div>
+            <div class="titulo">USO EXCLUSIVO DOS CORREIOS</div>
+            <div class="subtitulo">Cole aqui a etiqueta com o código identificador da encomenda</div>
+          </div>
+          <div class="bloco2">
+            <div class="linha"><span>Recebedor:</span><span class="linha-pontilhada"></span></div>
+            <div class="linha"><span>Assinatura:</span><span class="linha-pontilhada" style="flex: 0.6;"></span><span>Documento:</span><span class="linha-pontilhada" style="flex: 0.4;"></span></div>
+          </div>
+          <div class="bloco3">
+            <div class="vizinho-titulo">ENTREGA NO VIZINHO AUTORIZADA?</div>
+            <div class="vizinho-resposta">Entrega no vizinho NÃO autorizada</div>
+          </div>
+          <div class="bloco4">
+            <div class="logo-correios">CORREIOS</div>
+            <div class="dest-titulo">DESTINATÁRIO</div>
+            <div class="dest-linha"><strong>${destinatario.nome}</strong></div>
+            <div class="dest-linha">${destinatario.endereco}</div>
+            <div class="dest-linha">${destinatario.numero}${destinatario.complemento ? ', ' + destinatario.complemento : ''}</div>
+            <div class="dest-linha">${destinatario.bairro}</div>
+            <div class="dest-linha">${destinatario.cep}     ${destinatario.cidade}-${destinatario.uf}</div>
+            <div class="codigo-barras">
+              <svg id="barcode"></svg>
+              <div class="observacao"><strong>Obs:</strong> ${observacao}</div>
+            </div>
+          </div>
+          <div class="bloco5">
+            <div class="rem-linha"><strong>Remetente:</strong> ${remetente.nome}</div>
+            <div class="rem-linha">${remetente.endereco}, ${remetente.numero}${remetente.complemento ? ', ' + remetente.complemento : ''}</div>
+            <div class="rem-linha">${remetente.bairro}</div>
+            <div class="rem-linha">${remetente.cep}     ${remetente.cidade}-${remetente.uf}</div>
+          </div>
+        </div>
+        <div style="text-align: center; margin-top: 16px;" class="no-print">
+          <button onclick="window.print()" style="padding: 10px 30px; background: #FFB800; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-right: 12px;">🖨️ Imprimir Etiqueta</button>
+          <button onclick="window.close()" style="padding: 10px 30px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">✕ Fechar</button>
+        </div>
+        <script>
+          window.onload = function() {
+            try {
+              const cep = '${destinatario.cep}'.replace(/\\D/g, '');
+              JsBarcode('#barcode', cep || '00000000', {
+                format: 'CODE128',
+                width: 1.8,
+                height: 70,
+                displayValue: false,
+                fontSize: 0,
+                margin: 0,
+                background: '#ffffff',
+                lineColor: '#000000'
+              });
+            } catch(e) { console.log('Erro ao gerar código de barras:', e); }
+          };
+        </script>
+      </body>
+      </html>
+    `
+
+    const novaJanela = window.open('', '_blank', 'width=800,height=900')
+    if (novaJanela) {
+      novaJanela.document.write(conteudoEtiqueta)
+      novaJanela.document.close()
+    } else {
+      alert('⚠️ Bloqueio de pop-up detectado. Permita pop-ups para imprimir a etiqueta.')
     }
   }
 
@@ -172,12 +332,24 @@ function AdminExpedicaoContent() {
                       {new Date(order.created_at).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="p-3">
-                      <Link
-                        href={`/admin/pedidos/${order.id}`}
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                      >
-                        Detalhes
-                      </Link>
+                      <div className="flex items-center gap-3">
+                        <Link
+                          href={`/admin/pedidos/${order.id}`}
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                        >
+                          Detalhes
+                        </Link>
+                        {order.shipping_address && (
+                          <button
+                            onClick={() => imprimirEtiquetaCorreios(order)}
+                            className="text-[#FFB800] hover:text-[#E5A600] text-sm flex items-center gap-1"
+                            title="Imprimir etiqueta dos Correios"
+                          >
+                            <Printer size={14} />
+                            Etiqueta
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
