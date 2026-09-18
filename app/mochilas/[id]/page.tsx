@@ -9,6 +9,9 @@ import BotaoIndicarAmigo from '@/components/BotaoIndicarAmigo'
 import InfoTooltip from '@/components/InfoTooltip'
 import BotaoComprarProduto from '@/components/BotaoComprarProduto'
 
+// 🔧 INTERRUPTOR: Ativar quando todos os produtos estiverem cadastrados na loja
+const MOSTRAR_BOTAO_COMPRAR = false
+
 interface Produto {
   id: number
   name: string
@@ -349,7 +352,7 @@ export default function MochilaDetalhes({ params }: { params: { id: string } }) 
                             {item.name}
                           </p>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {item.produtos && item.produtos.length > 0 && (
+                            {MOSTRAR_BOTAO_COMPRAR && item.produtos && item.produtos.length > 0 && (
                               <BotaoComprarProduto produtos={item.produtos} />
                             )}
                             {item.description && (
