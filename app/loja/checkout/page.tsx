@@ -4,8 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CreditCard, QrCode, Wallet, Truck, Loader2 } from 'lucide-react'
-import { calcularFretePedido } from '@/lib/frete'
+import { ArrowLeft, CreditCard, QrCode, Wallet, Truck, Loader2, Check } from 'lucide-react'
 import { useCart } from '@/lib/store/cart'
 
 interface OrderItem {
@@ -43,6 +42,15 @@ interface Order {
   items: OrderItem[]
 }
 
+interface OpcaoFrete {
+  id: number
+  servico: string
+  transportadora: string
+  preco: number
+  prazo: number
+  gratis: boolean
+}
+
 interface FreteInfo {
   valor: number
   prazo: string
@@ -62,9 +70,9 @@ function CheckoutContent() {
   const [profile, setProfile] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   
-  const [frete, setFrete] = useState<FreteInfo>({ valor: 0, prazo: '', detalhes: [] })
   const [calculandoFrete, setCalculandoFrete] = useState(false)
-  const [cepDestino, setCepDestino] = useState('')
+  const [opcoesFrete, setOpcoesFrete] = useState<OpcaoFrete[]>([])
+  const [opcaoSelecionada, setOpcaoSelecionada] = useState<OpcaoFrete | null>(null)
   const [cepDigitado, setCepDigitado] = useState('')
   
   const [paymentMethod, setPaymentMethod] = useState('pix')
@@ -73,9 +81,9 @@ function CheckoutContent() {
   const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false)
 
   const subtotal = order?.subtotal || 0
-  const valorFrete = order?.shipping_cost || 0
   const desconto = order?.discount_amount || 0
-  const totalFinal = order?.total_amount || 0
+  const valorFrete = opcaoSelecionada?.preco ?? order?.shipping_cost ?? 0
+  const totalFinal = subtotal + valorFrete - desconto
 
   useEffect(() => {
     const carregarDados = async () => {
@@ -118,7 +126,6 @@ function CheckoutContent() {
             setOrder(orderData)
             
             if (profileData?.cep) {
-              setCepDestino(profileData.cep)
               setCepDigitado(profileData.cep)
               await calcularFrete(orderData.items, profileData.cep)
             }
@@ -141,9 +148,18 @@ function CheckoutContent() {
       return
     }
 
+    // Verifica se todos os produtos são frete grátis
     if (items.every((item: any) => item.product?.free_shipping === true)) {
-      setFrete({ valor: 0, prazo: 'Grátis', detalhes: [] })
-      setCepDestino(cep)
+      const gratis: OpcaoFrete = {
+        id: 0,
+        servico: 'Frete Grátis',
+        transportadora: 'Loja',
+        preco: 0,
+        prazo: 0,
+        gratis: true
+      }
+      setOpcoesFrete([gratis])
+      setOpcaoSelecionada(gratis)
       return
     }
 
@@ -152,40 +168,74 @@ function CheckoutContent() {
 
     try {
       const cepLimpo = cep.replace(/\D/g, '')
-      
-      const partnerId = items[0]?.product?.partner_id
-      if (!partnerId) {
-        setFrete({ valor: 0, prazo: 'Frete não disponível', detalhes: [] })
-        return
+
+      const response = await fetch('/api/frete/calcular', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cepDestino: cepLimpo,
+          items: items.map((item: any) => ({
+            product_id: item.product_id,
+            quantity: item.quantity || 1,
+            price: item.price || 0
+          }))
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Erro ao calcular frete')
       }
 
-      const itensFormatados = items.map((item: any) => ({
-        product: item.product || {},
-        quantity: item.quantity || 1,
-        weight: item.product?.weight || 0.5
-      }))
-
-      const result = await calcularFretePedido(itensFormatados, cepLimpo, partnerId)
-      setFrete(result)
-      setCepDestino(cepLimpo)
+      setOpcoesFrete(data.opcoes)
       
-    } catch (error) {
+      // Seleciona automaticamente a opção mais barata
+      if (data.opcoes.length > 0) {
+        setOpcaoSelecionada(data.opcoes[0])
+      }
+      
+    } catch (error: any) {
       console.error('Erro ao calcular frete:', error)
-      setError('Erro ao calcular frete. Tente novamente.')
+      setError(error.message || 'Erro ao calcular frete. Tente novamente.')
+      setOpcoesFrete([])
+      setOpcaoSelecionada(null)
     } finally {
       setCalculandoFrete(false)
     }
   }
 
+  const salvarFreteNoPedido = async () => {
+    if (!orderId || !opcaoSelecionada) return
+    try {
+      await supabase
+        .from('orders')
+        .update({
+          shipping_cost: opcaoSelecionada.preco,
+          total_amount: subtotal + opcaoSelecionada.preco - desconto,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', parseInt(orderId))
+    } catch (e) {
+      console.error('Erro ao salvar frete:', e)
+    }
+  }
+
   const gerarPix = async () => {
+    if (!opcaoSelecionada) {
+      setError('Selecione uma opção de frete')
+      return
+    }
+
     setProcessing(true)
     setError(null)
 
     try {
+      await salvarFreteNoPedido()
+
       const customerName = profile?.full_name || user?.user_metadata?.full_name || 'Cliente'
       const customerEmail = user?.email || 'cliente@email.com'
 
-      // 🔥 DEBITAR CRÉDITOS AGORA
       if (desconto > 0) {
         const { error: debitoError } = await supabase.rpc('debitar_saldo', {
           p_usuario_id: user.id,
@@ -199,10 +249,8 @@ function CheckoutContent() {
           setProcessing(false)
           return
         }
-        console.log('✅ Créditos debitados:', desconto)
       }
 
-      // 🔥 GERAR PIX
       const response = await fetch('/api/mercadopago/pix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -241,7 +289,6 @@ function CheckoutContent() {
         setCopiarCodigo(data.codigoPix)
       }
 
-      // 🔥 LIMPAR CARRINHO APÓS GERAR PIX
       clearCart()
       
     } catch (error: any) {
@@ -253,48 +300,53 @@ function CheckoutContent() {
   }
 
   const pagarComCartao = async () => {
-  if (!orderId) return
-  setProcessing(true)
-  setError(null)
+    if (!orderId) return
+    
+    if (!opcaoSelecionada) {
+      setError('Selecione uma opção de frete')
+      return
+    }
 
-  try {
-    // Se tiver desconto de créditos, debita AGORA (antes de ir pro Stripe)
-    if (desconto > 0) {
-      const { error: debitoError } = await supabase.rpc('debitar_saldo', {
-        p_usuario_id: user.id,
-        p_valor: desconto,
-        p_descricao: 'Uso de créditos na compra - Pedido #' + orderId
+    setProcessing(true)
+    setError(null)
+
+    try {
+      await salvarFreteNoPedido()
+
+      if (desconto > 0) {
+        const { error: debitoError } = await supabase.rpc('debitar_saldo', {
+          p_usuario_id: user.id,
+          p_valor: desconto,
+          p_descricao: 'Uso de créditos na compra - Pedido #' + orderId
+        })
+
+        if (debitoError) {
+          console.error('❌ Erro ao debitar créditos:', debitoError)
+          setError('Erro ao usar créditos. Tente novamente.')
+          setProcessing(false)
+          return
+        }
+      }
+
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: parseInt(orderId) })
       })
 
-      if (debitoError) {
-        console.error('❌ Erro ao debitar créditos:', debitoError)
-        setError('Erro ao usar créditos. Tente novamente.')
-        setProcessing(false)
-        return
+      const data = await response.json()
+
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || 'Erro ao criar sessão de pagamento')
       }
+
+      window.location.href = data.url
+    } catch (error: any) {
+      console.error('❌ Erro ao pagar com cartão:', error)
+      setError(error.message || 'Erro ao processar pagamento')
+      setProcessing(false)
     }
-
-    // Cria a sessão no Stripe
-    const response = await fetch('/api/stripe/create-checkout-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orderId: parseInt(orderId) })
-    })
-
-    const data = await response.json()
-
-    if (!response.ok || !data.url) {
-      throw new Error(data.error || 'Erro ao criar sessão de pagamento')
-    }
-
-    // Redireciona pro Stripe
-    window.location.href = data.url
-  } catch (error: any) {
-    console.error('❌ Erro ao pagar com cartão:', error)
-    setError(error.message || 'Erro ao processar pagamento')
-    setProcessing(false)
   }
-}
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -387,7 +439,7 @@ function CheckoutContent() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Frete</span>
                   <span className={`font-medium ${allFreeShipping || valorFrete === 0 ? 'text-green-600' : ''}`}>
-                    {allFreeShipping || valorFrete === 0 ? 'Grátis' : formatPrice(valorFrete)}
+                    {valorFrete === 0 ? 'Grátis' : formatPrice(valorFrete)}
                   </span>
                 </div>
                 
@@ -428,10 +480,49 @@ function CheckoutContent() {
                     {calculandoFrete ? <Loader2 size={18} className="animate-spin" /> : 'Calcular'}
                   </button>
                 </div>
-                {frete.valor > 0 && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    Frete: {formatPrice(frete.valor)} - Prazo: {frete.prazo}
-                  </p>
+
+                {/* 🆕 Lista de opções de frete */}
+                {opcoesFrete.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs text-gray-500 mb-2">Escolha uma opção de entrega:</p>
+                    {opcoesFrete.map((opcao) => (
+                      <button
+                        key={`${opcao.id}-${opcao.servico}`}
+                        onClick={() => {
+                          setOpcaoSelecionada(opcao)
+                          salvarFreteNoPedido()
+                        }}
+                        className={`w-full flex items-center justify-between p-3 rounded-lg border-2 transition text-left ${
+                          opcaoSelecionada?.id === opcao.id && opcaoSelecionada?.servico === opcao.servico
+                            ? 'border-[#FFB800] bg-[#FFB800]/5'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                            opcaoSelecionada?.id === opcao.id && opcaoSelecionada?.servico === opcao.servico
+                              ? 'border-[#FFB800] bg-[#FFB800]'
+                              : 'border-gray-300'
+                          }`}>
+                            {opcaoSelecionada?.id === opcao.id && opcaoSelecionada?.servico === opcao.servico && (
+                              <Check size={12} className="text-black" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm text-gray-900">
+                              {opcao.transportadora} — {opcao.servico}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Entrega em até {opcao.prazo} {opcao.prazo === 1 ? 'dia útil' : 'dias úteis'}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-[#FFB800] text-sm flex-shrink-0">
+                          {opcao.preco === 0 ? 'Grátis' : formatPrice(opcao.preco)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
@@ -491,7 +582,7 @@ function CheckoutContent() {
               {paymentMethod === 'pix' && (
                 <button
                   onClick={gerarPix}
-                  disabled={processing}
+                  disabled={processing || !opcaoSelecionada}
                   className="w-full bg-[#FFB800] text-black py-3 rounded-lg font-semibold hover:bg-[#E5A600] transition disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {processing ? (
@@ -506,21 +597,21 @@ function CheckoutContent() {
               )}
 
               {paymentMethod === 'cartao' && (
-  <button
-    onClick={pagarComCartao}
-    disabled={processing}
-    className="w-full bg-[#FFB800] text-black py-3 rounded-lg font-semibold hover:bg-[#E5A600] transition disabled:opacity-50 flex items-center justify-center gap-2"
-  >
-    {processing ? (
-      <>
-        <Loader2 size={18} className="animate-spin" />
-        Redirecionando...
-      </>
-    ) : (
-      `Pagar com Cartão - ${formatPrice(totalFinal)}`
-    )}
-  </button>
-)}
+                <button
+                  onClick={pagarComCartao}
+                  disabled={processing || !opcaoSelecionada}
+                  className="w-full bg-[#FFB800] text-black py-3 rounded-lg font-semibold hover:bg-[#E5A600] transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Redirecionando...
+                    </>
+                  ) : (
+                    `Pagar com Cartão - ${formatPrice(totalFinal)}`
+                  )}
+                </button>
+              )}
 
               {paymentMethod === 'bdm' && (
                 <div className="text-center py-4">
