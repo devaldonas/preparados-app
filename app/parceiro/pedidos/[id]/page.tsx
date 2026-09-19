@@ -125,15 +125,15 @@ export default function ParceiroPedidoDetalhes({ params }: { params: Promise<{ i
     if (!pedido) return
 
     const remetente = {
-      nome: 'Preparado Store Ltda',
-      cep: '04711130',
-      endereco: 'Avenida Doutor Chucri Zaidan',
-      numero: '1240',
-      complemento: '',
-      bairro: 'Vila Cordeiro',
-      cidade: 'São Paulo',
-      uf: 'SP'
-    }
+  nome: process.env.NEXT_PUBLIC_REMETENTE_NOME || 'Preparado Store',
+  cep: process.env.NEXT_PUBLIC_REMETENTE_CEP || '99702032',
+  endereco: process.env.NEXT_PUBLIC_REMETENTE_ENDERECO || 'Rua Elias Zardo',
+  numero: process.env.NEXT_PUBLIC_REMETENTE_NUMERO || '401',
+  complemento: process.env.NEXT_PUBLIC_REMETENTE_COMPLEMENTO || 'Sala 2B',
+  bairro: process.env.NEXT_PUBLIC_REMETENTE_BAIRRO || 'Zimmer',
+  cidade: process.env.NEXT_PUBLIC_REMETENTE_CIDADE || 'Erechim',
+  uf: process.env.NEXT_PUBLIC_REMETENTE_UF || 'RS'
+}
 
     let destinatario = {
       nome: 'Cliente',
