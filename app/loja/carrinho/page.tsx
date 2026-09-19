@@ -29,6 +29,8 @@ export default function Carrinho() {
   const [user, setUser] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [saldoCarteira, setSaldoCarteira] = useState(0)
+  const [freteEstimado, setFreteEstimado] = useState<number | null>(null)
+  const [calculandoFrete, setCalculandoFrete] = useState(false)
 
   const subtotal = getTotalPrice()
   const totalItems = getTotalItems()
@@ -36,14 +38,23 @@ export default function Carrinho() {
   
   const todosDigitais = items.every(item => item.is_digital === true)
   const todosComFreteGratis = items.every(item => item.free_shipping === true)
-  const shipping = (todosDigitais || todosComFreteGratis) ? 0 : 15.90
   
-  const descontoCreditos = usarCreditos ? Math.min(saldoCarteira, subtotal + shipping) : 0
-  const totalFinal = subtotal + shipping - descontoCreditos
+  // Frete: grátis se todos digitais ou frete grátis; senão, usa estimativa (ou 0 enquanto carrega)
+  const freteBase = (todosDigitais || todosComFreteGratis) ? 0 : (freteEstimado ?? 0)
+  
+  const descontoCreditos = usarCreditos ? Math.min(saldoCarteira, subtotal + freteBase) : 0
+  const totalFinal = subtotal + freteBase - descontoCreditos
 
   useEffect(() => {
     carregarUsuario()
   }, [])
+
+  // Recalcula o frete quando os itens mudarem
+  useEffect(() => {
+    if (user && items.length > 0 && !todosDigitais && !todosComFreteGratis) {
+      calcularFreteEstimado()
+    }
+  }, [items.length, user])
 
   const carregarUsuario = async () => {
     try {
@@ -76,7 +87,6 @@ export default function Carrinho() {
     }
   }
 
-  // 🔥 NOVA FUNÇÃO: Carregar carrinho do Supabase
   const carregarCarrinhoDoSupabase = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -107,9 +117,7 @@ export default function Carrinho() {
         }))
 
         setItems(itensDoBanco)
-        console.log('✅ Carrinho carregado do Supabase:', itensDoBanco.length)
       } else {
-        // Se não tem itens no Supabase, limpar o Zustand
         setItems([])
       }
     } catch (error) {
@@ -117,13 +125,65 @@ export default function Carrinho() {
     }
   }
 
-  // 🔥 FUNÇÃO PARA REMOVER ITEM (Zustand + Supabase)
+  // 🆕 CALCULAR FRETE ESTIMADO
+  const calcularFreteEstimado = async () => {
+    if (!user || items.length === 0) return
+    if (todosDigitais || todosComFreteGratis) {
+      setFreteEstimado(0)
+      return
+    }
+
+    setCalculandoFrete(true)
+
+    try {
+      // Buscar CEP do perfil
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('cep')
+        .eq('id', user.id)
+        .single()
+
+      const cep = profile?.cep
+      if (!cep || cep.length < 8) {
+        setFreteEstimado(null)
+        setCalculandoFrete(false)
+        return
+      }
+
+      const response = await fetch('/api/frete/calcular', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cepDestino: cep.replace(/\D/g, ''),
+          items: items.map((item: any) => ({
+            product_id: parseInt(item.product_id),
+            quantity: item.quantity,
+            price: item.price
+          }))
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success && data.opcoes?.length > 0) {
+        // Pega o menor preço
+        const menorPreco = Math.min(...data.opcoes.map((o: any) => o.preco))
+        setFreteEstimado(menorPreco)
+      } else {
+        setFreteEstimado(null)
+      }
+    } catch (error) {
+      console.error('Erro ao calcular frete estimado:', error)
+      setFreteEstimado(null)
+    } finally {
+      setCalculandoFrete(false)
+    }
+  }
+
   const handleRemoveItem = async (productId: string) => {
     try {
-      // 1. Remover do Zustand
       removeItem(productId)
 
-      // 2. Remover do Supabase
       if (user) {
         const { error } = await supabase
           .from('cart_items')
@@ -133,8 +193,6 @@ export default function Carrinho() {
 
         if (error) {
           console.error('❌ Erro ao remover do Supabase:', error)
-        } else {
-          console.log('✅ Item removido do Supabase:', productId)
         }
       }
     } catch (error) {
@@ -142,13 +200,10 @@ export default function Carrinho() {
     }
   }
 
-  // 🔥 FUNÇÃO PARA ATUALIZAR QUANTIDADE (Zustand + Supabase)
   const handleUpdateQuantity = async (productId: string, quantity: number) => {
     try {
-      // 1. Atualizar no Zustand
       updateQuantity(productId, quantity)
 
-      // 2. Atualizar no Supabase
       if (user) {
         const { error } = await supabase
           .from('cart_items')
@@ -165,13 +220,10 @@ export default function Carrinho() {
     }
   }
 
-  // 🔥 FUNÇÃO PARA LIMPAR CARRINHO (Zustand + Supabase)
   const handleClearCart = async () => {
     try {
-      // 1. Limpar Zustand
       clearCart()
 
-      // 2. Limpar Supabase
       if (user) {
         const { error } = await supabase
           .from('cart_items')
@@ -182,7 +234,6 @@ export default function Carrinho() {
           console.error('❌ Erro ao limpar carrinho:', error)
         }
 
-        // 3. Cancelar pedido pendente
         await supabase
           .from('orders')
           .update({ status: 'cancelled' })
@@ -259,12 +310,13 @@ export default function Carrinho() {
 
       const orderNumber = `PRE-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
 
+      // ⚠️ shipping_cost = 0 aqui porque o frete real é definido no checkout
       const orderData = {
         user_id: user.id,
         subtotal: subtotal,
-        shipping_cost: shipping,
+        shipping_cost: 0,
         discount_amount: creditosUtilizados,
-        total_amount: totalFinal,
+        total_amount: subtotal - creditosUtilizados,
         payment_method: 'pix',
         payment_status: 'pending',
         status: 'pending',
@@ -456,13 +508,22 @@ export default function Carrinho() {
                       {formatPrice(subtotal)}
                     </span>
                   </div>
+                  
+                  {/* 🆕 Frete estimado */}
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Frete</span>
+                    <span className="text-gray-600">Frete estimado</span>
                     <span className="text-gray-900 font-display font-bold">
-                      {shipping === 0 ? (
+                      {todosDigitais || todosComFreteGratis ? (
                         <span className="text-green-600">Grátis</span>
+                      ) : calculandoFrete ? (
+                        <span className="text-gray-400 flex items-center gap-1">
+                          <Loader2 size={12} className="animate-spin" />
+                          Calculando...
+                        </span>
+                      ) : freteEstimado !== null ? (
+                        formatPrice(freteEstimado)
                       ) : (
-                        formatPrice(shipping)
+                        <span className="text-gray-400 text-xs">A calcular</span>
                       )}
                     </span>
                   </div>
@@ -505,20 +566,30 @@ export default function Carrinho() {
                       </span>
                     </div>
                   </div>
+
+                  {/* 🆕 Aviso de estimativa */}
+                  {!todosDigitais && !todosComFreteGratis && freteEstimado !== null && (
+                    <p className="text-[0.65rem] text-gray-500 text-right mt-2">
+                      💡 Frete estimado. O valor final será definido na próxima etapa.
+                    </p>
+                  )}
                 </div>
 
                 <button
                   onClick={processarCheckout}
                   disabled={processing || items.length === 0}
-                  className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-display font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-[#FFB800] hover:bg-[#E5A600] text-black font-display font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
                   {processing ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
-                      Processando...
+                      Preparando pagamento...
                     </>
                   ) : (
-                    `Finalizar Compra - ${formatPrice(totalFinal)}`
+                    <>
+                      Continuar para pagamento
+                      <span className="text-base opacity-90">— {formatPrice(totalFinal)}</span>
+                    </>
                   )}
                 </button>
               </div>
