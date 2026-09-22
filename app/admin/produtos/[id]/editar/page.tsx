@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AdminGuard from '@/components/AdminGuard'
-import { ArrowLeft, Save, Image, X, Upload } from 'lucide-react'
+import { ArrowLeft, Save, Image, X, Upload, Package } from 'lucide-react'
 
 interface Product {
   id: number
@@ -18,6 +18,10 @@ interface Product {
   images: string[]
   is_active: boolean
   free_shipping: boolean
+  weight: number
+  length_cm: number
+  width_cm: number
+  height_cm: number
 }
 
 function EditarProdutoContent({ params }: { params: Promise<{ id: string }> }) {
@@ -34,7 +38,11 @@ function EditarProdutoContent({ params }: { params: Promise<{ id: string }> }) {
     image_url: '',
     is_active: true,
     free_shipping: false,
-    images: ['']
+    images: [''],
+    weight: '',
+    length_cm: '',
+    width_cm: '',
+    height_cm: ''
   })
   const router = useRouter()
 
@@ -62,7 +70,11 @@ function EditarProdutoContent({ params }: { params: Promise<{ id: string }> }) {
           image_url: data.image_url || '',
           is_active: data.is_active !== undefined ? data.is_active : true,
           free_shipping: data.free_shipping || false,
-          images: data.images && data.images.length > 0 ? data.images : ['']
+          images: data.images && data.images.length > 0 ? data.images : [''],
+          weight: data.weight?.toString() || '',
+          length_cm: data.length_cm?.toString() || '',
+          width_cm: data.width_cm?.toString() || '',
+          height_cm: data.height_cm?.toString() || ''
         })
 
       } catch (error) {
@@ -186,6 +198,10 @@ function EditarProdutoContent({ params }: { params: Promise<{ id: string }> }) {
         is_active: formData.is_active,
         free_shipping: formData.free_shipping,
         images: imagensFiltradas,
+        weight: parseFloat(formData.weight) || 0.5,
+        length_cm: parseInt(formData.length_cm) || 30,
+        width_cm: parseInt(formData.width_cm) || 20,
+        height_cm: parseInt(formData.height_cm) || 10,
         updated_at: new Date().toISOString()
       }
 
@@ -321,6 +337,72 @@ function EditarProdutoContent({ params }: { params: Promise<{ id: string }> }) {
                 onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800]"
               />
+            </div>
+
+            {/* 🆕 SEÇÃO PESO E DIMENSÕES */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <Package size={16} className="text-[#FFB800]" />
+                Peso e Dimensões (para cálculo de frete)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Peso (kg)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.weight}
+                    onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                    placeholder="0.5"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800] text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Comprimento (cm)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.length_cm}
+                    onChange={(e) => setFormData({ ...formData, length_cm: e.target.value })}
+                    placeholder="30"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800] text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Largura (cm)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.width_cm}
+                    onChange={(e) => setFormData({ ...formData, width_cm: e.target.value })}
+                    placeholder="20"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800] text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Altura (cm)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.height_cm}
+                    onChange={(e) => setFormData({ ...formData, height_cm: e.target.value })}
+                    placeholder="10"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB800] text-sm"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                💡 Se deixar vazio, usamos os padrões da categoria.
+              </p>
             </div>
 
             <div>
