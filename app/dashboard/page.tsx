@@ -403,12 +403,6 @@ export default function Dashboard() {
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
             <div>
-              <h3 className="font-semibold text-gray-800 mb-1">Dica do dia</h3>
-              <p className="text-sm text-gray-600">
-                "A maior arma de todas é a mente humana. Continue se preparando, 
-                compartilhe sua localizacao para conectar-se com pessoas proximas 
-                e ajude sua comunidade a estar preparada tambem!"
-              </p>
             </div>
           </div>
           <div>

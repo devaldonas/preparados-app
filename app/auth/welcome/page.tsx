@@ -184,10 +184,6 @@ function WelcomeContent() {
             <h1 className="text-2xl font-bold text-black">
               Bem-vindo(a), {userName || 'Preparado'}!
             </h1>
-
-            <p className="text-black/80 mt-1">
-              Sua jornada de preparação começa agora
-            </p>
           </div>
 
           {/* CONTEÚDO */}
@@ -204,11 +200,11 @@ function WelcomeContent() {
               </div>
 
               <h2 className="text-lg font-bold text-gray-900">
-                Você já tem acesso completo!
+                Aproveite o acesso completo!
               </h2>
 
               <p className="text-sm text-gray-500 mt-2">
-                Explore todos os recursos e comece sua preparação agora.
+                Comece sua preparação agora.
               </p>
             </div>
 
