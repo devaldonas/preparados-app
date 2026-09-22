@@ -172,7 +172,7 @@ function WelcomeContent() {
 
             <div className="flex justify-center mb-4">
               <img
-                src="/logo.svg"
+                src="/logoBco.png"
                 alt="PREPARADO"
                 className="h-16 w-auto"
                 onError={(e) => {
