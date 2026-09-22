@@ -35,7 +35,7 @@ export default function TermsPage() {
 
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">4. Pagamentos e Assinaturas</h2>
-        <p className="text-gray-700">Os pagamentos são processados pelo Mercado Pago. Ao realizar uma compra ou assinatura, você concorda com os termos do Mercado Pago.</p>
+        <p className="text-gray-700">Os pagamentos são processados pelo Mercado Pago e Stripe. Ao realizar uma compra ou assinatura, você concorda com os termos do Mercado Pago.</p>
       </section>
 
       <section className="mb-8">
@@ -61,7 +61,7 @@ export default function TermsPage() {
 
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">8. Contato</h2>
-        <p className="text-gray-700">Para dúvidas sobre estes Termos: <strong>devaldo.nas@gmail.com</strong></p>
+        <p className="text-gray-700">Para dúvidas sobre estes Termos: <strong>contato@preparado.eco.br</strong></p>
       </section>
     </div>
   )

@@ -11,7 +11,7 @@ export default function PrivacyPage() {
           <li><strong>Dados de cadastro:</strong> Nome, e-mail e senha para criar sua conta</li>
           <li><strong>Dados de localização:</strong> Para exibir pontos de interesse, rotas de fuga e check-in em áreas de risco</li>
           <li><strong>Dados de uso:</strong> Como você interage com o app, incluindo páginas visitadas e funcionalidades utilizadas</li>
-          <li><strong>Dados de pagamento:</strong> Processados exclusivamente pelo Mercado Pago, não armazenamos dados de cartão</li>
+          <li><strong>Dados de pagamento:</strong> Processados pelo Mercado Pago e Stripe, não armazenamos dados de cartão</li>
         </ul>
       </section>
 
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
           <li>Fornecer e manter os serviços do PREPARADO</li>
           <li>Enviar notificações sobre emergências e atualizações relevantes</li>
           <li>Melhorar a experiência do usuário e corrigir problemas</li>
-          <li>Processar pagamentos via Mercado Pago</li>
+          <li>Processar pagamentos via Mercado Pago, e Stripe</li>
         </ul>
       </section>
 
@@ -30,6 +30,7 @@ export default function PrivacyPage() {
         <p className="text-gray-700">Não vendemos nem compartilhamos seus dados pessoais com terceiros, exceto:</p>
         <ul className="list-disc pl-6 text-gray-700 space-y-1">
           <li><strong>Mercado Pago:</strong> Para processamento de pagamentos</li>
+          <li><strong>Stripe:</strong> Para processamento de pagamentos</li>
           <li><strong>Supabase:</strong> Para armazenamento de dados em nuvem</li>
           <li><strong>Vercel:</strong> Para hospedagem da aplicação</li>
           <li><strong>Quando exigido por lei</strong> ou para proteger direitos legais</li>
@@ -49,13 +50,13 @@ export default function PrivacyPage() {
 
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">5. Segurança</h2>
-        <p className="text-gray-700">Utilizamos medidas de segurança como criptografia (HTTPS), autenticação JWT e boas práticas de desenvolvimento para proteger seus dados.</p>
+        <p className="text-gray-700">Utilizamos medidas de segurança como criptografia (HTTPS), autenticação JWT e desenvolvimento para proteger seus dados.</p>
       </section>
 
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">6. Contato</h2>
         <p className="text-gray-700">Para questões sobre privacidade, entre em contato:</p>
-        <p className="text-gray-700 mt-2"><strong>E-mail:</strong> devaldo.nas@gmail.com</p>
+        <p className="text-gray-700 mt-2"><strong>E-mail:</strong> contato@preparado.eco.br</p>
       </section>
     </div>
   )

@@ -395,19 +395,7 @@ export default function Dashboard() {
         </div>
 
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5 border border-gray-200">
-          <div className="flex items-start gap-3">
-            <img 
-              src="/images/lampada.jpeg" 
-              alt="Dica" 
-              className="w-8 h-8 object-contain"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
-            <div>
-            </div>
-          </div>
-          <div>
-            <BotaoIndicarAmigo />
-          </div>
+          <BotaoIndicarAmigo />
         </div>
       </div>
     </div>
