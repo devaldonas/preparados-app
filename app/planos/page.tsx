@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
-import { Loader2, Check, CreditCard, Copy } from 'lucide-react'
+import { Loader2, Check, CreditCard, Copy, Tag, X } from 'lucide-react'
 import { CardFormWrapper } from '@/components/CardFormWrapper'
 
 const PLANOS = {
@@ -49,6 +49,11 @@ export default function PlanosPage() {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  // 🆕 Estados do cupom
+  const [cupom, setCupom] = useState('')
+  const [aplicandoCupom, setAplicandoCupom] = useState(false)
+  const [cupomMensagem, setCupomMensagem] = useState<{ tipo: 'sucesso' | 'erro'; texto: string } | null>(null)
+
   const [paymentMethod, setPaymentMethod] =
     useState<'card' | 'pix'>('card')
 
@@ -66,10 +71,7 @@ export default function PlanosPage() {
         data: { user },
       } = await supabase.auth.getUser()
 
-      console.log('👤 Usuário:', user?.id)
-
       if (!user) {
-        console.log('❌ Sem usuário, redirecionando para login')
         router.push('/auth/login')
         return
       }
@@ -82,26 +84,15 @@ export default function PlanosPage() {
         .eq('id', user.id)
         .single()
 
-      console.log('📊 Perfil:', profile)
-      console.log('📊 Erro:', profileError)
-      console.log(
-        '📊 acesso_gratuito_ate:',
-        profile?.acesso_gratuito_ate
-      )
-      console.log(
-        '📊 subscription_status:',
-        profile?.subscription_status
-      )
+      if (profileError) {
+        console.error('Erro ao carregar perfil:', profileError)
+      }
 
       // VERIFICAÇÃO 1: ACESSO GRATUITO
       if (
         profile?.acesso_gratuito_ate &&
         new Date(profile.acesso_gratuito_ate) > new Date()
       ) {
-        console.log(
-          '⚠️ Usuário tem acesso gratuito ativo, redirecionando para dashboard'
-        )
-
         setUsuarioTemAcessoGratuito(true)
         router.push('/dashboard')
         return
@@ -109,21 +100,72 @@ export default function PlanosPage() {
 
       // VERIFICAÇÃO 2: ASSINATURA ATIVA
       if (profile?.subscription_status === 'active') {
-        console.log(
-          '⚠️ Usuário tem assinatura ativa, redirecionando para dashboard'
-        )
-
         router.push('/dashboard')
         return
       }
-
-      console.log(
-        '✅ Nenhum redirecionamento necessário, mostrando página de planos'
-      )
     } catch (error) {
       console.error('❌ Erro ao carregar dados:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // 🆕 Aplicar cupom
+  const aplicarCupom = async () => {
+    if (!cupom.trim()) {
+      setCupomMensagem({ tipo: 'erro', texto: 'Digite um cupom' })
+      return
+    }
+
+    if (!user) {
+      setCupomMensagem({ tipo: 'erro', texto: 'Usuário não autenticado' })
+      return
+    }
+
+    setAplicandoCupom(true)
+    setCupomMensagem(null)
+
+    try {
+      const { data, error } = await supabase.rpc('aplicar_cupom', {
+        p_usuario_id: user.id,
+        p_codigo: cupom.toUpperCase().trim()
+      })
+
+      if (error) {
+        console.error('Erro ao aplicar cupom:', error)
+        setCupomMensagem({ tipo: 'erro', texto: 'Erro ao aplicar cupom. Tente novamente.' })
+        setAplicandoCupom(false)
+        return
+      }
+
+      console.log('📥 Resposta do cupom:', data)
+
+      if (!data?.success) {
+        setCupomMensagem({ tipo: 'erro', texto: data?.message || 'Cupom inválido ou expirado' })
+        setAplicandoCupom(false)
+        return
+      }
+
+      // ✅ Cupom aplicado com sucesso
+      setCupomMensagem({ tipo: 'sucesso', texto: data.message || 'Cupom aplicado!' })
+
+      // Se for free_12months, redireciona
+      if (data.tipo === 'free_12months') {
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 1500)
+      } else if (data.tipo === 'credito') {
+        // Crédito adicionado, recarrega a página
+        setTimeout(() => {
+          window.location.reload()
+        }, 1500)
+      }
+
+    } catch (error: any) {
+      console.error('❌ Erro ao aplicar cupom:', error)
+      setCupomMensagem({ tipo: 'erro', texto: error.message || 'Erro ao aplicar cupom' })
+    } finally {
+      setAplicandoCupom(false)
     }
   }
 
@@ -152,8 +194,6 @@ export default function PlanosPage() {
         parcelas: 1,
       }
 
-      console.log('🟢 Gerando PIX Mercado Pago:', payload)
-
       const response = await fetch('/api/assinatura/criar', {
         method: 'POST',
         headers: {
@@ -181,21 +221,12 @@ export default function PlanosPage() {
       }
     } catch (error: any) {
       console.error('❌ Erro no PIX:', error)
-
-      setErrorMessage(
-        error.message || 'Erro ao gerar PIX'
-      )
-
+      setErrorMessage(error.message || 'Erro ao gerar PIX')
       setProcessing(false)
     }
   }
 
   const handleCardSuccess = (subscriptionId: string) => {
-    console.log(
-      '✅ Assinatura Stripe ativada:',
-      subscriptionId
-    )
-
     router.push('/auth/welcome')
   }
 
@@ -203,9 +234,7 @@ export default function PlanosPage() {
     setErrorMessage(error)
   }
 
-  const verificarPagamentoAutomatico = async (
-    paymentId: string
-  ) => {
+  const verificarPagamentoAutomatico = async (paymentId: string) => {
     setCheckingPayment(true)
 
     let tentativas = 0
@@ -221,31 +250,19 @@ export default function PlanosPage() {
 
         const data = await response.json()
 
-        console.log(
-          `🔎 Status PIX tentativa ${tentativas}:`,
-          data.status
-        )
-
         if (data.status === 'approved') {
           clearInterval(intervalo)
           setCheckingPayment(false)
-
           router.push('/auth/welcome')
         } else if (tentativas >= maxTentativas) {
           clearInterval(intervalo)
           setCheckingPayment(false)
-
           alert('⏳ O pagamento está sendo processado.')
-
           setShowPix(false)
           router.push('/dashboard')
         }
       } catch (error) {
-        console.error(
-          '❌ Erro ao verificar pagamento:',
-          error
-        )
-
+        console.error('❌ Erro ao verificar pagamento:', error)
         if (tentativas >= maxTentativas) {
           clearInterval(intervalo)
           setCheckingPayment(false)
@@ -257,7 +274,6 @@ export default function PlanosPage() {
   const copiarCodigoPix = () => {
     if (codigoPix) {
       navigator.clipboard.writeText(codigoPix)
-
       alert('✅ Código PIX copiado!')
     }
   }
@@ -301,7 +317,6 @@ export default function PlanosPage() {
           {checkingPayment && (
             <div className="text-center mb-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#FFB800] mx-auto" />
-
               <p className="text-sm text-gray-500 mt-2">
                 Aguardando confirmação...
               </p>
@@ -361,6 +376,73 @@ export default function PlanosPage() {
           </p>
         </div>
 
+        {/* 🆕 CAMPO DE CUPOM */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Tag size={18} className="text-[#FFB800]" />
+              <h3 className="font-semibold text-gray-900 text-sm">
+                Tem um cupom de acesso?
+              </h3>
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={cupom}
+                onChange={(e) => {
+                  setCupom(e.target.value.toUpperCase())
+                  setCupomMensagem(null)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    aplicarCupom()
+                  }
+                }}
+                placeholder="Digite seu cupom"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FFB800] uppercase text-sm"
+                disabled={aplicandoCupom}
+              />
+              <button
+                type="button"
+                onClick={aplicarCupom}
+                disabled={aplicandoCupom || !cupom.trim()}
+                className="bg-[#FFB800] text-black px-6 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition disabled:opacity-50 flex items-center gap-2 text-sm"
+              >
+                {aplicandoCupom ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Aplicando...
+                  </>
+                ) : (
+                  'Aplicar'
+                )}
+              </button>
+            </div>
+
+            {/* Mensagem de feedback */}
+            {cupomMensagem && (
+              <div className={`mt-3 p-3 rounded-lg flex items-center gap-2 text-sm ${
+                cupomMensagem.tipo === 'sucesso'
+                  ? 'bg-green-50 border border-green-200 text-green-700'
+                  : 'bg-red-50 border border-red-200 text-red-700'
+              }`}>
+                {cupomMensagem.tipo === 'sucesso' ? (
+                  <Check size={16} className="flex-shrink-0" />
+                ) : (
+                  <X size={16} className="flex-shrink-0" />
+                )}
+                <span>{cupomMensagem.texto}</span>
+              </div>
+            )}
+
+            <p className="text-xs text-gray-400 mt-2">
+              Cupons promocionais dão acesso gratuito ou crédito.
+            </p>
+          </div>
+        </div>
+
         {/* PLANOS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
 
@@ -378,7 +460,6 @@ export default function PlanosPage() {
             }`}
           >
             <div className="text-center">
-
               <h3 className="text-xl font-bold text-gray-900">
                 Mensal
               </h3>
@@ -427,7 +508,6 @@ export default function PlanosPage() {
             </div>
 
             <div className="text-center">
-
               <h3 className="text-xl font-bold text-gray-900">
                 Anual
               </h3>
@@ -461,46 +541,37 @@ export default function PlanosPage() {
 
         {/* BENEFÍCIOS */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-6 max-w-4xl mx-auto mt-8">
-
           <h2 className="text-lg font-bold text-gray-900 text-center mb-5">
             O que está incluído
           </h2>
 
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-
             <li className="flex items-start gap-2 text-sm text-gray-600">
               <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
               <span>Acesso a todos os checklists</span>
             </li>
-
             <li className="flex items-start gap-2 text-sm text-gray-600">
               <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
               <span>Conexão com grupos</span>
             </li>
-
             <li className="flex items-start gap-2 text-sm text-gray-600">
               <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
               <span>Chat em tempo real</span>
             </li>
-
             <li className="flex items-start gap-2 text-sm text-gray-600">
               <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
               <span>Guia de catástrofes</span>
             </li>
-
             <li className="flex items-start gap-2 text-sm text-gray-600">
               <Check size={16} className="text-[#FFB800] flex-shrink-0 mt-0.5" />
               <span>Mentorias Semanais</span>
             </li>
-
           </ul>
         </div>
 
         {/* PAGAMENTO */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8 max-w-lg mx-auto mt-8">
-
           <div className="text-center mb-6">
-
             <p className="text-sm text-gray-500">
               Plano escolhido
             </p>
@@ -515,14 +586,12 @@ export default function PlanosPage() {
                 {planoAtual.priceLabel}
               </span>
             </p>
-
           </div>
 
           <div className="border-t border-gray-200 my-6" />
 
           {/* FORMA DE PAGAMENTO */}
           <div className="space-y-4 mb-6">
-
             <p className="text-sm font-medium text-gray-700">
               Escolha a forma de pagamento:
             </p>
@@ -609,7 +678,8 @@ export default function PlanosPage() {
               )}
             </button>
           </div>
-        {/* ERRO */}
+
+          {/* ERRO */}
           {errorMessage && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-600">
@@ -666,7 +736,6 @@ export default function PlanosPage() {
           </p>
 
           <div className="mt-6 flex items-center justify-center gap-4 text-xs text-gray-400">
-
             <span>
               🔒 Pagamento seguro
             </span>
@@ -684,7 +753,6 @@ export default function PlanosPage() {
               />
               PIX disponível
             </span>
-
           </div>
         </div>
 
