@@ -7,7 +7,7 @@ export default function AuthLoading() {
         <img 
           src="/logoBco2.png" 
           alt="PREPARADO" 
-          className="h-16 w-auto animate-pulse"
+          className="h-12 w-auto animate-pulse"
           onError={(e) => { e.currentTarget.style.display = 'none' }}
         />
         <div className="w-8 h-8 border-4 border-gray-200 border-t-[#FFB800] rounded-full animate-spin" />
