@@ -349,13 +349,21 @@ if (latitude && longitude && cidade) {
     // 🔥 BUSCAR GRUPO EXISTENTE POR CIDADE
     const { data: existingGroup } = await (supabase
       .from('groups') as any)
-      .select('id, name, city_name')
+      .select('id, name, city_name, member_count')
       .eq('city_name', cidadeNome)
       .maybeSingle()
 
     if (existingGroup) {
       // ✅ GRUPO JÁ EXISTE - USAR O EXISTENTE
       groupId = existingGroup.id
+      
+      // 🆕 Incrementa o member_count (group_members é a fonte real)
+      await (supabase.from('groups') as any)
+        .update({ 
+          member_count: (existingGroup.member_count || 0) + 1 
+        })
+        .eq('id', existingGroup.id)
+      
       console.log('✅ Usuário inserido no grupo existente:', existingGroup.name)
     } else {
       // 🔥 CRIAR NOVO GRUPO COM NOME DA CIDADE
@@ -372,7 +380,7 @@ if (latitude && longitude && cidade) {
           is_active: true,
           created_at: new Date().toISOString()
         }])
-        .select('id, name, city_name')
+        .select('id, name, city_name, member_count')
         .single()
       
       if (groupError) {
@@ -430,6 +438,36 @@ if (latitude && longitude && cidade) {
         if (profileError) {
           console.error('❌ Erro ao criar perfil:', profileError)
           throw new Error('Erro ao criar perfil')
+        }
+
+        // 🆕 Inserir em group_members (cidade + Brasil)
+        if (groupId) {
+          const { error: membroError } = await (supabase
+            .from('group_members') as any)
+            .insert([{
+              profile_id: authData.user.id,
+              group_id: groupId
+            }])
+          
+          if (membroError) {
+            console.error('❌ Erro ao inserir no grupo da cidade:', membroError)
+          } else {
+            console.log('✅ Inserido no grupo da cidade:', groupId)
+          }
+        }
+
+        // 🆕 Inserir no grupo Brasil (id 43)
+        const { error: brasilError } = await (supabase
+          .from('group_members') as any)
+          .insert([{
+            profile_id: authData.user.id,
+            group_id: 43
+          }])
+        
+        if (brasilError) {
+          console.error('❌ Erro ao inserir no grupo Brasil:', brasilError)
+        } else {
+          console.log('✅ Inserido no grupo Brasil')
         }
 
         if (cupomValido?.valido && codigoCupom.trim()) {

@@ -117,9 +117,9 @@ export default function PessoasProximas() {
 
   const loadGroupsCount = async () => {
     try {
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from('groups')
-        .select('*', { count: 'exact', head: true })
+        .select('id, name, member_count')
       
       if (error) {
         console.error('Erro ao contar grupos:', error)
@@ -127,9 +127,17 @@ export default function PessoasProximas() {
         return
       }
       
-      if (count !== null) {
-        setGroupsCount(count)
-      }
+      // Mesmo filtro da página de grupos
+      const gruposValidos = (data || []).filter((g: any) => {
+        if (g.name === 'Localização do Usuário') return false
+        if (g.name === 'Localizacao do Usuario') return false
+        if (g.name === 'Sem grupo') return false
+        if (g.name === 'Sem cidade definida') return false
+        if (g.member_count === 0) return false
+        return true
+      })
+      
+      setGroupsCount(gruposValidos.length)
     } catch (error) {
       console.error('Erro ao carregar grupos:', error)
       setGroupsCount(0)

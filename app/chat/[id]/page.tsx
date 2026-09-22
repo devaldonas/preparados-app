@@ -139,12 +139,35 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     }
   }, [otherUserId, user?.id])
 
+  // Scroll INSTANTÂNEO ao abrir a conversa
+  const jaRolouRef = useRef(false)
+
   useEffect(() => {
+    if (loading || jaRolouRef.current) return
+    
+    const raf = requestAnimationFrame(() => {
+      const container = messagesContainerRef.current
+      if (container) {
+        container.scrollTop = container.scrollHeight
+        jaRolouRef.current = true
+      }
+    })
+    
+    return () => cancelAnimationFrame(raf)
+  }, [loading])
+
+  // Scroll SUAVE quando chegam mensagens novas
+  useEffect(() => {
+    if (loading || !jaRolouRef.current) return
+    
     const container = messagesContainerRef.current
     if (container) {
-      container.scrollTop = container.scrollHeight
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      })
     }
-  }, [messages])
+  }, [messages.length])
 
   const enviarMensagem = async () => {
     if (!newMessage.trim() || !user || !otherUserId || sending) return
