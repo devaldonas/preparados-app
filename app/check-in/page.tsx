@@ -303,7 +303,7 @@ export default function CheckIn() {
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Baseado nos princípios da Escola de Guerreiros
+          Inspirado nos princípios da Escola de Guerreiros
         </p>
       </div>
     </div>

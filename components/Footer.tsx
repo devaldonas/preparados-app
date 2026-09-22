@@ -31,7 +31,7 @@ export function Footer() {
               <span className="text-xl font-bold text-white">PREPARADO</span>
             </div>
             <p className="text-sm leading-relaxed">
-              Sua plataforma completa para preparação em emergências. 
+              Sua plataforma para preparação em emergências. 
             </p>
           </div>
 

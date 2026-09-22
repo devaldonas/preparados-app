@@ -126,19 +126,15 @@ export default function ListaUsuarios() {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{user.full_name}</p>
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <img 
-                              src="/images/localizacao-icon.jpeg" 
-                              alt="Localização" 
-                              className="w-3 h-3 object-contain"
-                              onError={(e) => { e.currentTarget.style.display = 'none' }}
-                            />
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <img 
+                            src="/images/localizacao-icon.jpeg" 
+                            alt="Localização" 
+                            className="w-3 h-3 object-contain"
+                            onError={(e) => { e.currentTarget.style.display = 'none' }}
+                          />
+                          <span>
                             {user.city}{user.state ? `, ${user.state}` : ''}
-                          </span>
-                          <span>•</span>
-                          <span className="bg-gray-100 px-2 py-0.5 rounded-full">
-                            {user.group_name}
                           </span>
                         </div>
                       </div>
@@ -156,6 +152,16 @@ export default function ListaUsuarios() {
             ))}
           </div>
         )}
+
+        {/* Botão Voltar ao Início */}
+        <div className="mt-8">
+          <Link
+            href="/dashboard"
+            className="block text-center bg-gray-300 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition"
+          >
+            Voltar ao Início
+          </Link>
+        </div>
       </div>
     </div>
   )

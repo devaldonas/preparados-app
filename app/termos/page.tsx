@@ -35,7 +35,7 @@ export default function TermsPage() {
 
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">4. Pagamentos e Assinaturas</h2>
-        <p className="text-gray-700">Os pagamentos são processados pelo Mercado Pago e Stripe. Ao realizar uma compra ou assinatura, você concorda com os termos do Mercado Pago.</p>
+        <p className="text-gray-700">Os pagamentos são processados pelo Mercado Pago e Stripe. Ao realizar uma compra ou assinatura, você concorda com os termos do Mercado Pago e Stripe.</p>
       </section>
 
       <section className="mb-8">

@@ -50,7 +50,7 @@ export default function PrivacyPage() {
 
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">5. Segurança</h2>
-        <p className="text-gray-700">Utilizamos medidas de segurança como criptografia (HTTPS), autenticação JWT e desenvolvimento para proteger seus dados.</p>
+        <p className="text-gray-700">Utilizamos medidas de segurança como criptografia (HTTPS), autenticação JWT e desenvolvimento seguro Spara proteger seus dados.</p>
       </section>
 
       <section className="mb-8">
