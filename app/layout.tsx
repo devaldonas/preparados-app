@@ -5,17 +5,6 @@ import ClientLayout from '@/components/ClientLayout'
 export const metadata: Metadata = {
   title: 'PREPARADO - Sua preparação para emergências',
   description: 'Prepare-se para qualquer situação com EDC, BOB ou BOLT.',
-  icons: {
-    icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-      { url: '/apple-touch-icon.png', sizes: '512x512', type: 'image/png' },
-    ],
-  },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
