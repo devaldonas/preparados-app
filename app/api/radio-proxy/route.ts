@@ -10,7 +10,6 @@ export async function GET() {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5',
         'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
         'Connection': 'keep-alive',
         'Sec-Fetch-Dest': 'audio',
         'Sec-Fetch-Mode': 'no-cors',
@@ -18,15 +17,14 @@ export async function GET() {
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache'
       },
-      // 🔥 TIMEOUT E RETRY
-      signal: AbortSignal.timeout(30000)
+      // 🔥 TIMEOUT CURTO (5s em vez de 30s)
+      signal: AbortSignal.timeout(5000)
     })
 
     if (!response.ok) {
       throw new Error(`Erro ao buscar stream: ${response.status}`)
     }
 
-    // 🔥 RETORNAR O STREAM COM HEADERS CORRETOS
     return new NextResponse(response.body, {
       headers: {
         'Content-Type': response.headers.get('content-type') || 'audio/mpeg',
@@ -40,13 +38,12 @@ export async function GET() {
   } catch (error) {
     console.error('❌ Erro no proxy de rádio:', error)
     return NextResponse.json(
-      { error: 'Erro ao conectar ao stream' },
-      { status: 500 }
+      { error: 'Rádio temporariamente indisponível' },
+      { status: 503 }  // 503 = Service Unavailable
     )
   }
 }
 
-// 🔥 RESPONDER OPTIONS PARA CORS
 export async function OPTIONS() {
   return new NextResponse(null, {
     headers: {

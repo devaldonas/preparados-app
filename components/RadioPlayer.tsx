@@ -15,26 +15,26 @@ export default function RadioPlayer({ minimizado: inicialMinimizado = false, onC
   const [volume, setVolume] = useState(70)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [statusText, setStatusText] = useState('Conectado')
+  const [statusText, setStatusText] = useState('Pausado')
   const [minimizado, setMinimizado] = useState(inicialMinimizado)
   const [isMuted, setIsMuted] = useState(false)
+  const [jaTentouTocar, setJaTentouTocar] = useState(false)
 
-  // 🔥 URL CORRETA (sem a barra no final)
-  const STREAM_URL = 'https://painel.radiosms.com.br:8056/stream'
+  // 🔥 Usa o proxy (evita erro de certificado direto)
+  const STREAM_URL = '/api/radio-proxy'
 
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
-    // 🔥 TENTAR DIRETO PRIMEIRO
-    audio.src = STREAM_URL
-    audio.crossOrigin = 'anonymous'
+    // 🔥 NÃO definir src no useEffect — só quando o usuário clicar em play
     audio.volume = volume / 100
 
     const handlePlay = () => {
       setIsPlaying(true)
       setStatusText('Reproduzindo')
       setError(null)
+      setIsLoading(false)
     }
 
     const handlePause = () => {
@@ -43,37 +43,12 @@ export default function RadioPlayer({ minimizado: inicialMinimizado = false, onC
     }
 
     const handleError = () => {
-      const errorCode = audio.error?.code
-      let errorMsg = 'Erro ao conectar ao stream'
-
-      switch (errorCode) {
-        case 1:
-          errorMsg = 'Carregamento abortado'
-          break
-        case 2:
-          errorMsg = 'Erro de rede - tentando reconectar...'
-          break
-        case 3:
-          errorMsg = 'Carregamento interrompido'
-          break
-        case 4:
-          errorMsg = 'Formato de áudio não suportado'
-          break
-        default:
-          errorMsg = 'Erro desconhecido - tente novamente'
-      }
-
-      setError(errorMsg)
+      // 🔥 Mensagem amigável pro usuário
+      setError('Rádio temporariamente indisponível')
       setIsPlaying(false)
-      setStatusText('Erro')
-      
-      // 🔥 TENTAR RECONECTAR APÓS 5 SEGUNDOS
-      setTimeout(() => {
-        if (audio) {
-          audio.src = STREAM_URL
-          audio.load()
-        }
-      }, 5000)
+      setStatusText('Offline')
+      setIsLoading(false)
+      // ⚠️ NÃO tentar reconectar automaticamente
     }
 
     const handleLoadStart = () => {
@@ -86,11 +61,16 @@ export default function RadioPlayer({ minimizado: inicialMinimizado = false, onC
       setError(null)
     }
 
+    const handleWaiting = () => {
+      setIsLoading(true)
+    }
+
     audio.addEventListener('play', handlePlay)
     audio.addEventListener('pause', handlePause)
     audio.addEventListener('error', handleError)
     audio.addEventListener('loadstart', handleLoadStart)
     audio.addEventListener('canplay', handleCanPlay)
+    audio.addEventListener('waiting', handleWaiting)
 
     return () => {
       audio.removeEventListener('play', handlePlay)
@@ -98,6 +78,7 @@ export default function RadioPlayer({ minimizado: inicialMinimizado = false, onC
       audio.removeEventListener('error', handleError)
       audio.removeEventListener('loadstart', handleLoadStart)
       audio.removeEventListener('canplay', handleCanPlay)
+      audio.removeEventListener('waiting', handleWaiting)
     }
   }, [])
 
@@ -105,9 +86,33 @@ export default function RadioPlayer({ minimizado: inicialMinimizado = false, onC
     if (isPlaying) {
       audioRef.current?.pause()
     } else {
-      audioRef.current?.play().catch((err) => {
-        setError('Erro ao reproduzir: ' + err.message)
-      })
+      if (!audioRef.current) return
+
+      setIsLoading(true)
+      setError(null)
+
+      // 🔥 Só define o src na primeira vez
+      if (!jaTentouTocar) {
+        audioRef.current.src = STREAM_URL
+        setJaTentouTocar(true)
+      }
+
+      // Timeout de 10s pra não ficar pendurado
+      const timeoutId = setTimeout(() => {
+        setIsLoading(false)
+        setError('Rádio temporariamente indisponível')
+        setIsPlaying(false)
+      }, 10000)
+
+      audioRef.current.play()
+        .then(() => {
+          clearTimeout(timeoutId)
+        })
+        .catch((err) => {
+          clearTimeout(timeoutId)
+          setIsLoading(false)
+          setError('Rádio temporariamente indisponível')
+        })
     }
   }
 
@@ -175,7 +180,7 @@ export default function RadioPlayer({ minimizado: inicialMinimizado = false, onC
   if (integrado) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <audio ref={audioRef} />
+        <audio ref={audioRef} preload="none" />
         
         <div className="p-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -232,7 +237,7 @@ export default function RadioPlayer({ minimizado: inicialMinimizado = false, onC
             </div>
             <span className="text-xs text-gray-400">
               {error ? (
-                <span className="text-red-500">⚠️ {error}</span>
+                <span className="text-yellow-600">⚠️ {error}</span>
               ) : isLoading ? (
                 <span className="text-yellow-500">⏳ Conectando...</span>
               ) : isPlaying ? (
@@ -276,31 +281,32 @@ export default function RadioPlayer({ minimizado: inicialMinimizado = false, onC
       </div>
 
       <div className="p-5 bg-gray-50">
-        <audio ref={audioRef} />
+        <audio ref={audioRef} preload="none" />
 
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
             <span className="text-xs font-medium text-gray-600">
-              {error ? '⚠️ Erro' : (isLoading ? '⏳ Conectando...' : (isPlaying ? '🔴 Ao vivo' : statusText))}
+              {error ? '⚠️ Offline' : (isLoading ? '⏳ Conectando...' : (isPlaying ? '🔴 Ao vivo' : statusText))}
             </span>
           </div>
           <span className="text-xs text-gray-400">Diamante FM</span>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl text-center">
-            {error}
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 text-yellow-700 text-xs rounded-xl text-center">
+            ⚠️ {error}
             <button 
               onClick={() => {
                 setError(null)
                 setIsLoading(true)
+                setJaTentouTocar(false)
                 if (audioRef.current) {
                   audioRef.current.src = STREAM_URL
                   audioRef.current.load()
                 }
               }}
-              className="ml-2 text-red-600 font-semibold hover:underline"
+              className="ml-2 text-yellow-700 font-semibold hover:underline"
             >
               Tentar novamente
             </button>
