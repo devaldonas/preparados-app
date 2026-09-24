@@ -33,6 +33,7 @@ export default function PessoasProximas() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [gruposMapa, setGruposMapa] = useState<GrupoMapa[]>([])
+  const [totalUsuariosMapa, setTotalUsuariosMapa] = useState(0)
   const [groupsCount, setGroupsCount] = useState(0)
   const [userCep, setUserCep] = useState('')
   const router = useRouter()
@@ -49,6 +50,7 @@ export default function PessoasProximas() {
         await loadUserData(user.id)
         await loadGruposMapa()
         await loadGroupsCount()
+        await loadTotalUsuariosMapa()
       } catch (error) {
         console.error('Erro ao carregar dados:', error)
       } finally {
@@ -142,6 +144,27 @@ export default function PessoasProximas() {
     } catch (error) {
       console.error('Erro ao carregar grupos:', error)
       setGroupsCount(0)
+    }
+  }
+
+  const loadTotalUsuariosMapa = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null)
+
+      if (error) {
+        console.error('Erro ao contar usuários no mapa:', error)
+        setTotalUsuariosMapa(0)
+        return
+      }
+
+      setTotalUsuariosMapa(count || 0)
+    } catch (error) {
+      console.error('Erro ao contar usuários no mapa:', error)
+      setTotalUsuariosMapa(0)
     }
   }
 
@@ -265,7 +288,7 @@ export default function PessoasProximas() {
               </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-500 leading-tight">Preparados no Mapa</p>
-                <p className="text-xl font-bold text-black mt-1">{gruposMapa.length}</p>
+                <p className="text-xl font-bold text-black mt-1">{totalUsuariosMapa}</p>
               </div>
             </div>
           </Link>
