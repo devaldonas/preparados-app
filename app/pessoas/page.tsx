@@ -318,7 +318,7 @@ export default function PessoasProximas() {
         {/* Mapa */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
           <div className="p-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Mapa de Pessoas Próximas</h2>
+            <h2 className="font-semibold text-gray-900 text-center">Mapa de Pessoas Próximas</h2>
           </div>
           <div className="h-[400px]">
             <MapaComClusters 
