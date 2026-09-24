@@ -253,16 +253,15 @@ export default function PessoasProximas() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-black">Pessoas Próximas</h1>
-            <p className="text-sm text-gray-500">Conecte-se com pessoas da sua região</p>
           </div>
           <button
             onClick={compartilharLocalizacao}
-            className="bg-[#FFB800] text-black px-4 py-2 rounded-lg font-semibold hover:bg-[#E5A600] transition flex items-center gap-2"
+            className="bg-[#FFB800] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition flex items-center gap-2"
           >
             <img 
               src="/images/localizacao-icon.png" 
               alt="Localização" 
-              className="w-5 h-5 object-contain"
+              className="w-4 h-4 object-contain"
               onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
             Compartilhar localização
@@ -301,7 +300,7 @@ export default function PessoasProximas() {
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
                 <img 
-                  src="/images/localizacao-icon.png" 
+                  src="/images/pessoas1-icon.png" 
                   alt="Grupos" 
                   className="w-6 h-6 object-contain"
                   onError={(e) => { e.currentTarget.style.display = 'none' }}
@@ -315,6 +314,11 @@ export default function PessoasProximas() {
           </Link>
 
         </div>
+
+        {/* Texto centralizado */}
+        <p className="text-sm text-gray-500 text-center mb-4">
+          Conecte-se com pessoas da sua região
+        </p>
 
         {/* Mapa */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
