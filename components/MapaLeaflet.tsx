@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import { User } from 'lucide-react'
 import ModalMembros from './ModalMembros'
 
@@ -34,6 +36,12 @@ const Popup = dynamic(
   () => import('react-leaflet').then((mod) => mod.Popup),
   { ssr: false }
 )
+
+// 🔥 MarkerClusterGroup (dynamic) — DECLARADO ANTES DE USAR
+const MarkerClusterGroup = dynamic(
+  () => import('react-leaflet-cluster').then((mod) => mod.default as any),
+  { ssr: false }
+) as any
 
 interface GrupoMapa {
   id: number
@@ -81,6 +89,36 @@ const getGroupIcon = (count: number) => {
   })
 }
 
+// 🔥 FUNÇÃO PARA GERAR CLUSTER CUSTOMIZADO
+const createClusterIcon = (cluster: any) => {
+  const count = cluster.getChildCount()
+  const size = count < 10 ? 40 : count < 100 ? 44 : 48
+  
+  return L.divIcon({
+    html: `
+      <div style="
+        background-color: #FFB800;
+        color: #000;
+        width: ${size}px;
+        height: ${size}px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: ${size/3}px;
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        font-family: Arial, sans-serif;
+      ">
+        ${count}
+      </div>
+    `,
+    className: 'custom-cluster',
+    iconSize: L.point(size, size),
+  })
+}
+
 export default function MapaLeaflet({ grupos, onEntrarNoChat }: MapaLeafletProps) {
   const center: [number, number] = [-14.2350, -51.9253]
   const zoom = 4
@@ -124,48 +162,56 @@ export default function MapaLeaflet({ grupos, onEntrarNoChat }: MapaLeafletProps
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           />
 
-          {/* 🔥 MARCADORES DOS GRUPOS */}
-          {gruposValidos.map((grupo) => (
-            <Marker
-              key={grupo.id}
-              position={[grupo.center_latitude, grupo.center_longitude]}
-              icon={iconCache.get(grupo.member_count)}
-            >
-              <Popup>
-                <div className="p-2 min-w-[200px]">
-                  <div className="text-center mb-3">
-                    <p className="font-bold text-base text-gray-900">
-                      {grupo.city_name || grupo.name}
-                    </p>
-                    <p className="text-xs text-gray-600 flex items-center justify-center gap-1 mt-1">
-                      <User size={12} />
-                      {grupo.member_count} {grupo.member_count === 1 ? 'membro' : 'membros'}
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        if (onEntrarNoChat) {
-                          onEntrarNoChat(grupo.id)
-                        }
-                      }}
-                      className="w-full bg-[#FFB800] text-black text-xs font-semibold py-2 rounded-lg hover:bg-[#E5A600] transition"
-                    >
-                      Entrar no chat
-                    </button>
+          {/* 🔥 MARCADORES DOS GRUPOS COM CLUSTER */}
+          <MarkerClusterGroup
+            iconCreateFunction={createClusterIcon}
+            showCoverageOnHover={false}
+            maxClusterRadius={50}
+            spiderfyOnMaxZoom={true}
+            disableClusteringAtZoom={12}
+          >
+            {gruposValidos.map((grupo) => (
+              <Marker
+                key={grupo.id}
+                position={[grupo.center_latitude, grupo.center_longitude]}
+                icon={iconCache.get(grupo.member_count)}
+              >
+                <Popup>
+                  <div className="p-2 min-w-[200px]">
+                    <div className="text-center mb-3">
+                      <p className="font-bold text-base text-gray-900">
+                        {grupo.city_name || grupo.name}
+                      </p>
+                      <p className="text-xs text-gray-600 flex items-center justify-center gap-1 mt-1">
+                        <User size={12} />
+                        {grupo.member_count} {grupo.member_count === 1 ? 'membro' : 'membros'}
+                      </p>
+                    </div>
                     
-                    <button
-                      onClick={() => setGrupoSelecionado(grupo)}
-                      className="w-full bg-gray-100 text-gray-700 text-xs font-semibold py-2 rounded-lg hover:bg-gray-200 transition"
-                    >
-                      Ver membros
-                    </button>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          if (onEntrarNoChat) {
+                            onEntrarNoChat(grupo.id)
+                          }
+                        }}
+                        className="w-full bg-[#FFB800] text-black text-xs font-semibold py-2 rounded-lg hover:bg-[#E5A600] transition"
+                      >
+                        Entrar no chat
+                      </button>
+                      
+                      <button
+                        onClick={() => setGrupoSelecionado(grupo)}
+                        className="w-full bg-gray-100 text-gray-700 text-xs font-semibold py-2 rounded-lg hover:bg-gray-200 transition"
+                      >
+                        Ver membros
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+                </Popup>
+              </Marker>
+            ))}
+          </MarkerClusterGroup>
         </MapContainer>
       </div>
 
