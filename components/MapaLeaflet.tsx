@@ -85,6 +85,24 @@ function MapController({ center, zoom }: { center: [number, number], zoom: numbe
   return null
 }
 
+// 🔥 FUNÇÃO PARA GERAR ÍCONE COM BADGE
+const getIconWithBadge = (count: number) => {
+  const size = count > 1 ? 32 : 20
+  const fontSize = count > 1 ? 12 : 0
+  
+  return new L.Icon({
+    iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+        <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 1}" fill="#FFB800" stroke="white" stroke-width="2"/>
+        ${count > 1 ? `<text x="${size/2}" y="${size/2 + fontSize/2 - 1}" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="#000" text-anchor="middle">${count}</text>` : ''}
+      </svg>
+    `),
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2],
+    className: 'custom-marker',
+  })
+}
+
 export default function MapaLeaflet({ 
   userLocations, 
   onUserSelect,
@@ -93,6 +111,30 @@ export default function MapaLeaflet({
   const center: [number, number] = [-14.2350, -51.9253]
   const zoom = 4
 
+  // 🔥 AGRUPAR USUÁRIOS POR COORDENADA
+  const usuariosAgrupados = useMemo(() => {
+    if (!userLocations || !Array.isArray(userLocations) || userLocations.length === 0) {
+      return []
+    }
+
+    const grupos = new Map<string, UserLocation[]>()
+
+    userLocations.forEach((loc) => {
+      if (!loc || !loc.latitude || !loc.longitude) return
+      
+      // Chave: coordenada com 6 casas decimais (evita duplicatas por precisão)
+      const key = `${loc.latitude.toFixed(6)},${loc.longitude.toFixed(6)}`
+      
+      if (!grupos.has(key)) {
+        grupos.set(key, [])
+      }
+      grupos.get(key)!.push(loc)
+    })
+
+    return Array.from(grupos.values())
+  }, [userLocations])
+
+  // 🔥 AGRUPAR POR CIDADE (para o `showGroupsList`)
   const gruposPorCidade = useMemo(() => {
     const gruposMap = new Map<string, UserLocation[]>()
     if (!userLocations || !Array.isArray(userLocations) || userLocations.length === 0) {
@@ -109,16 +151,18 @@ export default function MapaLeaflet({
     return gruposMap
   }, [userLocations])
 
-  const customIcon = new L.Icon({
-    iconUrl: 'data:image/svg+xml;base64,' + btoa(`
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FFB800" stroke="white" stroke-width="2">
-        <circle cx="12" cy="12" r="8"/>
-      </svg>
-    `),
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-    className: 'custom-marker'
-  })
+  // Cache de ícones pra não recriar a cada render
+  const iconCache = useMemo(() => {
+    const cache = new Map<number, L.Icon>()
+    return {
+      get: (count: number) => {
+        if (!cache.has(count)) {
+          cache.set(count, getIconWithBadge(count))
+        }
+        return cache.get(count)!
+      }
+    }
+  }, [])
 
   return (
     <div className="w-full h-[500px] rounded-xl overflow-hidden border border-gray-200">
@@ -136,34 +180,74 @@ export default function MapaLeaflet({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
 
-        {/* 🔥 MARCADORES DOS USUÁRIOS */}
-        {userLocations && Array.isArray(userLocations) && userLocations.map((loc) => {
-          if (!loc || !loc.latitude || !loc.longitude) return null
-          
+        {/* 🔥 MARCADORES DOS USUÁRIOS (AGRUPADOS POR COORDENADA) */}
+        {usuariosAgrupados.map((grupo) => {
+          const primeiro = grupo[0]
+          const count = grupo.length
+          const key = `${primeiro.latitude.toFixed(6)},${primeiro.longitude.toFixed(6)}`
+
           return (
             <Marker
-              key={loc.userId}
-              position={[loc.latitude, loc.longitude]}
-              icon={customIcon}
+              key={key}
+              position={[primeiro.latitude, primeiro.longitude]}
+              icon={iconCache.get(count)}
             >
               <Popup>
-                <div className="p-2 min-w-[150px] text-center">
-                  {/* 🔥 APENAS A CIDADE */}
-                  {loc.city && (
-                    <p className="font-bold text-base text-gray-900">
-                      📍 {loc.city}
-                    </p>
+                <div className="p-2 min-w-[200px]">
+                  {count === 1 ? (
+                    // 🔥 1 usuário: popup normal
+                    <div className="text-center">
+                      {primeiro.userName && (
+                        <p className="font-bold text-sm text-gray-900 mb-1">
+                          {primeiro.userName}
+                        </p>
+                      )}
+                      {primeiro.city && (
+                        <p className="text-xs text-gray-600 mb-2">
+                          📍 {primeiro.city}{primeiro.state ? `, ${primeiro.state}` : ''}
+                        </p>
+                      )}
+                      <button
+                        onClick={() => {
+                          if (onUserSelect) {
+                            onUserSelect(primeiro.userId)
+                          }
+                        }}
+                        className="w-full bg-[#FFB800] text-black text-xs font-semibold py-1.5 rounded-lg hover:bg-[#E5A600] transition"
+                      >
+                        Entrar no chat
+                      </button>
+                    </div>
+                  ) : (
+                    // 🔥 2+ usuários: lista de todos
+                    <div>
+                      <p className="font-bold text-sm text-gray-900 mb-2 text-center">
+                        {count} preparados aqui
+                      </p>
+                      {primeiro.city && (
+                        <p className="text-xs text-gray-600 mb-2 text-center">
+                          📍 {primeiro.city}{primeiro.state ? `, ${primeiro.state}` : ''}
+                        </p>
+                      )}
+                      <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                        {grupo.map((u) => (
+                          <button
+                            key={u.userId}
+                            onClick={() => {
+                              if (onUserSelect) {
+                                onUserSelect(u.userId)
+                              }
+                            }}
+                            className="w-full text-left bg-gray-50 hover:bg-[#FFB800]/10 border border-gray-200 rounded-lg px-2 py-1.5 transition"
+                          >
+                            <p className="text-xs font-medium text-gray-900 truncate">
+                              {u.userName || 'Sem nome'}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                  <button
-                    onClick={() => {
-                      if (onUserSelect) {
-                        onUserSelect(loc.userId)
-                      }
-                    }}
-                    className="mt-2 w-full bg-[#FFB800] text-black text-xs font-semibold py-1.5 rounded-lg hover:bg-[#E5A600] transition"
-                  >
-                    Entrar no chat
-                  </button>
                 </div>
               </Popup>
             </Marker>
