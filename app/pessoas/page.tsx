@@ -250,15 +250,17 @@ export default function PessoasProximas() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
         
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-black">Pessoas Próximas</h1>
-          </div>
+        <div className="flex justify-center mb-6">
           <button
             onClick={compartilharLocalizacao}
-            className="bg-[#FFB800] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition flex items-center gap-2"
+            className="bg-[#FFB800] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition flex items-center gap-2 whitespace-nowrap"
           >
-
+            <img 
+              src="/images/localizacao-icon.png" 
+              alt="Localização" 
+              className="w-4 h-4 object-contain flex-shrink-0"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
             Compartilhar localização
           </button>
         </div>
