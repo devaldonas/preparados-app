@@ -258,12 +258,7 @@ export default function PessoasProximas() {
             onClick={compartilharLocalizacao}
             className="bg-[#FFB800] text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-[#E5A600] transition flex items-center gap-2"
           >
-            <img 
-              src="/images/localizacao-icon.png" 
-              alt="Localização" 
-              className="w-4 h-4 object-contain"
-              onError={(e) => { e.currentTarget.style.display = 'none' }}
-            />
+
             Compartilhar localização
           </button>
         </div>
@@ -271,7 +266,7 @@ export default function PessoasProximas() {
         {/* 🔥 CARDS - APENAS 2 COM ÍCONES */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           
-          {/* Card: Preparados no Mapa */}
+          {/* Card: Preparados */}
           <Link
             href="/pessoas/usuarios"
             className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition flex flex-col h-full min-h-[88px]"
@@ -286,7 +281,7 @@ export default function PessoasProximas() {
                 />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-gray-500 leading-tight">Preparados no Mapa</p>
+                <p className="text-sm text-gray-500 leading-tight">Preparados</p>
                 <p className="text-xl font-bold text-black mt-1">{totalUsuariosMapa}</p>
               </div>
             </div>
