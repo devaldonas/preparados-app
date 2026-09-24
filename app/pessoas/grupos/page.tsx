@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users, MapPin, User, X, Loader2 } from 'lucide-react'
+import { ArrowLeft, Users, MapPin, User, X, Loader2, MessageCircle } from 'lucide-react'
 
 interface Group {
   id: number
@@ -256,15 +256,17 @@ export default function ListaGrupos() {
                 ) : (
                   <div className="space-y-3">
                     {membros.map((membro) => (
-                      <div 
+                      <Link
                         key={membro.id}
-                        className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                        href={`/chat/${membro.id}`}
+                        onClick={() => setGrupoSelecionado(null)}
+                        className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-[#FFB800]/10 rounded-lg transition cursor-pointer group"
                       >
                         <div className="w-10 h-10 bg-[#FFB800]/10 rounded-full flex items-center justify-center flex-shrink-0">
                           <User size={20} className="text-[#FFB800]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm text-gray-900 truncate">
+                          <p className="font-medium text-sm text-gray-900 truncate group-hover:text-[#FFB800] transition">
                             {membro.full_name || 'Sem nome'}
                           </p>
                           {membro.city && (
@@ -273,7 +275,10 @@ export default function ListaGrupos() {
                             </p>
                           )}
                         </div>
-                      </div>
+                        <div className="text-[#FFB800] opacity-0 group-hover:opacity-100 transition flex-shrink-0">
+                          <MessageCircle size={18} />
+                        </div>
+                      </Link>
                     ))}
                   </div>
                 )}
