@@ -280,7 +280,7 @@ export default function PessoasProximas() {
               <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
                 <img 
                   src="/images/markmap.png" 
-                  alt="Preparados no Mapa" 
+                  alt="Preparados" 
                   className="w-6 h-6 object-contain"
                   onError={(e) => { e.currentTarget.style.display = 'none' }}
                 />
