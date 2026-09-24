@@ -177,34 +177,31 @@ export default function MapaLeaflet({ grupos, onEntrarNoChat }: MapaLeafletProps
                 icon={iconCache.get(grupo.member_count)}
               >
                 <Popup>
-                  <div className="p-2 min-w-[200px]">
-                    <div className="text-center mb-3">
-                      <p className="font-bold text-base text-gray-900">
+                  <div className="p-1 min-w-[140px] max-w-[160px]">
+                    <div className="text-center mb-2">
+                      <p className="font-bold text-sm text-gray-900">
                         {grupo.city_name || grupo.name}
-                      </p>
-                      <p className="text-xs text-gray-600 flex items-center justify-center gap-1 mt-1">
-                        <User size={12} />
-                        {grupo.member_count} {grupo.member_count === 1 ? 'membro' : 'membros'}
                       </p>
                     </div>
                     
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <button
                         onClick={() => {
                           if (onEntrarNoChat) {
                             onEntrarNoChat(grupo.id)
                           }
                         }}
-                        className="w-full bg-[#FFB800] text-black text-xs font-semibold py-2 rounded-lg hover:bg-[#E5A600] transition"
+                        className="w-full bg-[#FFB800] text-black text-xs font-semibold py-1.5 px-2 rounded-md hover:bg-[#E5A600] transition"
                       >
                         Entrar no chat
                       </button>
                       
                       <button
                         onClick={() => setGrupoSelecionado(grupo)}
-                        className="w-full bg-gray-100 text-gray-700 text-xs font-semibold py-2 rounded-lg hover:bg-gray-200 transition"
+                        className="w-full bg-gray-100 text-gray-700 text-xs font-semibold py-1.5 px-2 rounded-md hover:bg-gray-200 transition flex items-center justify-center gap-1"
                       >
-                        Ver membros
+                        <User size={11} />
+                        {grupo.member_count} {grupo.member_count === 1 ? 'membro' : 'membros'}
                       </button>
                     </div>
                   </div>
