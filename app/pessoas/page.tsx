@@ -20,22 +20,19 @@ const MapaComClusters = dynamic(
   }
 )
 
-interface UserLocation {
-  userId: string
-  userName: string | null
-  latitude: number
-  longitude: number
-  groupId: number | null
-  cep: string
-  mochila_tipo: string
-  city: string | null
-  state: string | null
+interface GrupoMapa {
+  id: number
+  name: string
+  city_name: string
+  member_count: number
+  center_latitude: number
+  center_longitude: number
 }
 
 export default function PessoasProximas() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [userLocations, setUserLocations] = useState<UserLocation[]>([])
+  const [gruposMapa, setGruposMapa] = useState<GrupoMapa[]>([])
   const [groupsCount, setGroupsCount] = useState(0)
   const [userCep, setUserCep] = useState('')
   const router = useRouter()
@@ -50,7 +47,7 @@ export default function PessoasProximas() {
         }
         setUser(user)
         await loadUserData(user.id)
-        await loadUserLocations()
+        await loadGruposMapa()
         await loadGroupsCount()
       } catch (error) {
         console.error('Erro ao carregar dados:', error)
@@ -77,41 +74,45 @@ export default function PessoasProximas() {
     }
   }
 
-  const loadUserLocations = async () => {
+  const loadGruposMapa = async () => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, cep, latitude, longitude, mochila_tipo, group_id, city, state')
-        .not('latitude', 'is', null)
-        .not('longitude', 'is', null)
+        .from('groups')
+        .select('id, name, city_name, member_count, center_latitude, center_longitude')
+        .gt('member_count', 0)
+        .order('member_count', { ascending: false })
 
       if (error) {
-        console.error('Erro ao buscar localizações:', error)
-        setUserLocations([])
+        console.error('Erro ao buscar grupos:', error)
+        setGruposMapa([])
         return
       }
 
-      if (data && data.length > 0) {
-        const mappedLocations = data.map((p: any) => ({
-          userId: p.id,
-          userName: p.full_name,
-          latitude: p.latitude,
-          longitude: p.longitude,
-          groupId: p.group_id,
-          cep: p.cep || '',
-          mochila_tipo: p.mochila_tipo || 'BOB',
-          city: p.city || null,
-          state: p.state || null
-        }))
+      // Filtra grupos com coordenadas válidas e membros > 0
+      const gruposValidos = (data || []).filter((g: any) => {
+        if (g.name === 'Localização do Usuário') return false
+        if (g.name === 'Localizacao do Usuario') return false
+        if (g.name === 'Sem grupo') return false
+        if (g.name === 'Sem cidade definida') return false
+        if (g.member_count === 0) return false
+        if (!g.center_latitude || !g.center_longitude) return false
+        return true
+      })
 
-        setUserLocations(mappedLocations)
-      } else {
-        console.log('⚠️ Nenhum usuário com localização encontrado')
-        setUserLocations([])
-      }
+      const gruposMapeados: GrupoMapa[] = gruposValidos.map((g: any) => ({
+        id: g.id,
+        name: g.name,
+        city_name: g.city_name || g.name,
+        member_count: g.member_count || 0,
+        center_latitude: g.center_latitude,
+        center_longitude: g.center_longitude
+      }))
+
+      setGruposMapa(gruposMapeados)
+      console.log(`✅ ${gruposMapeados.length} grupos carregados no mapa`)
     } catch (error) {
-      console.error('Erro ao carregar localizações:', error)
-      setUserLocations([])
+      console.error('Erro ao carregar grupos:', error)
+      setGruposMapa([])
     }
   }
 
@@ -183,6 +184,10 @@ export default function PessoasProximas() {
       console.error('Erro ao compartilhar localização:', error)
       alert('Erro ao compartilhar localização')
     }
+  }
+
+  const entrarNoGrupo = (groupId: number) => {
+    router.push(`/grupo/${groupId}`)
   }
 
   const abrirChatDoGrupo = async (userId: string) => {
@@ -260,7 +265,7 @@ export default function PessoasProximas() {
               </div>
               <div className="flex-1">
                 <p className="text-sm text-gray-500 leading-tight">Preparados no Mapa</p>
-                <p className="text-xl font-bold text-black mt-1">{userLocations.length}</p>
+                <p className="text-xl font-bold text-black mt-1">{gruposMapa.length}</p>
               </div>
             </div>
           </Link>
@@ -295,8 +300,8 @@ export default function PessoasProximas() {
           </div>
           <div className="h-[400px]">
             <MapaComClusters 
-              userLocations={userLocations}
-              onUserSelect={abrirChatDoGrupo}
+              grupos={gruposMapa}
+              onEntrarNoChat={entrarNoGrupo}
             />
           </div>
         </div>
@@ -326,7 +331,7 @@ export default function PessoasProximas() {
                         })
                         .eq('id', user.id)
                       setUserCep(novoCep)
-                      await loadUserLocations()
+                      await loadGruposMapa()
                       alert('CEP atualizado com sucesso!')
                     } else {
                       alert('CEP não encontrado')

@@ -3,22 +3,18 @@
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 
-interface UserLocation {
-  userId: string
-  userName: string | null
-  latitude: number
-  longitude: number
-  groupId: number | null
-  cep: string
-  mochila_tipo: string
-  city: string | null
-  state: string | null
+interface GrupoMapa {
+  id: number
+  name: string
+  city_name: string
+  member_count: number
+  center_latitude: number
+  center_longitude: number
 }
 
 interface MapaComClustersProps {
-  userLocations: UserLocation[]
-  onUserSelect?: (userId: string) => void
-  showGroupsList?: boolean
+  grupos: GrupoMapa[]
+  onEntrarNoChat?: (groupId: number) => void
 }
 
 // 🔥 CARREGAR O MAPA DINAMICAMENTE APENAS NO CLIENTE
